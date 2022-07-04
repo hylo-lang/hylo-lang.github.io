@@ -114,6 +114,66 @@ To run this program:
 - Run the command `valc --modules Sources/Hello Sources/Greet -o hello`
 - Run the command `./hello`
 
+## Bindings
+
+A binding is a name that denotes an object or a projection (more on that later).
+Bindings can be mutable or not.
+The value of a mutable can be modified whereas that of an immutable binding cannot.
+
+Immutable bindings are declared with `let` and can be initialized with the `=` operator:
+It is not possible to modify their value after their initialization.
+
+```val
+public fun main() {
+  let gravity = 9.81
+  gravity = 11.2 // error: cannot assign, `gravity` is a `let` binding
+}
+```
+
+Mutable bindings are typically declared with `var`.
+
+```val
+public fun main() {
+  var length = 1
+  length = 2
+  print(length) // 2
+}
+```
+
+Bindings declared with `inout` are also mutable but operate differently.
+They *project* the value (or part thereof) of an object mutably.
+
+```val
+public fun main() {
+  var point = (x: 0.0, y: 1.0)
+  inout x = &point.x
+  x = 3.14
+  print(point) // (x: 3.14, y: 1.0)
+}
+```
+
+Val is statically typed: bindings of a given type cannot be assigned a value of a different one.
+For instance, it is impossible to assign a floating point number to an integer binding:
+
+```val
+public fun main() {
+  var length = 1
+  length = 2.3 // error: expected type `Int`, found `Double`
+}
+```
+
+The type of a binding is determined at declaration.
+If an initializing expression is present, such as in all previous examples, the binding is given the type of that expression.
+Alternatively, we may state the type of a binding explicitly by the means of an annotation:
+
+```val
+public fun main() {
+  var weight: Double = 1
+  weight = 2.3
+  print(weight) // 2.3
+}
+```
+
 * * *
 
 [Home](./)

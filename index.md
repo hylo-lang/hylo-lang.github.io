@@ -19,7 +19,7 @@ The code of the compiler is open source and [hosted on GitHub](https://github.co
 ## Enough, show me some code!
 
 Okay, okay.
-Here's a simple program.
+Here's a simple program:
 
 ```val
 subscript longer_of(_ a: inout String, _ b: inout String): String {
