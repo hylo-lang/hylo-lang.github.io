@@ -193,7 +193,7 @@ public fun main() {
 
 Some operations are said to be *consuming*, because they end the lifetime of a binding.
 In other words, they *must* be the last use of the consumed binding.
-For example, a creating a [tuple](#tuples) consumes the values that initialize its elements:
+For example, assigning a `var` binding or a creating a [tuple](#tuples) consumes the values that initialize its elements:
 
 ```val
 public fun main() {
@@ -222,12 +222,12 @@ Since all bindings are immutable in this example, the third principle holds triv
 
 Objects may form whole/part relationships.
 In that case, the "whole" becomes owner of the "part".
-Here, that happens when a tuple is created at line 3 of `main`, consuming the values of `weight` and `lenght`, and thus their ownership.
+Here, that happens when a tuple is created at line 3 of `main`, consuming the values of `weight` and `length`, and thus their ownership.
 A transfer of ownership ends the lifetime of all bindings before the transfer.
 Thus, it is illegal to use `weight` at line 6.
 
-The solution is to copy `weight`'s value to create the tuple.
-By doing so, we would create a new independent object whose ownership can be attributed to the tuple, without transferring that of `weight`.
+If we follow the compiler's suggestion, a solution is to copy `weight`'s value to create the tuple.
+By doing so, we will create a new independent object whose ownership can be attributed to the tuple, without transferring that of `weight`.
 
 ```val
 public fun main() {
@@ -244,14 +244,40 @@ public fun main() {
 
 A tuple is a container composed of two or more values. 
 t is a kind of [record data structure](https://en.wikipedia.org/wiki/Record_(computer_science)).
-It can be created with a comma-separated list of values, enclosed in parentheses.
+It can be created with a comma-separated list of values, enclosed in parentheses, and optionally labeled.
 Of course, tuples can contain other tuples.
 
 ```val
 public fun main() {
-  var circle = (origin: (x: 6.3, y: 1.0), radius: 2.3)
+  let circle = (origin: (x: 6.3, y: 1.0), radius: 2.3)
+  print(circle)
 }
 ```
+
+The values of a tuple are accessed by appending `.n` to a tuple expression, where `n` denotes the `n-th` element of the tuple, stating at zero.
+Elements may also be referred to by their label, if any.
+
+```val
+public fun main() {
+  var circle = (origin: (x: 6.3, y: 1.0), radius: 2.3)
+  circle.0.1 = 3.6
+  print(circle.origin) // (x: 6.3, y: 3.6)
+}
+```
+
+The values of a tuple may be unpacked to local bindings through a process called "destructuring".
+Irrelevant elements may be ignored by using an underscore:
+
+```val
+public fun main() {
+  let circle = (origin: (x: 6.3, y: 1.0), radius: 2.3)
+  let (origin: (x: px, y: _), radius: r) = circle
+  print((px, r)) // (6.3, 1.0)
+}
+```
+
+In the program above, the tuple assigned to `circle` is destructured to initialize two local bindings: `px` and `r`.
+Notice that the y-componenent of the circle's origin is ignored.
 
 * * *
 
