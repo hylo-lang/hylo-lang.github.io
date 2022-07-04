@@ -152,30 +152,6 @@ public fun main() {
 }
 ```
 
-### Types
-
-Val is statically typed: bindings of a given type cannot be assigned a value of a different one.
-For instance, it is impossible to assign a floating point number to an integer binding:
-
-```val
-public fun main() {
-  var length = 1
-  length = 2.3 // error: expected type `Int`, found `Double`
-}
-```
-
-The type of a binding is determined at declaration.
-If an initializing expression is present, such as in all previous examples, the binding is given the type of that expression.
-Alternatively, we may state the type of a binding explicitly by the means of an annotation:
-
-```val
-public fun main() {
-  var weight: Double = 1
-  weight = 2.3
-  print(weight) // 2.3
-}
-```
-
 ### Lifetime
 
 The *lifetime* of a binding denotes the region of the program where the value of that binding can be accessed.
@@ -240,7 +216,31 @@ public fun main() {
 }
 ```
 
-## Tuples
+## Types
+
+Val is statically typed: bindings of a given type cannot be assigned a value of a different one.
+For instance, it is impossible to assign a floating point number to an integer binding:
+
+```val
+public fun main() {
+  var length = 1
+  length = 2.3 // error: expected type `Int`, found `Double`
+}
+```
+
+The type of a binding is determined at declaration.
+If an initializing expression is present, such as in all previous examples, the binding is given the type of that expression.
+Alternatively, we may state the type of a binding explicitly by the means of an annotation:
+
+```val
+public fun main() {
+  var weight: Double = 1
+  weight = 2.3
+  print(weight) // 2.3
+}
+```
+
+### Tuples
 
 A tuple is a container composed of zero or more heterogeneous values.
 t is a kind of [record data structure](https://en.wikipedia.org/wiki/Record_(computer_science)).
@@ -281,7 +281,7 @@ public fun main() {
 In the program above, the tuple assigned to `circle` is destructured to initialize two local bindings: `px` and `r`.
 Notice that the y-componenent of the circle's origin is ignored.
 
-## Buffers, arrays, and slices
+### Buffers, arrays, and slices
 
 A buffer is a fixed-size collection of homogeneous elements, laid out contiguously in memory.
 It can be created with a comma-separated list of values, enclosed in square brackets.
@@ -337,7 +337,7 @@ public fun main() {
 }
 ```
 
-## Records
+### Records
 
 Just like a tuple, a record is a container composed of zero or more heterogeneous values.
 Unlike a tuple, however, a record type offers a finer control over the visibility and mutability of its elements.
@@ -369,12 +369,43 @@ public fun main() {
 ```
 
 In the program above, `m.components` can be modified because `m` is a mutable binding **and** the property `components` is mutable, as it is declared with `var`.
-Should that property be declared with `let`, the components of the matrix would remain immutable once the matrix has finished initializing, notwistaning the mutability of the binding to which it is assigned.
+Would that property be declared with `let`, the components of the matrix would remain immutable once the matrix has finished initializing, notwistaning the mutability of the binding to which it is assigned.
 
 Members that are not declared `public` cannot be accessed outside of the scope of a record type.
-We will see later how that feature can be exploited to design clean APIs.
+As we uncover more advanced constructs, we will show how to exploit that feature to design clean and safe APIs.
 
-## Closures
+### Unions
+
+Two or more types can form a union type, also known as a [sum type](https://en.wikipedia.org/wiki/Tagged_union).
+A sum type is a super type of all its elements.
+Among other things, it means that if a type `T` is the union of the types `U` and `V`, then a binding of type `T` can be assigned to a value of type `U` *or* a value of type `V`.
+
+```val
+public fun main() {
+  var x: Int | String = "Hello, World!"
+  x = 42
+  print(x) // 42
+}
+```
+
+It is often convenient to create type aliases to denote unions.
+Those can even define generic type arguments.
+For example, Val's standard library defines [option types](https://en.wikipedia.org/wiki/Option_type) as follows:
+
+```val
+public typealias Option<T> = T | Nil
+public type Nil {
+  public memberwise init
+}
+```
+
+Here, the type `Nil` is an empty record type with no property.
+The type `Option<T>` is the union of any type `T` and `Nil`, which can be used to indicate that a particular value might be absent.
+
+*Note: the union of `T | U` with `T` is not equal to `T | U`.*
+*Instead, it is `(T | U) | T`.*
+
+### Closures
 
 * * *
 
