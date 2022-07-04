@@ -152,6 +152,8 @@ public fun main() {
 }
 ```
 
+### Types
+
 Val is statically typed: bindings of a given type cannot be assigned a value of a different one.
 For instance, it is impossible to assign a floating point number to an integer binding:
 
@@ -171,6 +173,83 @@ public fun main() {
   var weight: Double = 1
   weight = 2.3
   print(weight) // 2.3
+}
+```
+
+### Lifetime
+
+The *lifetime* of a binding denotes the region of the program where the value of that binding can be accessed.
+That always end after the last expression in which the binding occurs.
+For example, the lifetime of `weight` ends after the first call to `print` in the program below:
+
+```
+public fun main() {
+  let weight = 1.0
+  print(weight) // 1.0
+  let length = 2.0
+  print(length) // 1.0
+}
+```
+
+Some operations are said to be *consuming*, because they end the lifetime of a binding.
+In other words, they *must* be the last use of the consumed binding.
+For example, a creating a [tuple](#tuples) consumes the values that initialize its elements:
+
+```val
+public fun main() {
+  let weight = 1.0
+  let length = 2.0
+  let measurements = (
+    w: weight,  // error: `weight` is used after escaping here.
+    l: length)
+  print(weight) // use occurs here
+}
+```
+
+The program above is illegal because the value of `weight` *escapes* to initialize another object.
+To better understand, we must keep in mind that Val places great emphasis on the concept of *value independence*.
+
+The constructs of Val manipulate *objects*, which can be thought as independent resources representing some data.
+A binding is a mean to access an object's value, through a name.
+From there, three basic principles apply, which Val upholds by changing the capabilities of a program's bindings depending on its control flow:
+1. When an object is created, its *ownership* is attributed to a binding or another object.
+2. An object always has exactly one owner at any given point during its existence.
+3. There can never be more than a single mutable access to an object at any given point.
+
+In the program above, the first line of `main` creates an object representing a floating-point number.
+Its ownership is attributed to `weight`, satisfying the first and second principles.
+Since all bindings are immutable in this example, the third principle holds trivially.
+
+Objects may form whole/part relationships.
+In that case, the "whole" becomes owner of the "part".
+Here, that happens when a tuple is created at line 3 of `main`, consuming the values of `weight` and `lenght`, and thus their ownership.
+A transfer of ownership ends the lifetime of all bindings before the transfer.
+Thus, it is illegal to use `weight` at line 6.
+
+The solution is to copy `weight`'s value to create the tuple.
+By doing so, we would create a new independent object whose ownership can be attributed to the tuple, without transferring that of `weight`.
+
+```val
+public fun main() {
+  let weight = 1.0
+  let length = 2.0
+  let measurements = (
+    w: weight.copy(),
+    l: length)
+  print(weight) // 1.0
+}
+```
+
+## Tuples
+
+A tuple is a container composed of two or more values. 
+t is a kind of [record data structure](https://en.wikipedia.org/wiki/Record_(computer_science)).
+It can be created with a comma-separated list of values, enclosed in parentheses.
+Of course, tuples can contain other tuples.
+
+```val
+public fun main() {
+  var circle = (origin: (x: 6.3, y: 1.0), radius: 2.3)
 }
 ```
 
