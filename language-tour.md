@@ -242,7 +242,7 @@ public fun main() {
 
 ## Tuples
 
-A tuple is a container composed of two or more values. 
+A tuple is a container composed of zero or more heterogeneous values.
 t is a kind of [record data structure](https://en.wikipedia.org/wiki/Record_(computer_science)).
 It can be created with a comma-separated list of values, enclosed in parentheses, and optionally labeled.
 Of course, tuples can contain other tuples.
@@ -336,6 +336,43 @@ public fun main() {
   print(numbers[2 ..< 4]) // [2, 3]
 }
 ```
+
+## Records
+
+Just like a tuple, a record is a container composed of zero or more heterogeneous values.
+Unlike a tuple, however, a record type offers a finer control over the visibility and mutability of its elements.
+
+A record type is declared with the keyword `type` and contains typed properties declared as bindings:
+
+```val
+type Matrix2 {
+  public var components: Double[2][2]
+  public memberwise init
+}
+```
+
+The type declaration above defines a type `Matrix2` with a single property of type `Double[2][2]`.
+The second declaration exposes the default memberwise initializer of the type, allowing us to create matrices by calling `Matrix2.init(components:)`:
+
+```val
+type Matrix2 {
+  public var components: Double[2][2]
+  public memberwise init
+}
+
+public fun main() {
+  var m = Matrix2(components: [[0, 0], [0, 0]])
+  m.components[0][0] = 1.0
+  m.components[1][1] = 1.0
+  print(m) // Matrix2(components: [[1.0, 0.0], [0.0, 1.0]])
+}
+```
+
+In the program above, `m.components` can be modified because `m` is a mutable binding **and** the property `components` is mutable, as it is declared with `var`.
+Should that property be declared with `let`, the components of the matrix would remain immutable once the matrix has finished initializing, notwistaning the mutability of the binding to which it is assigned.
+
+Members that are not declared `public` cannot be accessed outside of the scope of a record type.
+We will see later how that feature can be exploited to design clean APIs.
 
 ## Closures
 
