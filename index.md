@@ -10,20 +10,23 @@ Val aims to be:
 - **Simple**: Val borrows heavily from the [Swift programming language](https://swift.org) which has demonstrated a user-friendly approach to generic programming. Further, its user model emphasizes on value, leaving out the typical complexities associated with reference semantics (e.g., memory regions, lifetime annotations, etc.).
 - **Interoperable with C++**: Programming languages rarely survive in vacuum. Val aims to take advantage of the vast software capital of C++ by supporting full interperability.
 
-The [language tour](./language-tour.html).) gives an overview of Val's most salient feature.
+The [language tour](./language-tour.html) gives an overview of Val's most salient feature.
 The [specification](https://github.com/val-lang/specification/blob/main/spec.md) (work in progress) provides detailed information about Val's syntax and semantics.
 
 Val is under active development and is not ready to be used yet.
 The code of the compiler is open source and [hosted on GitHub](https://github.com/val-lang/val).
 
-# Enough, show me some code!
+## Enough, show me some code!
+
+Okay, okay.
+Here's a simple program.
 
 ```val
 subscript longer_of(_ a: inout String, _ b: inout String): String {
   yield if b.count() > a.count() { &b } else { &a }
 }
 
-fun main() {
+public fun main() {
   var (x, y) = ("Hi", "World")
   inout z = longer_of[&x, &y]
   z .append("!")
