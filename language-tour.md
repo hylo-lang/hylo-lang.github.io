@@ -459,26 +459,31 @@ Unlike a tuple, however, a record type offers a finer control over the visibilit
 A record type is declared with the keyword `type` and contains typed properties declared as bindings:
 
 ```val
-type Matrix2 {
-  public var components: Double[2][2]
+type Matrix3 {
+  public var components: Double[3][3]
   public memberwise init
 }
 ```
 
-The type declaration above defines a type `Matrix2` with a single property of type `Double[2][2]`.
+The type declaration above defines a type `Matrix3` with a single property of type `Double[3][3]`.
 The second declaration exposes the default memberwise initializer of the type, allowing us to create matrices by calling `Matrix2.init(components:)`:
 
 ```val
-type Matrix2 {
-  public var components: Double[2][2]
+type Matrix3 {
+  public var components: Double[3][3]
   public memberwise init
 }
 
 public fun main() {
-  var m = Matrix2(components: [[0, 0], [0, 0]])
+  var m = Matrix2(components: [
+    [0 ,0, 0],
+    [0 ,0, 0],
+    [0 ,0, 0],
+  ])
   m.components[0][0] = 1.0
   m.components[1][1] = 1.0
-  print(m) // Matrix2(components: [[1.0, 0.0], [0.0, 1.0]])
+  m.components[2][2] = 1.0
+  print(m)
 }
 ```
 
@@ -913,6 +918,127 @@ int main() {
   auto v1 = reinterpret_cast<Vector2*>(_storage);
   init_vector(v1, 1.5, 2.5);
   std::cout << *v1 << std::endl;
+}
+```
+
+### Methods
+
+Methods are functions that are associated with a particular type.
+They are declared very similarly to free functions, but appear in type declarations and extensions.
+
+```val
+type Vector2 {
+  public var x: Double
+  public var y: Double
+  public memberwise init
+
+  public fun offset_let(by delta: Vector2) -> Vector2 {
+    Vector2(x: self.x + delta.x, y: self.y + delta.y)
+  }
+}
+
+public fun main() {
+  let unit_x = Vector2(x: 1.0, y: 0.0)
+  let v1 = Vector2(x: 1.5, y: 2.5)
+  let v2 = v1.offset_let(by: unit_x)
+  print(v2)
+}
+```
+
+The program above declares `Vector2` a [record type](#records) with two public properties, a public memberwise initializer and a method.
+The latter is nearly identical to the free function we declaredin the section on [parameter passing conventions](#parameter-passing-conventions).
+The difference is that its first parameter has become implicit and is now named `self`.
+
+In a method, `self` denotes the *receiver*, an implicit argument that refers to the value on which the method is called.
+The call `v1.offset_let(by: unit_x)` applies the method `Vector2.offset_let(by:)` with `v1` as receiver and `unit_x` as argument.
+
+*Note: This examples reveals that a method `T.foo(bar:)` is just sugar for a free function `foo(self:bar:)`.*
+
+For conciseness, `self` can be omitted from most expressions in a method.
+Therefore, we can rewrite `Vector2.offset_let(by:)` as follows:
+
+```val
+type Vector2 {
+  // ...
+  public fun offset_let(by delta: Vector2) -> Vector2 {
+    Vector2(x: x + delta.x, y: y + delta.y)
+  }
+}
+```
+
+Just like for other parameters, the default passing convention of the receiver is `let`.
+Other passing  conventions must be specified explicitly before the return type annotation of the method signature:
+
+```val
+type Vector2 {
+  // ...
+  public fun offset_inout(by delta: Vector2) inout -> Vector2 {
+    &x += delta.x
+    &y += delta.x
+  }
+}
+```
+
+A call to a method whose receiver is passed `inout` requires the expression of the receiver to be prefixed by an ampersand.
+
+#### Method bundles
+
+When multiple methods relate to the same functionality but differs only in the passing convention of their receiver, they can be grouped in a single *bundle*.
+
+```val
+type Vector2 {
+  public var x: Double
+  public var y: Double
+  public memberwise init
+
+  public fun offset(by delta: Vector2) -> Vector2 {
+    let {
+      Vector2(x: x + delta.x, y: y + delta.y)
+    }
+    inout {
+      &x += delta.x
+      &y += delta.y
+    }
+    sink {
+      &x += delta.x
+      &y += delta.y
+      return self
+    }
+  }
+}
+
+public fun main() {
+  let unit_x = Vector2(x: 1.0, y: 0.0)
+  var v1 = Vector2(x: 1.5, y: 2.5)
+  &v1.offset(by: unit_x)
+  print(v1)
+  
+  let v2 = v1.offset(by: unit_x)
+  print(v2)
+}
+```
+
+In the program above, the method `Vector2.offset(by:)` defining three variants.
+Each variant correspond to an implementation of the same behavior, for a different receiver convention.
+
+*Note: The bundle does not declare a `set` variant as it does not make sense in this case to initialize a vector by offsetting an uninitialized value.*
+
+At the call site, the compiler determines the variant to apply depending on the context of the call.
+In this example, the first call applies the `inout` variant as the receiver has been marked for mutation.
+The second call applies the `sink` variant as the receiver is no longer used aftertward.
+
+Thanks to the link between the `sink` and `inout` conventions, the compiler is able to synthesize one implementation from the other.
+Further, the compiler can also synthesize a `sink` variant from a `let` one.
+
+This feature can be used to avoid code duplication in cases where custom implementations of the different variants do not offer any performance benefit, or where performance is not a concern.
+For example, in the case of `Vector2.offset(by:)`, it is sufficient to write the following declaration and let the compiler synthesize the missing variants.
+
+```val
+type Vector2 {
+  // ...
+  public fun offset(by delta: Vector2) -> Vector2 {
+    let { Vector2(x: x + delta.x, y: y + delta.y) }
+  }
 }
 ```
 
