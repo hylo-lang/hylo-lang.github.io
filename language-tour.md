@@ -654,6 +654,14 @@ fun offset_let(_ v: Vector2, by delta: Vector2) -> Vector2 {
 So there's a kind of contract between the caller and the callee: both agree not to mutate the argument until the latter returns.
 There's an additional clause in the fine print: the argument is "safe" to use at the entry of the function, meaning that it's fully initialized and that its invariants hold.
 
+An important point to make from the outset is that, for all intents and purposes, this contract states that the value of a `let` parameter is independent from any other value a function might access.
+In turns, that property guarantees local reasoning and excludes a large class of problems attributed to spooky action at a distance.
+Underneath the user model, the contract also enables a key strategy to efficiently compile pass by value semantics.
+Namely, because the value is guaranteed immutable, the compiler can compile `let` parameters with references.
+
+In summary, we get the best of two propositions: at the level of the user model, the developer is free to enjoy the benefits of pass by value semantics to uphold local reasoning.
+Meanwhile, at the machine level, the compiler is free to exploit the guarantees of the `let` convention to avoid hidden copy costs.
+
 A C++ developer may understand the `let` convention as *pass by constant reference*, but with additional guarantees, and write the following function:
 
 ```c++
