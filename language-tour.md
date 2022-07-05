@@ -513,6 +513,46 @@ The type `Option<T>` is the union of any type `T` and `Nil`, which can be used t
 *Note: the union of `T | U` with `T` is not equal to `T | U`.*
 *Instead, it is `(T | U) | T`.*
 
+## Functions and methods
+
+Functions are blocks of organized and reusable code that performs a single action, or group of related actions. As a program grows in complexity, they become mandatory.
+
+*Note: Though Val should not be considered a functional programming language, it does support this style of programming relatively well, as functions are first-class citizen.*
+
+### Free functions
+
+Functions are declared with `fun`, followed by its name, its generic and formal parameters, and finally its body:
+
+```val
+typealias Vector2 = (x: Double, y: Double)
+
+fun norm(_ v: Vector2) -> Double {
+  Double.sqrt(v.x * v.x + v.y * v.y)
+}
+
+public fun main() {
+  print(norm((x: 3.0, y: 4.0))) // 5.0
+}
+```
+
+The program above declares a function `norm` that accepts a 2-dimensional vector (represented as a pair of `Double`) and returns its norm.
+That function is called in `main` to compute the norm of the vector `(x: 3.0, y: 4.0)`.
+
+Notice that the name of the parameter to that function is prefixed by an underscore (i.e., `_`), signaling that the parameter is unlabeled.
+Would this underscore be omitted a call to `norm` would require its argument to be labeled by the parameter name.
+
+It is also possible to define different labels by prefixing the parameter name with an identifier.
+This feature can be used to create very expressive APIs, in particular for functions that accept multiple parameters:
+
+```val
+typealias Vector2 = (x: Double, y: Double)
+
+fun offset(_ v: Vector2, by delta: Vector2) -> Vecto2 {
+  (x: v.x + delta.x, y: v.y + delta.y)
+}
+```
+
+
 ### Closures
 
 * * *
