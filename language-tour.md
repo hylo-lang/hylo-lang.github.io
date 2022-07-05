@@ -643,7 +643,7 @@ We will also illustrate how Val's parameter passing conventions relate to other 
 Let us start with the `let` convention, which is the default and thus needs not to be stated explicitly.
 
 ```val
-fun offset(_ v: Vector2, by delta: Vector2) -> Vector2 {
+fun offset_let(_ v: Vector2, by delta: Vector2) -> Vector2 {
   (x: v.x + delta.x, y: v.y + delta.y)
 }
 ```
@@ -652,10 +652,10 @@ fun offset(_ v: Vector2, by delta: Vector2) -> Vector2 {
 So there's a kind of contract between the caller and the callee: both agree not to mutate the argument until the latter returns.
 There's an additional clause in the fine print: the argument is "safe" to use at the entry of the function, meaning that it's fully initialized and that its invariants hold.
 
-A C++ developer may understand the `let` convention as *pass by const&*, but with additional guarantees, and write the following function:
+A C++ developer may understand the `let` convention as *pass by constant reference*, but with additional guarantees, and write the following function:
 
 ```c++
-Vector2 offset(Vector2 const& v, Vector2 const& delta) {
+Vector2 offset_let(Vector2 const& v, Vector2 const& delta) {
   return Vec2(v.x + delta.x, v.y + delta.y);
 }
 ```
@@ -663,15 +663,15 @@ Vector2 offset(Vector2 const& v, Vector2 const& delta) {
 A Rust developer may understand it as a *pass by immutable borrow*, with the same guarantees, and write the following function:
 
 ```rust
-fn offset(v: &Vector2, delta: &Vector2) -> Vector2 {
-  Vector2{v.x + delta.x, v.y + delta.y};
+fn offset_let(v: &Vector2, delta: &Vector2) -> Vector2 {
+  Vector2{v.x + delta.x, v.y + delta.y}
 }
 ```
 
-Because of the aforementioned contract, we may not change the body of `offset(_:by:)` as follows:
+Because of the aforementioned contract, we may not change the body of `offset_let(_:by:)` as follows:
 
 ```val
-fun offset(_ v: Vector2, by delta: Vector2) -> Vector2 {
+fun offset_let(_ v: Vector2, by delta: Vector2) -> Vector2 {
   &v.x += delta.x
   &v.y += delta.y
   return v
@@ -681,10 +681,10 @@ fun offset(_ v: Vector2, by delta: Vector2) -> Vector2 {
 This implementation attempts to modify `v` in place, breaking the clause that guarantees it to be immutable for the duration of the call.
 
 Though the argument cannot be modified, it can be copied (as `Vector2` is a copyable type).
-So, there is a way to write `offset(_:by:)` in terms of in place updates:
+So, there is a way to write `offset_let(_:by:)` in terms of in place updates:
 
 ```val
-fun offset(_ v: Vector2, by delta: Vector2) -> Vector2 {
+fun offset_let(_ v: Vector2, by delta: Vector2) -> Vector2 {
   var temporary = v.copy()
   &temporary.x += delta.x
   &temporary.y += delta.y
@@ -702,8 +702,89 @@ In effect, that means the values of two `let` parameters may overlap:
 ```val
 public fun main() {
   let v1 = (x: 1.5, y: 2.5)
-  let v2 = offset(v1, by: v1)
+  let v2 = offset_let(v1, by: v1)
   print(v2) // (x: 3.0, y: 5.0)
+}
+```
+
+#### `inout` parameters
+
+The `inout` convention enables mutation across function boundaries, allowing a parameter's value to be modified in place.
+It is specified by prefixing the type of a parameter by `inout`:
+
+```val
+fun offset_inout(_ v: inout Vector2, by delta: Vector2) {
+  &v.x += delta.x
+  &v.y += delta.y
+}
+```
+
+*Note: `offset_inout(_:by:)` has not return value.*
+
+Again, there's a contract between caller and callee.
+Arguments to `inout` parameters are mutable and unique at entry and exit.
+By "unique", we mean that there are no other way to access the referred storage, mutable or otherwise.
+
+A C++ developer may understand the `inout` convention as *pass by reference*, but with additional guarantees, and write the following function:
+
+```c++
+void offset_inout(Vector2& v, Vector2 const& delta) {
+  v.x += delta.x
+  v.y += delta.y
+}
+```
+
+A Rust developer may understand it as a *pass by mutable borrow*, with the same guarantees, and write the following function:
+
+```rust
+fn offset_inout(v: &mut Vector2, delta: &Vector2) {
+  v.x += delta.x;
+  v.y += delta.y;
+}
+```
+
+The fine print also says that arguments to `inout` parameters are valid at function entry and exit.
+That means a callee is entitled to do anything with the value of such parameters, including destroying them, as long as it puts a value back before returning.
+
+```val
+fun offset_inout(_ v: inout Vector2, by delta: Vector2) {
+  let temporary = v.copy()
+  v.deinit()
+  // `v` is not bound to any value here
+  v = (x: temporary.x + delta.x, y: temporary.y + delta.y)
+}
+```
+
+In the example above, `v.deinit()` explicitly deinitializes the value of `v`, leaving it unbound.
+Thus, trying to access its value would constitute an error caught at compile time.
+Nonetheless, since `v` is reinitialized to a new value before the function returns, the contract is actually satisfied.
+
+*Note: A Rust developer may understand explicit deinitialization as a call to `drop`.*
+*However, explicit deinitialization always consumes the value, even if it is instance of a copyable type.*
+
+Passing an argument to an `inout` parameter requires its expression to be prefixed by an ampersand (i.e., `&`).
+This ampersand is not an address-of operator, as found in C/C++.
+It is merely a marker that signals mutation.
+
+```val
+public fun main() {
+  var v1 = (x: 1.5, y: 2.5)
+  offset_inplace(&v1, by: (x: 1.0, y: 0.0))
+  print(v1) // (x: 2.5, y: 2.5)
+}
+```
+
+*Note: It should be clear now why the operator `+=` requires the left operand to be prefixed by an ampersand.*
+*Indeed, the type of `Double.infix+=` is `(inout Double, Double) -> Unit`.*
+
+Because the contract says there cannot be any other access to value of an `inout` parameter, it is not possible to pass the an "inouted" value to multiple parameters.
+For example, the following program is illegal:
+
+```val
+public fun main() {
+  var v1 = (x: 1, y: 2)
+  offset_inplace(&v1, by: v1)
+  print(v1)
 }
 ```
 
