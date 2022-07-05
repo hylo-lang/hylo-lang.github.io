@@ -7,7 +7,7 @@ Val is a research programming language to explore the concepts of [mutable value
 Val aims to be:
 - **Fast**: Val is compiled AOT to machine code and relies on its type system to support in-place mutation and avoid unecessary memory allocations.
 - **Safe**: Val is memory safe in both single-threaded and concurrent settings. It does so by adopting mutable value semantics, a programming discipline that bans shared mutable state to uphold local reasoning.
-- **Simple**: Val borrows heavily from the [Swift programming language](https://swift.org) which has demonstrated a user-friendly approach to generic programming. Further, its user model emphasizes on value, leaving out the typical complexities associated with reference semantics (e.g., memory regions, lifetime annotations, etc.).
+- **Simple**: Val borrows heavily from [Swift](https://swift.org) which has demonstrated a user-friendly approach to generic programming. Further, its user model emphasizes on value, leaving out the typical complexities associated with reference semantics (e.g., memory regions, lifetime annotations, etc.).
 - **Interoperable with C++**: Programming languages rarely survive in vacuum. Val aims to take advantage of the vast software capital of C++ by supporting full interperability.
 
 The [language tour](./language-tour.html) gives an overview of Val's most salient feature.
@@ -58,10 +58,10 @@ There's a slightly more subtle mechanism at play.
 A C/C++ programmer may think of `longer_of` as a function that takes and returns pointers or mutable references.
 But Val offers more safety.
 First, it guarantees that the values of the arguments `a` and `b` may not overlap.
-Second, it guarantees that the value of `z` may not be accessed via `x` or `y` (or any other means) until the projection is no longer used.
+Second, it guarantees that the value of `z` may not be accessed via `x` or `y` (or any other means) until the projection ends.
 
 A Rust programmer may think of `longer_of` as a function that borrows its arguments mutably and returns a mutable reference bound by the lifetime of those arguments.
-What happens is very similar indeed, but note that `longer_of` has no lifetime annotations.
-There are not elided, they simply do not exist in Val because the latter uses a simpler model devoid of references.
+What happens is very similar, but notice that `longer_of` has no lifetime annotations.
+There are not elided, they simply do not exist in Val because the it uses a simpler model, devoid of references.
 
 Have a look at the section on subscripts in the [language tour](./language-tour.html) to get more information.
