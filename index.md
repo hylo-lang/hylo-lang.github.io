@@ -16,6 +16,16 @@ The [specification](https://github.com/val-lang/specification/blob/main/spec.md)
 Val is under active development and is not ready to be used yet.
 The code of the compiler is open source and [hosted on GitHub](https://github.com/val-lang/val).
 
+## Sounds great, but why another language?
+
+Our goals overlap substantially with that of Rust and other commandable efforts, such as [Zig](https://ziglang.org) or [Vale](https://vale.dev).
+Besides, other programming languages have value semantics (e.g., R or Whiley) and/or provide excellent support for generic programming (e.g., Swift or Haskell).
+So why another one?
+
+What sets Val apart in the current landscape is its focus on mutable value semantics for the purpose of writing efficient, generic code.
+Val is a zero-cost abstraction language that fully acknowledges the physical constraints of computer architecture.
+Yet, it presents a user model that marries these constraints with the benefits of value-oriented programming.
+
 ## Enough, show me some code!
 
 Okay, okay.
