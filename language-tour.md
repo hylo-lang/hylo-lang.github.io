@@ -216,7 +216,7 @@ public fun main() {
 }
 ```
 
-## Types
+## Basic types
 
 Val is statically typed: bindings of a given type cannot be assigned a value of a different one.
 For instance, it is impossible to assign a floating point number to an integer binding:
@@ -237,6 +237,114 @@ public fun main() {
   var weight: Double = 1
   weight = 2.3
   print(weight) // 2.3
+}
+```
+
+The type of an expression can be retrieved with the function `type(of:)`:
+
+```val
+public fun main() {
+  let weight = 2.3
+  print(type(of: weight)) // Double
+  print(type(of: "Hey!")) // String
+}
+```
+
+Val's standard library defines a collection of types that are commonly used in all programs.
+Those include numeric types (e.g., `Int` and `Double`), characters strings (i.e., `String`), Booleans (i.e., `Bool`), and more complex types to represent data structures.
+The remainder of this section gives an overview of the most important ones.
+
+### Booleans, numbers, and strings
+
+A [Boolean](https://en.wikipedia.org/wiki/Boolean_data_type) is a value that is either `true` or `false`.
+In Val, those are represented by the type `Bool`:
+
+```val
+public fun main() {
+  let is_two_greater_than_one = 2 > 1
+  print(type(of: is_two_greater_than_one)) // Bool
+}
+```
+
+Integer numbers are typically represented by the type `Int`, which represents a machine-size integer (usually 64 bits on modern computers).
+Val also provides types to represent integers of different sizes and signedness.
+For example, `UInt16` represents a 16-bit unsigned number and `Int8` a 8-bit signed number, independently of the machine for which the program is compiled.
+
+*Note: The type `Int` should be preferred unless you need a different variant for a specific reason (e.g., representing a hardware register).*
+*This convention aids code consistency and interoperability.*
+
+Floating point numbers are represented by the types `Double` and `Float`.
+The former denotes [double-precision](https://en.wikipedia.org/wiki/IEEE_754) format while the former denotes single-precision.
+
+*Note: For the same reason as `Int` should be preferred for every integer value, `Double` should be preferred for any floating-point value.*
+
+Val does not support any kind of implicit conversion between numeric types.
+For example, the following program is illegal:
+
+```val
+public fun main() {
+  let n = 3.2
+  let m = 8
+  print(n * m) // error: cannot apply `Double.infix*` to argument of type `Int`
+}
+```
+
+All numeric conversions must be written explicitly by calling the appropriate initializer.
+For example, we can fix the program above by converting `m` to `Double` before the multiplication:
+
+```val
+public fun main() {
+  let n = 3.2
+  let m = 8
+  print(n * Double(m)) // 25.6
+}
+```
+
+By default, integer literals are interpreted as `Int` and floating-point as `Double`.
+However, a literal may be interpreted as a different type depending on the context in which it appears:
+
+```val
+public fun main() {
+  var n: Double = 2
+  &n *= 10
+  print(n) // prints 20.0
+}
+```
+
+In the above example, `m` is explicitly decalred to have type `Double`.
+As a result, the compiler infers its initializer as an expression of type `Double` rather than `Int`.
+Similarly, the compiler infers that the literal on the right hand side of `*=` should be interpreted as a floating-point number.
+
+Character strings are represented by the type `String` and have two literal forms.
+Simple string literals are sequences of character surrounded by double quotes on a single line (e.g., `"Hello, World!"`).
+Multiline literals are surrounded by sequences of three double quotes on either side and may contain new lines.
+
+```val
+public fun main() {
+  let text = """
+  C'est un trou de verdure où chante une rivière
+  Accrochant follement aux herbes des haillons
+  D'argent; où le soleil, de la montagne fière,
+  Luit: c'est un petit val qui mousse de rayons.
+  """
+  print(text)
+}
+```
+
+The first new-line delimiter in a multiline string literal is not part of the value of that literal if it immediately succeeds the opening delimiter.
+The last new-line delimiter that is succeeded by a contiguous sequence of inline spaces followed by the closing delimiter is called the indentation marker.
+The indentation marker and the succeeding inline spaces specify the indentation pattern of the literal and are not part of its value.
+
+For example, in the program above, the indentation pattern is defined as two white spaces.
+Therefore, the value of `text` starts with "C'est" and ends with "rayons."
+
+Strings can be mutated in place in Val:
+
+```val
+public fun main() {
+  var text = "Hello, "
+  &text.append("World!")
+  print(text) // Hello, World!
 }
 ```
 
