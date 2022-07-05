@@ -521,7 +521,7 @@ Functions are blocks of organized and reusable code that performs a single actio
 
 ### Free functions
 
-Functions are declared with `fun`, followed by its name, its generic and formal parameters, and finally its body:
+Functions are declared with `fun`, followed by its name, its signature, and finally its body:
 
 ```val
 typealias Vector2 = (x: Double, y: Double)
@@ -531,12 +531,20 @@ fun norm(_ v: Vector2) -> Double {
 }
 
 public fun main() {
-  print(norm((x: 3.0, y: 4.0))) // 5.0
+  let velocity = (x: 3.0, y: 4.0)
+  print(norm(velocity)) // 5.0
 }
 ```
 
-The program above declares a function `norm` that accepts a 2-dimensional vector (represented as a pair of `Double`) and returns its norm.
-That function is called in `main` to compute the norm of the vector `(x: 3.0, y: 4.0)`.
+The program above declares a function named `norm` that accepts a 2-dimensional vector (represented as a pair of `Double`) and returns its norm.
+The signature of a function fully specifies its API.
+Most importantly, it describes the function's parameters and their type as well as a return type.
+
+*Note: The return type of a function that does not return any value may be omitted.*
+*In that case, the declaration is interpreted as though the return type was `Unit`.*
+
+A function is called using its name followed by its arguments, enclosed in parentheses.
+Here, `norm` is called to compute the norm of the vector `(x: 3.0, y: 4.0)` with the expression `norm(velocity)`.
 
 Notice that the name of the parameter to that function is prefixed by an underscore (i.e., `_`), signaling that the parameter is unlabeled.
 Would this underscore be omitted a call to `norm` would require its argument to be labeled by the parameter name.
@@ -547,11 +555,67 @@ This feature can be used to create very expressive APIs, in particular for funct
 ```val
 typealias Vector2 = (x: Double, y: Double)
 
-fun offset(_ v: Vector2, by delta: Vector2) -> Vecto2 {
+fun offset(_ v: Vector2, by delta: Vector2) -> Vector2 {
   (x: v.x + delta.x, y: v.y + delta.y)
 }
 ```
 
+Argument labels are also useful to distinguish between different variants of the same operation.
+Further, note that Val does not suppoer type-based overloading, meaning that the only way for two functions to share the same name is to have different argument labels.
+
+```val
+typealias Vector2 = (x: Double, y: Double)
+
+fun scale(_ v: Vector2, by factor: Vector2) -> Vector2 {
+  (x: v.x * factor.x, y: v.y * factor.y)
+}
+fun scale(_ v: Vector2, by_scalar factor: Double) -> Vector2 {
+  (x: v.x * factor, y: v.y * factor)
+}
+```
+
+The program above declares two variants of a `scale` function with different argument labels.
+One accepts two vectors, the other a scalar as the scaling factor.
+
+Argument labels are part of a function's complete name.
+In fact, in this example, `scale` is merely a shorthand for either `scale(_:by:)` or `scale(_:by_scalar:)`.
+
+If the body of a function involves multiple statements, the return value of the function must be indicated by a `return` statement:
+
+```val
+fun round(_ n: Double, digits: Int) -> Double {
+  let factor = Double.power(10, digits)
+  return Double.round(n * factor / factor)
+}
+```
+
+If a function has a return a value (i.e., its return type is not `Unit`), Val always expects its caller to use it or will complain with a warning otherwise.
+You can use a discard statement to silence this warning:
+
+```val
+fun round(_ n: Double, digits: Int) -> Double {
+  let factor = Double.power(10, digits)
+  return Double.round(n * factor) / factor
+}
+
+public fun main() {
+  _ = round(3.14159, 3) // explicitly discards the result of `round(_:digits:)`
+}
+```
+
+Function can have default values for their parameters:
+
+```val
+fun round(_ n: Double, digits: Int = 3) -> Double {
+  let factor = Double.power(10, digits)
+  return Double.round(n * factor) / factor
+}
+```
+
+In the program above, `round(_:digits:)` has a default value for its second argument.
+Hence, one may omit the second argument when calling it.
+
+*Note: The expression of a default argument is evaluated at each call site.*
 
 ### Closures
 
