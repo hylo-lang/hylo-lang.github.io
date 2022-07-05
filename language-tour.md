@@ -1043,7 +1043,7 @@ public fun main() {
 In the program above, the method `Vector2.offset(by:)` defining three variants.
 Each variant correspond to an implementation of the same behavior, for a different receiver convention.
 
-*Note: The bundle does not declare a `set` variant as it does not make sense in this case to initialize a vector by offsetting an uninitialized value.*
+*Note: A method bundle may not declare a `set` variant as it does not make sense to operate on a receiver that has not been initialized yet.*
 
 At the call site, the compiler determines the variant to apply depending on the context of the call.
 In this example, the first call applies the `inout` variant as the receiver has been marked for mutation.
@@ -1095,6 +1095,98 @@ public fun main() {
 ```
 
 ### Closures
+
+Functions are first-class citizen in Val, meaning that they be assigned to bindings, passed as arguments or returned from functions, like any other value.
+When a function is used as a value, it is called a *closure*.
+
+```val
+fun round(_ n: Double, digits: Int) -> Double {
+  let factor = 10.0 ^ Double(digits)
+  return (n * factor).round() / factor
+}
+
+public fun main() {
+  let f = round(_:digits:)
+  print(type(of: f)) // (_: Double, digits: Int) -> Double
+}
+```
+
+Some methods of the standard library use closures to implement certain algorithms.
+For example, the type `T[n]` has a method `reduce(into:_:)` that accepts a closure as second argument to describe how its elements should be combined.
+
+```val
+fun combine(_ partial_result: inout Int, _ element: Int) {
+  &partial_result += element
+}
+
+public fun main() {
+  let sum = [1, 2, 3].reduce(into: 0, combine)
+  print(sum)
+}
+```
+
+*Note: The method `Int.infix+=` has the same type as `combine(_:_:)` in this example.*
+*Therefore, we could have written `numbers.reduce(into: 0, Int.infix+=)`.*
+
+When the sole purpose of a function is to be used as a closure, it may be more convenient to write it inline, as a closure expression.
+Such an expression resembles a function declaration, but has no name.
+Further, the types of the parameters and/or the return type can be omitted if the compiler can infer those from the context.
+
+```val
+public fun main() {
+  let sum = [1, 2, 3].reduce(into: 0, fun(_ partial_result, _ element) {
+    &partial_result += element
+  })
+  print(sum)
+}
+```
+
+#### Closure captures
+
+A function may refer to bindings that are declared outside of its own scope.
+When it does so, it is said to create *captures*.
+There exists three kind of captures: `let`, `inout` and `sink`.
+
+A `let` capture occurs when a function accesses a binding immutably.
+For example, in the program below, the closure passed to `map(_:)` creates a `let` capture on `offset`.
+
+```
+public fun main() {
+  let offset = 2
+  let result = [1, 2, 3].map(fun(_ n) { n + offset })
+  print(result) // [3, 4, 5]
+}
+```
+
+An `inout` capture occurs when a function accesses a binding mutably.
+For example, in the program below, the closure passed to `for_each(_:)` creates an `inout` capture on `sum`.
+
+```val
+public fun main() {
+  var sum = 0
+  let result = [1, 2, 3].for_each(fun(_ n) { &sum += n })
+  print(sum) // 6
+}
+```
+
+A `sink` capture occurs when a function acts as a sink for a value at its declaration.
+Such a capture must be defined explicitly in a capture list.
+For example, in the program below, `counter` is assigned to a closure that returns integers in incrementing order every time it is called.
+The closure keeps track of its own state with a `sink` capture.
+
+```val
+public fun main() {
+  var counter = fun[var i = 0]() inout -> Int {
+    defer { &i += 1 }
+    return i.copy()
+  }
+  print(&counter()) // 0
+  print(&counter()) // 1
+}
+```
+
+*Note: The signature of the closure must be annotated with `inout` because calling it modifies its own state (i.e., the values that it had captured).*
+*Further, a call to `counter` must be prefixed by an ampersand to signal mutation.*
 
 * * *
 
