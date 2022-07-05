@@ -475,7 +475,7 @@ type Matrix3 {
 }
 
 public fun main() {
-  var m = Matrix2(components: [
+  var m = Matrix3(components: [
     [0 ,0, 0],
     [0 ,0, 0],
     [0 ,0, 0],
@@ -492,6 +492,28 @@ Would that property be declared with `let`, the components of the matrix would r
 
 Members that are not declared `public` cannot be accessed outside of the scope of a record type.
 As we uncover more advanced constructs, we will show how to exploit that feature to design clean and safe APIs.
+
+A record type may also define static properties.
+Those are not part of record instances.
+Instead, they represent global bindings defined in the namespace of the record.
+
+Static properties are declared with `static`.
+They may only be declared with `let` and are therefore always immutable:
+
+```val
+type Matrix3 {
+  // ...
+  public static let zero = Matrix3(components: [
+    [0 ,0, 0],
+    [0 ,0, 0],
+    [0 ,0, 0],
+  ])
+}
+
+public fun main() {
+  print(Matrix3.zero)
+}
+```
 
 ### Unions
 
@@ -595,8 +617,8 @@ If the body of a function involves multiple statements, the return value of the 
 
 ```val
 fun round(_ n: Double, digits: Int) -> Double {
-  let factor = Double.power(10, digits)
-  return Double.round(n * factor / factor)
+  let factor = 10.0 ^ Double(digits)
+  return (n * factor).round() / factor
 }
 ```
 
@@ -605,8 +627,8 @@ You can use a discard statement to silence this warning:
 
 ```val
 fun round(_ n: Double, digits: Int) -> Double {
-  let factor = Double.power(10, digits)
-  return Double.round(n * factor) / factor
+  let factor = 10.0 ^ Double(digits)
+  return (n * factor).round() / factor
 }
 
 public fun main() {
@@ -618,8 +640,8 @@ Function can have default values for their parameters:
 
 ```val
 fun round(_ n: Double, digits: Int = 3) -> Double {
-  let factor = Double.power(10, digits)
-  return Double.round(n * factor) / factor
+  let factor = 10.0 ^ Double(digits)
+  return (n * factor).round() / factor
 }
 ```
 
@@ -1039,6 +1061,36 @@ type Vector2 {
   public fun offset(by delta: Vector2) -> Vector2 {
     let { Vector2(x: x + delta.x, y: y + delta.y) }
   }
+}
+```
+
+#### Static methods
+
+A type can be used as a namespace for global functions that relate to that type.
+For example, the function `Double.random(in:using:)` is a global function declared in the namespace of `Double`.
+
+A global function declared in the namespace of a type is called a *static method*.
+Static methods do not have an implicit receiver parameter.
+Instead, they behave just like regular global functions.
+
+A static method is declared with `static`:
+
+```val
+type Vector2 {
+  // ...
+  public static fun random(in range: Range<Double>) -> Vector2 {
+    Vector2(x: Double.random(in: range), y: Double.random(in: range))
+  }
+}
+```
+
+When the return type of a static method matches the type declared by its namespace, the latter can be omitted if the compiler may infer it from the context of the expression:
+
+```val
+public fun main() {
+  let v1 = Vector2(x: 0.0, y: 0.0)
+  let v2 = v1.offset(by: .random(in: 0.0 ..< 10.0))
+  print(v2)
 }
 ```
 
