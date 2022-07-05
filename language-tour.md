@@ -216,6 +216,8 @@ public fun main() {
 }
 ```
 
+*Note: All copies are explicit in Val, even for values of simple types such as `Double`.*
+
 ## Basic types
 
 Val is statically typed: bindings of a given type cannot be assigned a value of a different one.
@@ -314,6 +316,10 @@ public fun main() {
 In the above example, `m` is explicitly decalred to have type `Double`.
 As a result, the compiler infers its initializer as an expression of type `Double` rather than `Int`.
 Similarly, the compiler infers that the literal on the right hand side of `*=` should be interpreted as a floating-point number.
+
+*Note: the notation `&n += 10` denotes an in-place update of `n`.*
+*The ampersand (i.e., `&`) indicates mutation.*
+*We come back to it later.*
 
 Character strings are represented by the type `String` and have two literal forms.
 Simple string literals are sequences of character surrounded by double quotes on a single line (e.g., `"Hello, World!"`).
@@ -555,8 +561,8 @@ This feature can be used to create very expressive APIs, in particular for funct
 ```val
 typealias Vector2 = (x: Double, y: Double)
 
-fun offset(_ v: Vector2, by delta: Vector2) -> Vector2 {
-  (x: v.x + delta.x, y: v.y + delta.y)
+fun scale(_ v: Vector2, by factor: Vector2) -> Vector2 {
+  (x: v.x * factor.x, y: v.y * factor.y)
 }
 ```
 
@@ -616,6 +622,90 @@ In the program above, `round(_:digits:)` has a default value for its second argu
 Hence, one may omit the second argument when calling it.
 
 *Note: The expression of a default argument is evaluated at each call site.*
+
+### Parameter passing conventions
+
+A parameter passing conventions describes how the value of an argument is passed from caller to callee.
+In other words, it describes the semantics of the language at function boundaries.
+
+Val provides four different parameter passing conventions: `let`, `inout`, `sink` and `set`.
+Let us construct a running example to understand their effect.
+In the next series of code examples, we will define different variants of a function to offset a 2-dimensional vector, represented as follows:
+
+```
+typealias Vector2 = (x: Double, y: Double)
+```
+
+We will also illustrate how Val's parameter passing conventions relate to other programming languages, namely C++ and Rust.
+
+#### `let` parameters
+
+Let us start with the `let` convention, which is the default and thus needs not to be stated explicitly.
+
+```val
+fun offset(_ v: Vector2, by delta: Vector2) -> Vector2 {
+  (x: v.x + delta.x, y: v.y + delta.y)
+}
+```
+
+`let` parameters are passed by value and are immutable in the function.
+So there's a kind of contract between the caller and the callee: both agree not to mutate the argument until the latter returns.
+There's an additional clause in the fine print: the argument is "safe" to use at the entry of the function, meaning that it's fully initialized and that its invariants hold.
+
+A C++ developer may understand the `let` convention as *pass by const&*, but with additional guarantees, and write the following function:
+
+```c++
+Vector2 offset(Vector2 const& v, Vector2 const& delta) {
+  return Vec2(v.x + delta.x, v.y + delta.y);
+}
+```
+
+A Rust developer may understand it as a *pass by immutable borrow*, with the same guarantees, and write the following function:
+
+```rust
+fn offset(v: &Vector2, delta: &Vector2) -> Vector2 {
+  Vector2{v.x + delta.x, v.y + delta.y};
+}
+```
+
+Because of the aforementioned contract, we may not change the body of `offset(_:by:)` as follows:
+
+```val
+fun offset(_ v: Vector2, by delta: Vector2) -> Vector2 {
+  &v.x += delta.x
+  &v.y += delta.y
+  return v
+}
+```
+
+This implementation attempts to modify `v` in place, breaking the clause that guarantees it to be immutable for the duration of the call.
+
+Though the argument cannot be modified, it can be copied (as `Vector2` is a copyable type).
+So, there is a way to write `offset(_:by:)` in terms of in place updates:
+
+```val
+fun offset(_ v: Vector2, by delta: Vector2) -> Vector2 {
+  var temporary = v.copy()
+  &temporary.x += delta.x
+  &temporary.y += delta.y
+  return temporary
+}
+```
+
+Here, `v.copy()` creates a new, independent value.
+As a result, the mutations no longer apply to the parameter's value but to that of the local binding, leaving the former intact.
+
+In Val, passing arguments to `let` parameters does not require any particular syntax.
+Further, the same value can be passed to multiple parameters, assuming it does not violate any contract.
+In effect, that means the values of two `let` parameters may overlap:
+
+```val
+public fun main() {
+  let v1 = (x: 1.5, y: 2.5)
+  let v2 = offset(v1, by: v1)
+  print(v2) // (x: 3.0, y: 5.0)
+}
+```
 
 ### Closures
 
