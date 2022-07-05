@@ -874,6 +874,40 @@ public fun main() {
 }
 ```
 
+#### `set` parameters
+
+The `set` convention enables initialization across function boundaries.
+Just like the `inout` convention, it allows a parameter's value to be modified in place, but the contract is different: a `set` parameter is guaranteed to be uninitialized at the function entry.
+
+```val
+fun init_vector(_ v: set Vector2, x: sink Double, y: sink Double) {
+  v = (x: x, y: y)
+}
+
+public fun main() {
+  var v1: Vector2
+  init_vector(&v1, x: 1.5, y: 2.5)
+  print(v1) // (x: 1.5, y: 2.5)
+}
+```
+
+A C++ developer may understand the `set` convention in terms of the placement new operator, with the guarantee that the storage in which the new value is being created is indeed initialized.
+
+```c++
+#include <new>
+
+void init_vector(Vector2* v, double x, double y) {
+  new(v) Vector2(components[0], components[1]);
+}
+
+int main() {
+  alignas(Vector2) char _storage[sizeof(Vector2)];
+  auto v1 = reinterpret_cast<Vector2*>(_storage);
+  init_vector(v1, 1.5, 2.5);
+  std::cout << *v1 << std::endl;
+}
+```
+
 ### Closures
 
 * * *
