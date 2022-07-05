@@ -648,6 +648,8 @@ fun offset_let(_ v: Vector2, by delta: Vector2) -> Vector2 {
 }
 ```
 
+*Note: Although all parameters adopt the `let` convention by default, it can be specified explicitly by prefixing the type of a parameter by `let`.*
+
 `let` parameters are passed by value and are immutable in the function.
 So there's a kind of contract between the caller and the callee: both agree not to mutate the argument until the latter returns.
 There's an additional clause in the fine print: the argument is "safe" to use at the entry of the function, meaning that it's fully initialized and that its invariants hold.
@@ -656,7 +658,7 @@ A C++ developer may understand the `let` convention as *pass by constant referen
 
 ```c++
 Vector2 offset_let(Vector2 const& v, Vector2 const& delta) {
-  return Vec2(v.x + delta.x, v.y + delta.y);
+  return Vector2 { v.x + delta.x, v.y + delta.y };
 }
 ```
 
@@ -664,7 +666,7 @@ A Rust developer may understand it as a *pass by immutable borrow*, with the sam
 
 ```rust
 fn offset_let(v: &Vector2, delta: &Vector2) -> Vector2 {
-  Vector2{v.x + delta.x, v.y + delta.y}
+  Vector2 { x: v.x + delta.x, y: v.y + delta.y }
 }
 ```
 
@@ -695,7 +697,16 @@ fun offset_let(_ v: Vector2, by delta: Vector2) -> Vector2 {
 Here, `v.copy()` creates a new, independent value.
 As a result, the mutations no longer apply to the parameter's value but to that of the local binding, leaving the former intact.
 
-In Val, passing arguments to `let` parameters does not require any particular syntax.
+The `let` convention does not confer ownership, meaning that a function cannot return the value of a `let` parameter without copying it.
+For example, the following function is illegal:
+
+```val
+fun duplicate(_ v: Vector2) -> Vector2 {
+  v // error: `v` cannot escape
+}
+```
+
+Passing arguments to `let` parameters does not require any particular syntax.
 Further, the same value can be passed to multiple parameters, assuming it does not violate any contract.
 In effect, that means the values of two `let` parameters may overlap:
 
@@ -710,7 +721,7 @@ public fun main() {
 #### `inout` parameters
 
 The `inout` convention enables mutation across function boundaries, allowing a parameter's value to be modified in place.
-It is specified by prefixing the type of a parameter by `inout`:
+It is specified by prefixing the type of a parameter with `inout`:
 
 ```val
 fun offset_inout(_ v: inout Vector2, by delta: Vector2) {
@@ -777,6 +788,9 @@ public fun main() {
 *Note: It should be clear now why the operator `+=` requires the left operand to be prefixed by an ampersand.*
 *Indeed, the type of `Double.infix+=` is `(inout Double, Double) -> Unit`.*
 
+Just like the `let` convention, the `inout` convention does not confer ownership.
+Therefore, the value of an `inout` parameter is not allowed to escape.
+
 Because the contract says there cannot be any other access to value of an `inout` parameter, it is not possible to pass the an "inouted" value to multiple parameters.
 For example, the following program is illegal:
 
@@ -785,6 +799,78 @@ public fun main() {
   var v1 = (x: 1, y: 2)
   offset_inplace(&v1, by: v1)
   print(v1)
+}
+```
+
+#### `sink` parameters
+
+The `sink` convention relates to escapedness and let the developer indicate when transfers of ownership take place.
+It is specified by prefixing the type of a parameter with `sink`:
+
+```val
+fun offset_sink(_ v: sink Vector2, by delta: Vector2) -> Vector2 {
+  (x: v.x + delta.x, y: v.y + delta.y)
+}
+```
+
+Here, the contract says not only that arguments to `sink` parameters are unique, but also that their ownership is transferred to the callee.
+Hence, a caller no can no longer access the value it has given to a `sink` parameter after the callee returns.
+
+A C++ developer may understand the `sink` convention as *pass by rvalue reference*, with guarantee that the argument moves, and write the following below.
+Further, note that a move is a destructive operation in Val.
+
+```c++
+Vector2 offset_sink(Vector2&& v, Vector2 const& delta) {
+  return Vector2 { v.x + delta.x, v.y + delta.y };
+}
+```
+
+A Rust developer may understand it as a *pass by move* and write the following below.
+They may note, however, that passing a value to a `sink` parameter always moves it in Val, even if that value has a copyable type.
+
+```rust
+fn offset_sink(v: Vector2, delta: &Vector2) -> Vector2 {
+  Vector2 { x: v.x + delta.x, y: v.y + delta.y }
+}
+```
+
+Since the value of a `sink` parameter is known to be unique at the function entry, it can be modified in place, just like the value of an `inout` parameter.
+Further, since a callee receives ownership, it is free to let the value escape.
+Therefore, an alternative implementation of `offset_sink(_:by:)` can be written as follows:
+
+```val
+fun offset_sink(_ v: sink Vector2, by delta: Vector2) -> Vector2 {
+  &v.x += delta.x
+  &v.y += delta.y
+  return v
+}
+```
+
+Stepping back, the fact that both `sink` and `inout` relate to uniqueness suggests some kind of correspondence.
+Indeed, `offset_sink` can be written from `offset_inout`, and vice versa.
+
+```val
+fun offset_sink_alt(_ v: sink Vector2, by delta: Vector2) -> Vector2 {
+  offset_inout(&v, by: delta)
+  return v
+}
+
+fun offset_inout_alt(_ v: inout Vector2, by delta: Vector2) {
+  v = offset_sink(v, by: delta)
+}
+```
+
+*Note: The correspondence highlights the fact that in place mutation is an efficient form of [functional update](https://en.wikipedia.org/wiki/Monad_(functional_programming)#State_monads).*
+
+Passing arguments to `sink` parameters does not require any particular syntax.
+However, because of the ownership transfer, the lifetime of all bindings bound to the passed value end with the function call.
+For example, the following program is illegal, as it attempts to read `v1` after it has been sunk:
+
+```val
+public fun main() {
+  let v1 = (x: 1.5, y: 2.5)
+  let v2 = offset_sink(v1, by: v1) // error: `v1` accessed after escaping
+  print(v2)
 }
 ```
 
