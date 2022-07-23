@@ -15,6 +15,7 @@ The [specification](https://github.com/val-lang/specification/blob/main/spec.md)
 
 Val is under active development and is not ready to be used yet.
 The code of the compiler is open source and [hosted on GitHub](https://github.com/val-lang/val).
+The current status of the project is described on our [roadmap page](./pages/implementation-status.html).
 
 ## Sounds great, but why another language?
 

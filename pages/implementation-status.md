@@ -1,0 +1,202 @@
+---
+layout: default
+---
+
+Val's implementation is at a very early stage.
+Key components of the compiler are still to be implemented before a first version of the language can be used.
+Further, some aspects of the language design are still immature and will likely require more iterations.
+
+This page gives an overview of our roadmap going forward and provides details on our main milestones.
+
+![2022 roadmap](./implementation-status.png)
+
+## 2022
+
+Our main objectives for the remainder of 2022 are to:
+- deliver an alpha version of Val;
+- validate the language's design; and
+- assess its usability.
+
+Progress toward those objectives will be measured by the following milestones:
+
+### Complete the language design
+
+Though many of the core principles of Val's design have been established already, there are still important open questions to address.
+We consider the answers to these questions essential to the development of a viable alpha version of the language.
+
+#### Stored projections
+
+Stored projections are a feature essential to implement collection views of generic types in safe Val.
+Collection views present the data of a type behind a specific API.
+A canonical example is the slice of an array.
+
+```val
+public fun main() {
+ var a = Array([8, 9, 5, 4, 6, 7, 1, 2, 3])
+ &a[1 ..< 5].sort()
+ print(a) // [8, 4, 5, 6, 9, 7, 1, 2, 3]
+}
+```
+
+The current design does not support the creation of the array subscript in safe Val because there is no way to "store" a projection of the array as part of the yielded slice.
+
+We already developed a base model to represent stored projections and guarantee Val's memory safety guarantees.
+Unfortunately, a few questions remain open:
+
+- How can we distinguish the mutability of the projection from that of the object?
+
+Stored projections are conceptually equivalent to pointers.
+From that observation, it is reasonable to wonder how to distinguish immutable pointers to immutable data and immutable pointers to mutable data.
+
+- How can we express mutable projections of immutable objects?
+
+Implementations in a subscript or property bundle are parameterized by the mutability of the receiver.
+That approach implies that the mutability of the yielded projection is the same as that of the yielded arguments, which is reasonable for most projections.
+However, there are cases where it would make sense to create a mutable object storing an immutable projection (e.g., a slice of an immutable array that implements `pop_front`).
+
+#### Concurrency
+
+The design of Val's concurrency is still immature.
+Though we have laid out some key principles, important questions have yet to be answered:
+
+- Should we support concurrent interprocess communication?
+
+Interprocess communication is a thorny problem in a programming language advocating for mutable value semantics.
+The core issue is that a communication channel is essentially a mutable reference.
+
+Our current position is that safe Val should not compromise on its strict adherence to value semantics, de facto discarding all forms of communication except at spawn and join events.
+Nonetheless, we plan on investigating whether such a restriction is acceptable by developing a collection of concurrent program examples.
+
+- Should we support cancellation at the language level?
+
+Though it might be possible to implement cancellation at the library level with a handful of carefully written types that wrap unsafe operations behind safe APIs, proper language support may be required for the sake of usability and/or performance.
+
+### Implement a reference compiler
+
+We expect to deliver a first version of an experimental compiler for Val sometime in early Q4.
+This implementation will serve as a proof of concept to build non-trivial programs and evaluate the language's usability.
+As such, we will not focus on performance and will push most optimizing code transformations to 2023.
+
+We have already built a [prototype](https://github.com/val-lang/val) capable of compiling a small subset of Val to [LLVM](https://llvm.org).
+The following key components must be either completed or developed from scratch to turn that prototype into a working implementation:
+
+#### Type inferrer/checker
+
+The type inferrer/checker is the component responsible to verify that programs satisfy the flow-insensitive semantics of Val.
+Its current implementation can analyze a significant subset of Val.
+However, significant effort is still required to support generic features.
+
+#### Intermediate representation
+
+Once checked by the flow-insensitive type checker, Val programs are translated to an intermediate representation (IR) that is used to perform flow-sensitive type checking (a.k.a. lifetime and ownership analysis) and guaranteed optimizations.
+
+Although we have already laid out foundations, the design of the IR itself is still a work in progress, as it is being co-designed with its implementation.
+We plan on providing a specification by the end of the year.
+
+The translation from Val source to the IR currently handles a small subset of the language.
+
+#### Lifetime and ownership analysis
+
+Lifetime and ownership analysis are two transformation passes that consume raw IR, freshly translated from the source code.
+They instrument it with appropriate instructions to model the state of objects and memory at runtime and finally check whether programs satisfy the flow-sensitive semantics of Val.
+
+The current implementation handles the same small subset as the IR translation.
+
+#### LLVM Code generation
+
+We opted to use LLVM as our backend.
+Thus, the last step of our frontend pipeline is to emit bitcode and let LLVM generate machine code.
+
+The current implementation handles the same small subset as the IR translation.
+
+### Implement one-way interoperability with C++
+
+Interoperability with C++ is one of the main goals of the Val project.
+Despite their similarities, however, both languages have considerably different type systems, introducing important challenges.
+Further, we do not expect the two languages to share the same ABI, meaning that seamless operability at the source level will likely require fairly sophisticated adapters under the hood.
+
+To tackle these issues, we plan on implementing interoperability in two phases.
+The first, which we expect to deliver by the end of the year, will only allow Val code to be used from C++.
+We'll achieve that objective by generating C-like low-level APIs for all public Val symbols using LLVM together with C++ types and functions to wrap these APIs.
+
+The second phase, on which we will work next year, will support seamless two-way interoperability by interfacing Val compiler with [clang](https://clang.llvm.org).
+
+### Implement a standard library
+
+Once we will have delivered the experimental compiler, A good part of Q4 will be dedicated to the implementation of a standard library for the language.
+We will calibrate the base of our design on [Swift's standard library](https://developer.apple.com/documentation/swift/swift-standard-library), for two reasons:
+1. Swift has had time to empirically demonstrate the success of its approach to generic programming; and
+2. Val and Swift share very similar type systems, so we expect the concepts developed in the latter to be portable in the former.
+
+### Write and publish the specification
+
+A complete specification of the language will increase confidence in the soundness of the language design.
+It will also serve as a reference document to write the implementation.
+
+The specification is currently an [ongoing work](https://github.com/val-lang/specification) that we expect to be delivered together with an alpha version of the language implementation.
+However, sections that relate to the semantics of the language still require significant effort.
+
+We also plan on publishing the specification in the form of a website or [GitBook](https://www.gitbook.com).
+
+## 2023
+
+Our main objectives for 2023 will be to
+- develop the missing features of the language;
+- investigate optimal implementation strategies implement an efficient compiler;
+- implement two-way interoperability with C++; and
+- develop an inclusive community.
+
+### Implement guaranteed optimizations
+
+Val is designed in such a way that it can communicate runtime costs very transparently.
+As a result, the language can offer several guaranteed optimization.
+For example, Val guarantees that closures do not require heap allocation unless the type of their environment is erased.
+We plan on implementing these guaranteed optimizations over Q1 and Q2.
+
+### Investigate implementation strategies for concurrency
+
+Once we will have finalized the design of Val's concurrency model, we will be able to investigate the optimal implementation strategies.
+
+We are leaning toward a [stackful coroutines](https://dl.acm.org/doi/10.1145/1462166.1462167), mostly to avoid monadic asynchronous programming (a.k.a. [polychromatic functions](https://journal.stuffwithstuff.com/2015/02/01/what-color-is-your-function/)), where asynchronous operations can only be called from asynchronous contexts.
+Nonetheless, discussions with experts have revealed that such a strategy may induce unfortunate runtime costs and that stackless coroutines may not necessarily force a monadic asynchronous style upon the language.
+
+One solution might be to adopt a sackful model as a default strategy and surface stack information in the type system to let the compiler opt for stackless code generation whenever possible.
+
+We on plan having adopted and implemented a strategy by the end of Q3.
+
+### Implement two-way interoperability with C++
+
+The objective of the second phase of C++ interoperability is to support seamless interaction of Val and C++ code in the same project.
+To that end, we will interface with clang to let Val compiler understand C++ and generate appropriate wrappers.
+
+The main challenge will be to map C++ types to Val, as the former supports features that have no obvious equivalent in the latter (e.g., throwing destructors).
+We also expect our investigation and implementation to raise a plethora of new open questions.
+As such, we do not plan on delivering interoperability before Q4.
+
+### Design and implement missing language features
+
+Some of the features on our wishlist are out of scope for 2022, as we believe they are not essential to assess the validity of the language's design.
+2023 will allow us to revisit these features with a working experimental implementation.
+
+Notable features in our wishlist include:
+- exception handling;
+- polymorphic effects;
+- variadic generic value and type parameters; and
+- resumable functions (a.k.a. [generators](https://en.wikipedia.org/wiki/Generator_(computer_programming))).
+
+### Develop an inclusive community
+
+Our goal with the Val project is to develop a programming language that is not only fast and safe but also **simple**.
+By simple, we mean that Val should be accessible to users from all sorts of backgrounds.
+A part of that objective lies in the language design, another in its community.
+
+If Val is to survive, it is therefore essential that we build an inclusive and welcoming community.
+To that end, we plan on: delivering a comprehensive language guide and setting up a transparent process to observe the evolution of the language.
+
+## 2024 and beyond
+
+Total world domination?
+
+* * *
+
+[Home](/)
