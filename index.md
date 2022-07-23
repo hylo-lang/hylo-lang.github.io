@@ -10,7 +10,7 @@ Val aims to be:
 - **Simple**: Val borrows heavily from [Swift](https://swift.org) which has demonstrated a user-friendly approach to generic programming. Further, its user model emphasizes on value, leaving out the typical complexities associated with reference semantics (e.g., memory regions, lifetime annotations, etc.).
 - **Interoperable with C++**: Programming languages rarely survive in vacuum. Val aims to take advantage of the vast software capital of C++ by supporting full interoperability.
 
-The [language tour](./language-tour.html) gives an overview of Val's most salient feature.
+The [language tour](./pages/language-tour.html) gives an overview of Val's most salient feature.
 The [specification](https://github.com/val-lang/specification/blob/main/spec.md) (work in progress) provides detailed information about Val's syntax and semantics.
 
 Val is under active development and is not ready to be used yet.
@@ -33,7 +33,7 @@ Here's a simple program:
 
 ```val
 subscript longer_of(_ a: inout String, _ b: inout String): String {
-  yield if b.count() > a.count() { &b } else { &a }
+  inout { if b.count() > a.count() { &b } else { &a } }
 }
 
 public fun main() {
@@ -64,4 +64,4 @@ A Rust programmer may think of `longer_of` as a function that borrows its argume
 What happens is very similar, but notice that `longer_of` has no lifetime annotations.
 There are not elided, they simply do not exist in Val because the it uses a simpler model, devoid of references.
 
-Have a look at the section on subscripts in the [language tour](./language-tour.html) to get more information.
+Have a look at the section on subscripts in the [language tour](./pages/language-tour.html) to get more information.

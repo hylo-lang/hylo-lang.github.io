@@ -1396,4 +1396,4 @@ type Angle {
 
 * * *
 
-[Home](./)
+[Home](/)
