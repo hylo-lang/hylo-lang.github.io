@@ -42,7 +42,7 @@ func emphasize(_ z: inout String, strength: Int = 1) {
 
 public fun main() {
   var (x, y) = ("Hi", "World")
-  emphasize(longer_of[&x, &y])
+  emphasize(&longer_of[&x, &y])
   print("${x} ${y}") // "Hi World!"
 }
 ```
