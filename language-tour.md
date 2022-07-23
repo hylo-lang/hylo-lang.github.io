@@ -10,7 +10,6 @@ You may consult the [specification](https://github.com/val-lang/specification/bl
 
 Keep in mind that Val is under active development.
 Some of the features presented in this tour (and in the specification) may not be fully implemented yet or subject to change in the future.
-- **Note:** as of this writing, many parts of Val are implemented and tested, but it has no parser so those parts are very difficult to use.  We're working on that!
 
 ## Hello, World!
 
