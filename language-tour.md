@@ -2,7 +2,7 @@
 layout: default
 ---
 
-This page gives a quick tour of Val's feature in the form of a progressive guide.
+This page gives a quick tour of Val's features in the form of a progressive guide.
 It assumes familiarity with an imperative programming language (e.g., C++) and basic concepts of [memory management](https://en.wikipedia.org/wiki/Memory_management).
 
 This tour does not cover the entire language.
@@ -10,10 +10,11 @@ You may consult the [specification](https://github.com/val-lang/specification/bl
 
 Keep in mind that Val is under active development.
 Some of the features presented in this tour (and in the specification) may not be fully implemented yet or subject to change in the future.
+- **Note:** as of this writing, many parts of Val are implemented and tested, but it has no parser so those parts are very difficult to use.  We're working on that!
 
 ## Hello, World!
 
-The tradition says language guides should start with a program that displays "Hello, World!" on the screen.
+Tradition says language guides should start with a program that displays "Hello, World!" on the screen.
 Let's oblige!
 
 ```val
@@ -22,8 +23,7 @@ public fun main() {
 }
 ```
 
-Every program in Val must define a `main` function as its entry point.
-That function never takes any argument and never returns anything.
+Every program in Val must define a `main` function, with no parameters and no return value, as its entry point.
 Here, `main` contains single statement, which is a call to a global function `print` with a string argument.
 
 *The standard library vends an API to interact with the program's environment.*
@@ -31,20 +31,30 @@ Here, `main` contains single statement, which is a call to a global function `pr
 *Return statuses are signalued by calling the global function `exit(status:)`.*
 
 To run this program:
-- Copy that `main` function in a file `Hello.val`.
+- Copy that `main` function into a file called `Hello.val`.
 - Run the command `valc Hello.val -o hello`.
-- Run the command `./ hello` to run the executable.
+- Run the command `./hello` to run the executable.
+{% comment %}
+FIXME: these instructions are unix-specific; wouldn't work on Windows.
+{% endcomment %}
 
 ## Modules
 
-A Val program is made of **modules** that are linked together to build one **executable**.
-A module is a collection of one or multiple files.
-A module that defines a public `main` function is called an entry module.
-A program shall contain only one entry module.
+A Val program is composed of **modules** each of which is composed of one or more files.
+{% comment %}
+FIXME: the above change allows room for plugin-style dynamic loading, which we haven't really addressed.
+{% endcomment %}
+A module that defines a public `main` function is called an **entry module**, of which there must be exactly one per program.
 
 The program we wrote above is made of two modules.
 The first contains the `hello.val` file and is the program's entry module.
-The second is Val's standard library, which is always implicitly imported, and defines common types, traits, functions and subscripts.
+The second is Val's standard library, which is always implicitly imported, and defines commonly-used components like the `Int` and `String` types, and the `print` function used above.
+
+Each module defines an API resilience boundary: only public declarations are visible outside the module, and changes to non-public declarations, or to the bodies of public functions in the module cannot cause code outside the module to fail compilation.
+A module may also define an ABI resilience boundary, within which code and details such as type layout are never encoded into other compiled modules (e.g. via inlining).
+{% comment %}
+This begs the question of how we declare an ABI resilience boundary.  I don't think Swift got it right -DWA
+{% endcomment %}
 
 ### Bundling files
 
@@ -64,8 +74,8 @@ fun greet(_ name: String) {
 ```
 
 Here, we declare a function `greet` that takes a single argument of type `String`.
-The underscore (i.e., `_`) before the parameter name signals that it is unlabeled.
-We'll come back to labels later.
+The underscore (i.e., `_`) before the parameter name means that arguments passed here must be unlabeled.
+We'll come back to argument labels later.
 
 To run this program:
 - Run the command `valc Hello.val Greet.val -o hello`
@@ -78,7 +88,7 @@ All entities declared at the top level of a file are visible everywhere in a mod
 
 ### Bundling modules
 
-The simplest way to work with multiple modules is to gather source files in different folders.
+The simplest way to work with multiple modules is to gather source files into different folders.
 For example, let's move `greet` in a different module, using the following arborescence:
 
 ```
@@ -107,7 +117,7 @@ public fun greet(_ name: String) {
 The statement `import Greet` at the top of `Hello.val` tells the compiler it should import the module `Greet` when it compiles that source file.
 Implicitly, that makes `Greet` a dependency of `Hello`.
 
-Notice that `greet` had to be made public because we want it to cross module boundary.
+Notice that `greet` had to be made public so it could be visible to other modules.
 As such, it can be called from `Hello.val`.
 
 To run this program:
@@ -116,12 +126,14 @@ To run this program:
 
 ## Bindings
 
-A binding is a name that denotes an object or a projection (more on that later).
-Bindings can be mutable or not.
-The value of a mutable can be modified whereas that of an immutable binding cannot.
+A binding is a name that denotes an object, and can be mutable or immutable.
+{% comment %}
+The only way “projection” is used in this document so far where it has a name, it is an object (a slice).
+{% endcomment %}
+The object denoted by a mutable binding can be modified, whereas that of an immutable binding cannot.
 
 Immutable bindings are declared with `let` and can be initialized with the `=` operator:
-It is not possible to modify their value after their initialization.
+It is not possible to modify the bound object during the [lifetime](#lifetime) of the binding.
 
 ```val
 public fun main() {
@@ -141,7 +153,7 @@ public fun main() {
 ```
 
 Bindings declared with `inout` are also mutable but operate differently.
-They *project* the value (or part thereof) of an object mutably.
+They *project* the value of an object, or part of its value, mutably.
 
 ```val
 public fun main() {
@@ -154,8 +166,8 @@ public fun main() {
 
 ### Lifetime
 
-The *lifetime* of a binding denotes the region of the program where the value of that binding can be accessed.
-That always end after the last expression in which the binding occurs.
+The *lifetime* of a binding denotes the region of the program where the value of that binding is accessed.
+The lifetime always ends after the last expression in which the binding occurs.
 For example, the lifetime of `weight` ends after the first call to `print` in the program below:
 
 ```
@@ -167,30 +179,62 @@ public fun main() {
 }
 ```
 
-Some operations are said to be *consuming*, because they end the lifetime of a binding.
+Some operations are said to be *consuming*, because they force-end the lifetime of a binding.
 In other words, they *must* be the last use of the consumed binding.
-For example, assigning a `var` binding or a creating a [tuple](#tuples) consumes the values that initialize its elements:
+For example, assigning into a `var` binding or a creating a [tuple](#tuples) consumes the values that initialize its elements:
 
 ```val
 public fun main() {
   let weight = 1.0
-  let length = 2.0
-  let measurements = (
-    w: weight,  // error: `weight` is used after escaping here.
-    l: length)
-  print(weight) // use occurs here
+  let base_length = 2.0
+  var length = base_length // <----------------------------------------------------+
+  length += 3.0            //                                                      |
+  let measurements = (     //                                                      |
+    w: weight,             // <-----------------------------------------------+    |
+    l: length)             //                                                 |    |
+  print(weight)            // error: `weight` used after being consumed here -+    |
+                           //                                                      |
+  print(base_length)       // error: `base_length` used after being consumed here -+
 }
 ```
 
-The program above is illegal because the value of `weight` *escapes* to initialize another object.
-To better understand, we must keep in mind that Val places great emphasis on the concept of *value independence*.
+The program above is illegal because the values of `weight` and `base_length` are consumed to initialize other objects.
+This design follows from two of Val's core principles:
+1. In a Val program, all **copies are explicit by default**. 
+Languages that copy most values implicitly (C++, Swift, R, …) often do so at great expense to performance, and avoiding implicit copies can itself incur a great expense in code size, in code and language complexity, and in development speed.
+Fortunately, Val naturally needs many fewer copies than other languages, and the Val compiler can offer to insert the copies that you may miss.
+Val also supports selectively-enabled implicit copies (for scripting, education purpose, etc)—but that is not the default.
+2. In a Val program the **values of distinct bindings and distinct objects are *independent* under mutation**. Languages that allow two accessible names to bind to the same mutable object (JavaScript, Python, Ruby, Lua, parts of C++ and Swift) are prone to hidden interactions, race conditions, and easily scale up into systems that can't be documented, tested, or understood.
 
-The constructs of Val manipulate *objects*, which can be thought as independent resources representing some data.
-A binding is a mean to access an object's value, through a name.
+{% comment %}
+
+I don't think the following description is appropriate here.  I feel I understand Val code perfectly
+well and the idea that an object has exactly one owner at any time is not part of my way of
+thinking.  In fact, that seems like a very complicated way to understand `let x = 1; let y = x;
+...`; you may have to transfer ownership around based on the site of the last use. I think of our
+bindings as being like reader/writer locks: there are either multiple owners through which the
+object is immutable, or one owner through which it is mutable.
+
+The whole idea of “changing the capabilities of a program's bindings depending on its control flow”
+seems pretty magical and mysterious to me.
+
+{% endcomment %}
+
+Val code manipulates *objects*, each of which is an independent resource representing some data, the object's *value*.
+A binding is a name used to access an object's value.
 From there, three basic principles apply, which Val upholds by changing the capabilities of a program's bindings depending on its control flow:
-1. When an object is created, its *ownership* is attributed to a binding or another object.
+1. When an object is created, it is *owned* by another object of which it is a part, or by a binding.
 2. An object always has exactly one owner at any given point during its existence.
 3. There can never be more than a single mutable access to an object at any given point.
+
+{% comment %}
+
+Seems to me the above list can't be complete. There can also be no access to an object to a
+mutably-owned object except through its owner.
+
+With my edits to the example above, which really needed mutation to make its point, the narrative below isn't quite right and the next version of the program needs to be updated if you're going to keep it.
+
+{% endcomment %}
 
 In the program above, the first line of `main` creates an object representing a floating-point number.
 Its ownership is attributed to `weight`, satisfying the first and second principles.
@@ -220,7 +264,10 @@ public fun main() {
 
 ## Basic types
 
-Val is statically typed: bindings of a given type cannot be assigned a value of a different one.
+Val is statically typed: the type of a binding must always match the type of the object it is bound to.
+{% comment %}
+When phrased in terms of assignment, subtyping violates it: `let x = 1; let y: any = x`
+{% endcomment %}
 For instance, it is impossible to assign a floating point number to an integer binding:
 
 ```val
@@ -241,6 +288,9 @@ public fun main() {
   print(weight) // 2.3
 }
 ```
+{% comment %}
+The ability to use (e.g.) an integer literal to initialize a double is IIUC one of the great sources of expression too complex errors in Swift.
+{% endcomment %}
 
 The type of an expression can be retrieved with the function `type(of:)`:
 
@@ -251,9 +301,13 @@ public fun main() {
   print(type(of: "Hey!")) // String
 }
 ```
+{% comment %}
+That seems like a pretty unimportant detail to introduce at this point.
+You should say whether the expression is evaluated or not.
+{% endcomment %}
 
 Val's standard library defines a collection of types that are commonly used in all programs.
-Those include numeric types (e.g., `Int` and `Double`), characters strings (i.e., `String`), Booleans (i.e., `Bool`), and more complex types to represent data structures.
+Those include numeric types (e.g., `Int` and `Double`), strings of text (i.e., `String`), Booleans (i.e., `Bool`), and more complex types to represent data structures.
 The remainder of this section gives an overview of the most important ones.
 
 ### Booleans, numbers, and strings
@@ -1397,3 +1451,7 @@ type Angle {
 * * *
 
 [Home](./)
+
+<!-- Local Variables: -->
+<!-- eval: (auto-fill-mode -1) -->
+<!-- End: -->
