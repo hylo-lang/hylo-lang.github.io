@@ -1,0 +1,9 @@
+---
+---
+@import "{{ site.theme_name }}";
+
+/* overrides jekyll hover-over-link behavior */
+a:hover {
+    font-weight: inherit;
+    text-decoration: underline;
+}
