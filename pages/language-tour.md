@@ -40,9 +40,6 @@ FIXME: these instructions are unix-specific; wouldn't work on Windows.
 ## Modules
 
 A Val program is composed of **modules** each of which is composed of one or more files.
-{% comment %}
-FIXME: the above change allows room for plugin-style dynamic loading, which we haven't really addressed.
-{% endcomment %}
 A module that defines a public `main` function is called an **entry module**, of which there must be exactly one per program.
 
 The program we wrote above is made of two modules.
@@ -51,14 +48,11 @@ The second is Val's standard library, which is always implicitly imported, and d
 
 Each module defines an API resilience boundary: only public declarations are visible outside the module, and changes to non-public declarations, or to the bodies of public functions in the module cannot cause code outside the module to fail compilation.
 A module may also define an ABI resilience boundary, within which code and details such as type layout are never encoded into other compiled modules (e.g. via inlining).
-{% comment %}
-This begs the question of how we declare an ABI resilience boundary.  I don't think Swift got it right -DWA
-{% endcomment %}
 
 ### Bundling files
 
 You may bundle multiple files in a single module by passing all of them as arguments to `valc`.
-For example, let us define a function that prints a specialized greeting in a separate file and call it from `Hello.val`:
+For example, in a separate file we can define a function, that prints a specialized greeting, and call it from `Hello.val`:
 
 ```val
 // In `Hello.val`
@@ -80,41 +74,52 @@ To run this program:
 - Run the command `valc Hello.val Greet.val -o hello`
 - Run the command `./hello`
 
-*Alternatively, you may put both source files in a folder, say `Sources`, and compile the program with `valc Sources -o hello`.*
+*Alternatively, you may put both source files in a subdirectory, say `Sources/`, and compile the program with `valc Sources -o hello`.*
 
 Note that `greet` need not to be `public` to be visible from another file in the module.
 All entities declared at the top level of a file are visible everywhere in a module, but not beyond that module's boundary.
+{% comment %}
+Do we need to say, "unless marked private?"
+{% endcomment %}
 
 ### Bundling modules
 
-The simplest way to work with multiple modules is to gather source files into different folders.
-For example, let's move `greet` in a different module, using the following arborescence:
+The simplest way to work with multiple modules is to gather source files into different subdirectories.
+For example, let's move `greet` in a different module, using the following directory structure:
+{% comment %}
+I love the word “arborescence!”  But nobody will know what it means.
+{% endcomment %}
 
 ```
 Sources
   |- Hello
   |  |- Hello.val
-  |- Greet
-  |  |- Greet.val
+  |- Greetings
+  |  |- Greetings.val
 ```
 
 Let's also slightly modify both source files:
 
 ```val
 // In `Sources/Hello/Hello.val`
-import Greet
+import Greetings
 public fun main() {
   greet("World")
 }
 
-// In `Sources/Greet/Greet.val`
+// In `Sources/Greetings/Greetings.val`
 public fun greet(_ name: String) {
   print("Hello, ${name}!")
 }
 ```
 
-The statement `import Greet` at the top of `Hello.val` tells the compiler it should import the module `Greet` when it compiles that source file.
-Implicitly, that makes `Greet` a dependency of `Hello`.
+The statement `import Greetings` at the top of `Hello.val` tells the compiler it should import the module `Greetings` when it compiles that source file.
+Implicitly, that makes `Greetings` a dependency of `Hello`.
+{% comment %}
+The point of this change is that some people “hear” words as they read them, and if you have two
+distinct names with the same sound, especially whose spelling differs only by capitalization, it
+gets confusing.
+{% endcomment %}
 
 Notice that `greet` had to be made public so it could be visible to other modules.
 As such, it can be called from `Hello.val`.
@@ -126,9 +131,6 @@ To run this program:
 ## Bindings
 
 A binding is a name that denotes an object, and can be mutable or immutable.
-{% comment %}
-The only way “projection” is used in this document so far where it has a name, it is an object (a slice).
-{% endcomment %}
 The object denoted by a mutable binding can be modified, whereas that of an immutable binding cannot.
 
 Immutable bindings are declared with `let` and can be initialized with the `=` operator:
@@ -163,6 +165,9 @@ public fun main() {
 }
 ```
 
+Note however that such a projection is not a reference in the usual sense; it has full ownership
+over the value it projects, which cannot be accessed except through that projection.
+
 ### Lifetime
 
 The *lifetime* of a binding denotes the region of the program where the value of that binding is accessed.
@@ -180,7 +185,8 @@ public fun main() {
 
 Some operations are said to be *consuming*, because they force-end the lifetime of a binding.
 In other words, they *must* be the last use of the consumed binding.
-For example, assigning into a `var` binding or a creating a [tuple](#tuples) consumes the values that initialize its elements:
+For example, assigning into a `var` binding consumes the source of the assignment. 
+Similarly, [tuple](#tuples) initialization consumes the source values.
 
 ```val
 public fun main() {
@@ -197,76 +203,23 @@ public fun main() {
 }
 ```
 
-The program above is illegal because the values of `weight` and `base_length` are consumed to initialize other objects.
+The program above is illegal because the values of `weight` and `base_length` are used after being
+consumed to initialize other objects.  The Val compiler will suggest that you change the code to
+consume *copies* of `weight` and `base_length` instead, and will offer to insert these copies for you.
 This design follows from two of Val's core principles:
-1. In a Val program, all **copies are explicit by default**. 
+
+1. **Copies are explicit by default**. 
 Languages that copy most values implicitly (C++, Swift, R, …) often do so at great expense to performance, and avoiding implicit copies can itself incur a great expense in code size, in code and language complexity, and in development speed.
-Fortunately, Val naturally needs many fewer copies than other languages, and the Val compiler can offer to insert the copies that you may miss.
-Val also supports selectively-enabled implicit copies (for scripting, education purpose, etc)—but that is not the default.
-2. In a Val program the **values of distinct bindings and distinct objects are *independent* under mutation**. Languages that allow two accessible names to bind to the same mutable object (JavaScript, Python, Ruby, Lua, parts of C++ and Swift) are prone to hidden interactions, race conditions, and easily scale up into systems that can't be documented, tested, or understood.
+Fortunately, Val naturally needs far fewer copies than other languages, so explicit copies in code
+are always salient rather than “noisy.” (For code where implicit copying is appropriate, Val offers a scoped `@implicitcopy` directive).
 
-{% comment %}
-
-I don't think the following description is appropriate here.  I feel I understand Val code perfectly
-well and the idea that an object has exactly one owner at any time is not part of my way of
-thinking.  In fact, that seems like a very complicated way to understand `let x = 1; let y = x;
-...`; you may have to transfer ownership around based on the site of the last use. I think of our
-bindings as being like reader/writer locks: there are either multiple owners through which the
-object is immutable, or one owner through which it is mutable.
-
-The whole idea of “changing the capabilities of a program's bindings depending on its control flow”
-seems pretty magical and mysterious to me.
-
-{% endcomment %}
-
-Val code manipulates *objects*, each of which is an independent resource representing some data, the object's *value*.
-A binding is a name used to access an object's value.
-From there, three basic principles apply, which Val upholds by changing the capabilities of a program's bindings depending on its control flow:
-1. When an object is created, it is *owned* by another object of which it is a part, or by a binding.
-2. An object always has exactly one owner at any given point during its existence.
-3. There can never be more than a single mutable access to an object at any given point.
-
-{% comment %}
-
-Seems to me the above list can't be complete. There can also be no access to an object to a
-mutably-owned object except through its owner.
-
-With my edits to the example above, which really needed mutation to make its point, the narrative below isn't quite right and the next version of the program needs to be updated if you're going to keep it.
-
-{% endcomment %}
-
-In the program above, the first line of `main` creates an object representing a floating-point number.
-Its ownership is attributed to `weight`, satisfying the first and second principles.
-Since all bindings are immutable in this example, the third principle holds trivially.
-
-Objects may form whole/part relationships.
-In that case, the "whole" becomes owner of the "part".
-Here, that happens when a tuple is created at line 3 of `main`, consuming the values of `weight` and `length`, and thus their ownership.
-A transfer of ownership ends the lifetime of all bindings before the transfer.
-Thus, it is illegal to use `weight` at line 6.
-
-If we follow the compiler's suggestion, a solution is to copy `weight`'s value to create the tuple.
-By doing so, we will create a new independent object whose ownership can be attributed to the tuple, without transferring that of `weight`.
-
-```val
-public fun main() {
-  let weight = 1.0
-  let length = 2.0
-  let measurements = (
-    w: weight.copy(),
-    l: length)
-  print(weight) // 1.0
-}
-```
-
-*Note: All copies are explicit in Val, even for values of simple types such as `Double`.*
+2. **Distinct bindings and distinct objects have *independent* values**. 
+Languages that allow two accessible names to bind to the same mutable object (JavaScript, Python, Ruby, Lua, parts of C++ and Swift) are prone to hidden interactions, race conditions, and easily scale up into systems that can't be documented, tested, or understood.
+Val allows access to a mutable value through exactly one binding at any given time.
 
 ## Basic types
 
 Val is statically typed: the type of a binding must always match the type of the object it is bound to.
-{% comment %}
-When phrased in terms of assignment, subtyping violates it: `let x = 1; let y: any = x`
-{% endcomment %}
 For instance, it is impossible to assign a floating point number to an integer binding:
 
 ```val
@@ -278,20 +231,20 @@ public fun main() {
 
 The type of a binding is determined at declaration.
 If an initializing expression is present, such as in all previous examples, the binding is given the type of that expression.
-Alternatively, we may state the type of a binding explicitly by the means of an annotation:
+Alternatively, we may state the type of a binding explicitly:
 
 ```val
 public fun main() {
-  var weight: Double = 1
+  var weight: Double = 1.0
   weight = 2.3
   print(weight) // 2.3
 }
 ```
-{% comment %}
-The ability to use (e.g.) an integer literal to initialize a double is IIUC one of the great sources of expression too complex errors in Swift.
-{% endcomment %}
 
-The type of an expression can be retrieved with the function `type(of:)`:
+The type of an expression can be retrieved, without evaluating the expression, using `type(of:)`:
+{% comment %}
+I understand, precedent from Swift, but… what purpose does `of:` serve here?!
+{% endcomment %}
 
 ```val
 public fun main() {
@@ -300,13 +253,9 @@ public fun main() {
   print(type(of: "Hey!")) // String
 }
 ```
-{% comment %}
-That seems like a pretty unimportant detail to introduce at this point.
-You should say whether the expression is evaluated or not.
-{% endcomment %}
 
-Val's standard library defines a collection of types that are commonly used in all programs.
-Those include numeric types (e.g., `Int` and `Double`), strings of text (i.e., `String`), Booleans (i.e., `Bool`), and more complex types to represent data structures.
+Val's standard library defines the types that are most commonly used, including numeric types (e.g.,
+`Int`, `Double`), text strings (`String`), Booleans (`Bool`), and types to represent data structures.
 The remainder of this section gives an overview of the most important ones.
 
 ### Booleans, numbers, and strings
@@ -325,13 +274,14 @@ Integer numbers are typically represented by the type `Int`, which represents a 
 Val also provides types to represent integers of different sizes and signedness.
 For example, `UInt16` represents a 16-bit unsigned number and `Int8` a 8-bit signed number, independently of the machine for which the program is compiled.
 
-*Note: The type `Int` should be preferred unless you need a different variant for a specific reason (e.g., representing a hardware register).*
+*Note: The type `Int` should be preferred unless you need a different variant for a specific reason
+(e.g., representing a hardware register, storage optimization).*
 *This convention aids code consistency and interoperability.*
 
-Floating point numbers are represented by the types `Double` and `Float`.
-The former denotes [double-precision](https://en.wikipedia.org/wiki/IEEE_754) format while the former denotes single-precision.
+Floating point numbers are represented by the types `Float` and `Double`, denoting
+[IEEE](https://en.wikipedia.org/wiki/IEEE_754) single and double-precision values respectively.
 
-*Note: For the same reason as `Int` should be preferred for every integer value, `Double` should be preferred for any floating-point value.*
+*Note: For the same reasons as `Int` should be preferred for every integer value, `Double` should be preferred for any floating-point value.*
 
 Val does not support any kind of implicit conversion between numeric types.
 For example, the following program is illegal:
@@ -366,15 +316,14 @@ public fun main() {
 }
 ```
 
-In the above example, `m` is explicitly decalred to have type `Double`.
+In the above example, `m` is explicitly declared to have type `Double`.
 As a result, the compiler infers its initializer as an expression of type `Double` rather than `Int`.
 Similarly, the compiler infers that the literal on the right hand side of `*=` should be interpreted as a floating-point number.
 
-*Note: the notation `&n += 10` denotes an in-place update of `n`.*
-*The ampersand (i.e., `&`) indicates mutation.*
+*Note: the ampersand in `&n += 10` indicates that `n` is being mutated in-place.*
 *We come back to it later.*
 
-Character strings are represented by the type `String` and have two literal forms.
+Text is represented by the type `String` and has two literal forms.
 Simple string literals are sequences of character surrounded by double quotes on a single line (e.g., `"Hello, World!"`).
 Multiline literals are surrounded by sequences of three double quotes on either side and may contain new lines.
 
@@ -394,7 +343,7 @@ The first new-line delimiter in a multiline string literal is not part of the va
 The last new-line delimiter that is succeeded by a contiguous sequence of inline spaces followed by the closing delimiter is called the indentation marker.
 The indentation marker and the succeeding inline spaces specify the indentation pattern of the literal and are not part of its value.
 
-For example, in the program above, the indentation pattern is defined as two white spaces.
+For example, in the program above, the indentation pattern is defined as two spaces.
 Therefore, the value of `text` starts with "C'est" and ends with "rayons."
 
 Strings can be mutated in place in Val:
@@ -402,15 +351,15 @@ Strings can be mutated in place in Val:
 ```val
 public fun main() {
   var text = "Hello, "
-  &text.append("World!")
-  print(text) // Hello, World!
+  &text.append("World!")  // <=== HERE
+  print(text)             // Hello, World!
 }
 ```
 
 ### Tuples
 
-A tuple is a container composed of zero or more heterogeneous values.
-t is a kind of [record data structure](https://en.wikipedia.org/wiki/Record_(computer_science)).
+A tuple is a [record](https://en.wikipedia.org/wiki/Record_(computer_science)) that composes zero or
+more heterogeneous values.
 It can be created with a comma-separated list of values, enclosed in parentheses, and optionally labeled.
 Of course, tuples can contain other tuples.
 
@@ -421,7 +370,7 @@ public fun main() {
 }
 ```
 
-*The elements of a tuple are laid out contiguously in memory, with potential padding to accounf for alignment.*
+*The elements of a tuple are laid out contiguously in memory, with potential padding to account for alignment.*
 
 The elements of a tuple are accessed by appending `.n` to a tuple expression, where `n` denotes the `n-th` element of the tuple, stating at zero.
 Elements may also be referred to by their label, if any.
