@@ -10,7 +10,7 @@ Val aims to be:
 - **Simple**: Val borrows heavily from [Swift](https://swift.org) which has demonstrated a user-friendly approach to generic programming and deep support for value semantics.  Val's programming model strengthens and extends this support, while de-emphasizing reference semantics and avoiding the complexities that result from trying to make it statically safe (e.g., memory regions, lifetime annotations, etc.).
 - **Interoperable with C++**: Programming languages rarely survive in vacuum. Val aims to take advantage of the vast software capital of C++ by supporting full interoperability.
 
-The [language tour](./language-tour.html) gives an overview of Val's most salient feature.
+The [language tour](./language-tour.html) gives an overview of Val's features.
 The [specification](https://github.com/val-lang/specification/blob/main/spec.md) (work in progress) provides detailed information about Val's syntax and semantics.
 
 Val is under active development and is not ready to be used yet.
@@ -49,8 +49,7 @@ public fun main() {
 
 This program declares two character strings, appends an exclamation mark to the longest, and prints them both after the mutation.
 No pointers or references are used (`&` in Val does not mean “address of”—it simply marks a mutation), and no unecessary allocation occurs.
-The result of `longer_of` is a *projection* of the longer argument, so the mutation of `z` by `emphasize` occurs directly on the value of `y`.  The value is neither copied, nor moved, and yet it is not being passed by reference to `emphasize`.  
-The body of `emphasize` *owns* `z` in exactly the same way as it owns `strength`, which is passed by value: `z` is an independent value that can only be touched by `emphasize`.
+The result of `longer_of` is a *projection* of the longer argument, so the mutation of `z` by `emphasize` occurs directly on the value of `y`.  The value is neither copied, nor moved, and yet it is not being passed by reference to `emphasize`.  The body of `emphasize` *owns* `z` in exactly the same way as it owns `strength`, which is passed by value: `z` is an independent value that can only be touched by `emphasize`.
 
 To better understand, notice that `longer_of` is not a function; its a subscript.
 A subscript does not return a value, it *projects* one, granting the caller temporary read and/or write access to it.
