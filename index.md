@@ -48,7 +48,7 @@ public fun main() {
 ```
 
 This program declares two character strings, appends an exclamation mark to the longest, and prints them both after the mutation.
-No unecessary allocation occurs.
+No pointers or references are used (`&` in Val does not mean “address of”—it simply marks a mutation), and no unecessary allocation occurs.
 The result of `longer_of` is a *projection* of the longer argument, so the mutation of `z` by `emphasize` occurs directly on the value of `y`.  The value is neither copied, nor moved, and yet it is not being passed by reference to `emphasize`.  
 The body of `emphasize` *owns* `z` in exactly the same way as it owns `strength`, which is passed by value: `z` is an independent value that can only be touched by `emphasize`.
 
