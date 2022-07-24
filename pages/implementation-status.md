@@ -178,10 +178,25 @@ As such, we do not plan on delivering interoperability before Q4.
 Some of the features on our wishlist are out of scope for 2022, as we believe they are not essential to assess the validity of the language's design.
 2023 will allow us to revisit these features with a working experimental implementation.
 
-Notable features in our wishlist include:
+One of our main goals will be the inclusion of **variadic** generic parameters.
+Val already supports scalar generic type and value parameters.
+The former enable bounded polymorphism by the means of type constraints; the latter enable a restricted form of [dependent types](https://en.wikipedia.org/wiki/Dependent_type) by allowing types and operations to be parameterized by values computed during compilation.
+A canonical example is a buffer (i.e., a fixed-size array).
+
+```val
+extension Buffer {
+  fun concatenate<a: Int>(
+    _ other: Buffer<Self.Element, a>
+  ) -> Buffer<Self.Element, Self.size + a> { ... }
+}
+```
+
+Support for variadic generic parameters will greatly improve Val's expressiveness with respect to type-level metaprogramming.
+Our work in this area will be informed by contemporary efforts to leverage compile-time evaluation for metaprogramming, such as [Circle](https://www.circle-lang.org).
+
+Other notable features in our wishlist include:
 - exception handling;
-- polymorphic effects;
-- variadic generic value and type parameters; and
+- polymorphic effects; and
 - resumable functions (a.k.a. [generators](https://en.wikipedia.org/wiki/Generator_(computer_programming))).
 
 ### Develop an inclusive community
