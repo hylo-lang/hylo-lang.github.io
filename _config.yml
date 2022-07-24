@@ -1,3 +1,6 @@
-theme: jekyll-theme-tactile
+# Use the latest version of the theme; GitHub serves an outdated one.
+remote_theme: pages-themes/minimal
+# The theme is not called "minimal"
+theme_name: jekyll-theme-minimal
 title: Val
 description: The Val Programming Language
