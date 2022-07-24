@@ -1398,7 +1398,7 @@ type Angle {
 
 * * *
 
-[Home](./)
+[Home](/)
 
 <!-- Local Variables: -->
 <!-- eval: (auto-fill-mode -1) -->

@@ -4,3 +4,4 @@ remote_theme: pages-themes/minimal
 theme_name: jekyll-theme-minimal
 title: Val
 description: The Val Programming Language
+logo: /assets/img/logo.svg
