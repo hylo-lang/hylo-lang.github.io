@@ -3,7 +3,7 @@ layout: default
 ---
 
 This page gives a quick tour of Val's features in the form of a progressive guide.
-It assumes familiarity with an imperative programming language (e.g., C++) and basic concepts of [memory management](https://en.wikipedia.org/wiki/Memory_management).
+It assumes familiarity with an imperative programming language such as JavaScript, Python, C or C++..
 
 This tour does not cover the entire language.
 You may consult the [specification](https://github.com/val-lang/specification/blob/main/spec.md) for more information.
