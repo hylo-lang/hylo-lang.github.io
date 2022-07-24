@@ -124,7 +124,7 @@ The second phase, on which we will work next year, will support seamless two-way
 ### Implement a standard library
 
 Once we will have delivered the experimental compiler, A good part of Q4 will be dedicated to the implementation of a standard library for the language.
-We will calibrate the base of our design on [Swift's standard library](https://developer.apple.com/documentation/swift/swift-standard-library), for two reasons:
+We will base our design on [Swift's standard library](https://developer.apple.com/documentation/swift/swift-standard-library), for two reasons:
 1. Swift has had time to empirically demonstrate the success of its approach to generic programming; and
 2. Val and Swift share very similar type systems, so we expect the concepts developed in the latter to be portable in the former.
 
