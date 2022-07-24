@@ -8,8 +8,6 @@ Further, some aspects of the language design are still immature and will likely 
 
 This page gives an overview of our roadmap going forward and provides details on our main milestones.
 
-![2022 roadmap](./implementation-status.png)
-
 ## 2022
 
 Our main objectives for the remainder of 2022 are to:
