@@ -199,12 +199,35 @@ Other notable features in our wishlist include:
 
 ### Develop an inclusive community
 
-Our goal with the Val project is to develop a programming language that is not only fast and safe but also **simple**.
+The Val project aims to develop a programming language that is not only fast and safe but also **simple**.
 By simple, we mean that Val should be accessible to users from all sorts of backgrounds.
 A part of that objective lies in the language design, another in its community.
 
 If Val is to survive, it is therefore essential that we build an inclusive and welcoming community.
-To that end, we plan on: delivering a comprehensive language guide and setting up a transparent process to observe the evolution of the language.
+To that end, we plan on developing the following axes throughout 2023.
+
+#### Tooling
+
+A language is only as strong as its tooling.
+Therefore, we plan on developing a [LSP server](https://langserver.org) implementation and a language extension for [VS Code](https://code.visualstudio.com).
+
+#### Insightful error diagnostics
+
+Good error diagnostics are essential to help developers write correct programs.
+We believe that Val's model is amenable to developing insightful diagnostics and providing relevant suggestions.
+
+We will take inspiration from [Elm](https://elm-lang.org) and [Rust](https://www.rust-lang.org), which are both known for delivering great error messages.
+
+#### Language and library documentation
+
+Although we will have already delivered a specification of Val by 2023, we understand that typical users won't expect to read that document to get started.
+Instead, a comprehensive language guide and user-friendly documentation of the standard library will help novices and experts alike get up to speed.
+Those resources will be published as an interactive website allowing users to run code directly on their browser.
+
+#### Transparent process to follow and/or contribute
+
+We strongly believe in the power of open source and the diversity of thoughts, ideas, and experiences.
+Not only will we commit to keeping our code and documentation publicly available, but we will also set up a transp
 
 ## 2024 and beyond
 
