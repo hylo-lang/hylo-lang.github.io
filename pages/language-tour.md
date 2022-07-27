@@ -577,7 +577,7 @@ The signature of a function fully specifies its API.
 Most importantly, it describes the function's parameters and their type as well as a return type.
 
 *Note: The return type of a function that does not return any value may be omitted.*
-*In that case, the declaration is interpreted as though the return type was `Unit`.*
+*In that case, the declaration is interpreted as though the return type was `Void`.*
 
 A function is called using its name followed by its arguments, enclosed in parentheses.
 Here, `norm` is called to compute the norm of the vector `(x: 3.0, y: 4.0)` with the expression `norm(velocity)`.
@@ -625,7 +625,7 @@ fun round(_ n: Double, digits: Int) -> Double {
 }
 ```
 
-If a function has a return a value (i.e., its return type is not `Unit`), Val always expects its caller to use it or will complain with a warning otherwise.
+If a function has a return a value (i.e., its return type is not `Void`), Val always expects its caller to use it or will complain with a warning otherwise.
 You can use a discard statement to silence this warning:
 
 ```val
@@ -824,7 +824,7 @@ public fun main() {
 ```
 
 *Note: It should be clear now why the operator `+=` requires the left operand to be prefixed by an ampersand.*
-*Indeed, the type of `Double.infix+=` is `(inout Double, Double) -> Unit`.*
+*Indeed, the type of `Double.infix+=` is `(inout Double, Double) -> Void`.*
 
 Just like the `let` convention, the `inout` convention does not confer ownership.
 Therefore, the value of an `inout` parameter is not allowed to escape.
