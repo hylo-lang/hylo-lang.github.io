@@ -584,7 +584,7 @@ A function is called using its name followed by its arguments, enclosed in paren
 Here, `norm` is called to compute the norm of the vector `(x: 3.0, y: 4.0)` with the expression `norm(velocity)`.
 
 Notice that the name of the parameter to that function is prefixed by an underscore (i.e., `_`), signaling that the parameter is unlabeled.
-Would this underscore be omitted a call to `norm` would require its argument to be labeled by the parameter name.
+If this underscore were omitted, a call to `norm` would require its argument to be labeled by the parameter name `v`.
 
 It is also possible to define different labels by prefixing the parameter name with an identifier.
 This feature can be used to create very expressive APIs, in particular for functions that accept multiple parameters:
