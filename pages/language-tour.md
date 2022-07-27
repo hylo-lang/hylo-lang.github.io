@@ -3,7 +3,7 @@ layout: default
 ---
 
 This page gives a quick tour of Val's features in the form of a progressive guide.
-It assumes familiarity with an imperative programming language such as JavaScript, Python, C or C++..
+It assumes familiarity with an imperative programming language such as JavaScript, Python, C or C++.
 
 This tour does not cover the entire language.
 Please consult the [specification](https://github.com/val-lang/specification/blob/main/spec.md) for more detailed information.
@@ -76,7 +76,7 @@ To run this program:
 
 *Alternatively, you can put both source files in a subdirectory, say `Sources/`, and compile the program with `valc Sources -o hello`.*
 
-Note that `greet` need not to be `public` to be visible from another file in the module.
+Note that `greet` need not be `public` to be visible from another file in the module.
 All entities declared at the top level of a file are visible everywhere in a module, but not beyond that module's boundary.
 {% comment %}
 Do we need to say, "unless marked private?"
@@ -645,7 +645,7 @@ public fun main() {
 }
 ```
 
-Function can have default values for their parameters:
+Functions can have default values for their parameters:
 
 ```val
 fun round(_ n: Double, digits: Int = 3) -> Double {
@@ -661,7 +661,7 @@ Hence, one may omit the second argument when calling it.
 
 ### Parameter passing conventions
 
-A parameter passing conventions describes how the value of an argument is passed from caller to callee.
+A parameter passing convention describes how the value of an argument is passed from caller to callee.
 In other words, it describes the semantics of the language at function boundaries.
 
 Val provides four different parameter passing conventions: `let`, `inout`, `sink` and `set`.
@@ -691,7 +691,7 @@ So there's a kind of contract between the caller and the callee: both agree not 
 There's an additional clause in the fine print: the argument is "safe" to use at the entry of the function, meaning that it's fully initialized and that its invariants hold.
 
 An important point to make from the outset is that, for all intents and purposes, this contract states that the value of a `let` parameter is independent from any other value a function might access.
-In turns, that property guarantees local reasoning and excludes a large class of problems attributed to spooky action at a distance.
+In return, this property guarantees local reasoning and excludes a large class of problems attributed to spooky action at a distance.
 Underneath the user model, the contract also enables a key strategy to efficiently compile pass by value semantics.
 Namely, because the value is guaranteed immutable, the compiler can compile `let` parameters with references.
 
@@ -860,7 +860,8 @@ fun offset_sink(_ v: sink Vector2, by delta: Vector2) -> Vector2 {
 Here, the contract says not only that arguments to `sink` parameters are unique, but also that their ownership is transferred to the callee.
 Hence, a caller no can no longer access the value it has given to a `sink` parameter after the callee returns.
 
-A C++ developer can understand the `sink` convention as *pass by rvalue reference*, with guarantee that the argument moves, and write the following below.
+A C++ developer can understand the `sink` convention as *pass by rvalue reference*, with the guarantee that the argument moves, and write the following below.
+
 Further, note that a move is a destructive operation in Val.
 
 ```c++
@@ -977,7 +978,7 @@ public fun main() {
 ```
 
 The program above declares `Vector2` a [record type](#records) with two public properties, a public memberwise initializer and a method.
-The latter is nearly identical to the free function we declaredin the section on [parameter passing conventions](#parameter-passing-conventions).
+The latter is nearly identical to the free function we declared in the section on [parameter passing conventions](#parameter-passing-conventions).
 The difference is that its first parameter has become implicit and is now named `self`.
 
 In a method, `self` denotes the *receiver*, an implicit argument that refers to the value on which the method is called.
@@ -1286,7 +1287,7 @@ public fun main() {
 
 ### Subscript bundles
 
-Just like methods, subscripts and member subscripts can bindle multiple implementations to represent different variant of the same functionality depending on the context in which the subscript is being used.
+Just like methods, subscripts and member subscripts can bundle multiple implementations to represent different variant of the same functionality depending on the context in which the subscript is being used.
 
 #### `inout` subscripts
 
@@ -1322,7 +1323,7 @@ public fun main() {
 
 Here, the immutable variant of the subscript is synthesized from the mutable one.
 In some cases, however, you may need to implement different behavior.
-You such situations, you can bundle multiple implementations together:
+In such situations, you can bundle multiple implementations together:
 
 ```
 subscript min(_ x: yielded Int, _ y: yielded Int): Int {
@@ -1334,7 +1335,7 @@ subscript min(_ x: yielded Int, _ y: yielded Int): Int {
 #### `set` subscripts
 
 A `set` subscript does not project any value.
-Instead, it used when the value produced by a subscript needs not to be used, but only assigned to a new value.
+Instead, it is used when the value produced by a subscript need not be used, but only assigned to a new value.
 
 A `set` subscript accepts an implicit `sink` parameter named `new_value` denoting the value to assign:
 
@@ -1352,7 +1353,7 @@ public fun main() {
 ```
 
 In the program above, the value of the subscript is not required to perform the assigment.
-So rather than applying the `inout` variant, the compiler will choses to apply the `set` variant.
+So rather than applying the `inout` variant, the compiler will choose to apply the `set` variant.
 
 #### `sink` subscripts
 
