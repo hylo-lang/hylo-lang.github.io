@@ -534,19 +534,19 @@ public fun main() {
 ```
 
 It is often convenient to create (generic) type aliases to denote unions.
-For example, Val's standard library defines [option types](https://en.wikipedia.org/wiki/Option_type) as follows:
+For example, Val's standard library defines [optionals](https://en.wikipedia.org/wiki/Option_type) as follows:
 
 ```val
-public typealias Option<T> = T | Nil
+public typealias Optional<T> = T | Nil
 public type Nil {
   public init() {}
 }
 ```
 
 Here, the type `Nil` is an empty record used only to mark the absence of a `T`.
-The type `Option<T>` is the union of any type `T` and `Nil`, which can be used to indicate that a particular value might be absent.
+The type `Optional<T>` is the union of any type `T` and `Nil`, which can be used to indicate that a particular value might be absent.
 
-*Note: While `T | U | T` is equivalent to `T | U` (element type repetitions at the same level are collapsed), `(T | U) | T` is a distinct type.  Thus `Option<Option<T>>` is not the same as `Option<T>`.*
+*Note: While `T | U | T` is equivalent to `T | U` (element type repetitions at the same level are collapsed), `(T | U) | T` is a distinct type.  Thus `Optional<Optional<T>>` is not the same as `Optional<T>`.*
 
 ## Functions and methods
 
