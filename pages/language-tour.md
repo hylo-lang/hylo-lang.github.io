@@ -372,8 +372,8 @@ public fun main() {
 
 *The elements of a tuple are laid out contiguously in memory, with potential padding to account for alignment.*
 
-The elements of a tuple are accessed by appending `.n` to a tuple expression, where `n` denotes the `n-th` element of the tuple, stating at zero.
-Elements may also be referred to by their label, if any.
+The elements of a tuple are accessed by appending `.n` to a tuple expression, where `n` denotes the `n`th element of the tuple, stating at zero.
+An element may also be referred to by its label, if any.
 
 ```val
 public fun main() {
@@ -389,17 +389,18 @@ Irrelevant elements may be ignored by using an underscore:
 ```val
 public fun main() {
   let circle = (origin: (x: 6.3, y: 1.0), radius: 2.3)
+  
+  // Bind to px to circle.origin.x and r to circle.radius,
+  // ignoring circle.origin.y
   let (origin: (x: px, y: _), radius: r) = circle
-  print((px, r)) // (6.3, 1.0)
+  
+  print((px, r))  // (6.3, 1.0)
 }
 ```
 
-In the program above, the tuple assigned to `circle` is destructured to initialize two local bindings: `px` and `r`.
-Notice that the y-componenent of the circle's origin is ignored.
-
 ### Buffers, arrays, and slices
 
-A buffer is a fixed-size collection of homogeneous elements, laid out contiguously in memory.
+A buffer is a fixed-size collection of homogeneous elements laid out contiguously in memory.
 It can be created with a comma-separated list of values, enclosed in square brackets.
 The elements of a buffer can be accessed by *subscripting* a buffer expression with an integer index:
 
@@ -414,7 +415,7 @@ public fun main() {
 }
 ```
 
-*Note: indexing a buffer outside of is either caught as a compile-time error, or causes the program to terminate at runtime.*
+*Note: indexing a buffer outside of its bounds is either caught as a compile-time error, or causes the program to terminate at runtime.*
 
 The type of a buffer is written either `T[n]` or `Buffer<T, n>`, where `T` is a type and `n` the number of elements in the buffer.
 All elements of a buffer must be initialized at the same time as the buffer itself, either by the means of a buffer literal expression, as in the program above, or by calling a buffer *initializer*:
@@ -422,7 +423,7 @@ All elements of a buffer must be initialized at the same time as the buffer itse
 ```val
 typealias Point = (x: Double, y: Double)
 public fun main() {
-  var triangle = Point[3](fun(i) { (x: Double(i), y: 0.0) })
+  var triangle = Point[3](fun(i) { (x: Double(i), y: 0.0) }) // <== HERE
   triangle[1].y = 2.5
   print(triangle[1]) // (x: 1.0, y: 2.5)
 }
@@ -431,19 +432,19 @@ public fun main() {
 In the program above, `triangle` is created by calling `Buffer.init(_:)`, which initializes each individual element with the result of a call to a function that accepts the element's index.
 Here, the value passed to that initializer is a [closure](#closure) that returns points whose x-component are equal to the element's index.
 
-An array is similar to a buffer, but may additionally be resized dynamically:
+An array is like a buffer that can be resized dynamically:
 
 ```val
 typealias Point = (x: Double, y: Double)
 public fun main() {
   var points = Array<Point>()
-  print(points.count()) // 0
-  points.append((x: 6.3, y: 1.0))
-  print(points.count()) // 1
+  print(points.count())            // 0
+  points.append((x: 6.3, y: 1.0))  // <== HERE
+  print(points.count())            // 1
 }
 ```
 
-Indexing a buffer, an array (or a slice) by a range creates a slice.
+Passing a range of indices to any collection's subscript creates a slice.
 A slice is a projection of a sub-part of a collection that can be accessed for reading and or writing.
 
 ```val
