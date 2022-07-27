@@ -115,11 +115,6 @@ public fun greet(_ name: String) {
 
 The statement `import Greetings` at the top of `Hello.val` tells the compiler it should import the module `Greetings` when it compiles that source file.
 Implicitly, that makes `Greetings` a dependency of `Hello`.
-{% comment %}
-The point of this change is that some people “hear” words as they read them, and if you have two
-distinct names with the same sound, especially whose spelling differs only by capitalization, it
-gets confusing.
-{% endcomment %}
 
 Notice that `greet` had to be made public so it could be visible to other modules.
 As such, it can be called from `Hello.val`.
@@ -242,9 +237,6 @@ public fun main() {
 ```
 
 The type of an expression can be retrieved, without evaluating the expression, using `type(of:)`:
-{% comment %}
-I understand, precedent from Swift, but… what purpose does `of:` serve here?!
-{% endcomment %}
 
 ```val
 public fun main() {
@@ -468,6 +460,13 @@ type Matrix3 {
 }
 ```
 
+{% comment %}
+I don't know if we discussed this, but making the memberwise init public has API resilience
+implications.  In particular, it means you can't simply add/remove stored properties, even if they
+were non-public, without breaking client code.  I'd like to design some facilities for helping a
+library author to ensure API stability eventually.
+{% endcomment %}
+
 The type declaration above defines a type `Matrix3` with a single property of type `Double[3][3]`.
 The second declaration exposes the default memberwise initializer of the type, allowing us to create matrices by calling `Matrix2.init(components:)`:
 
@@ -491,7 +490,7 @@ public fun main() {
 ```
 
 In the program above, `m.components` can only be modified because `m` is a mutable binding **and** the `Matrix3` property `components` is declared with `var`.
-Had that property been declared with `let`, the components of the matrix would remain immutable once the matrix had finished initializing, notwistaning the mutability of the binding to which it is assigned.
+Had that property been declared with `let`, the components of the matrix would remain immutable once the matrix had finished initializing, even though `m` is mutable.
 
 Members that are not declared `public` cannot be accessed outside of the scope of a record type.
 As we uncover more advanced constructs, we will show how to exploit that feature to design clean and safe APIs.
@@ -551,13 +550,17 @@ The type `Optional<T>` is the union of any type `T` and `Nil`, which can be used
 ## Functions and methods
 
 Functions are blocks of organized and reusable code that performs a single action, or group of related actions.
-As a program grows in complexity, they become mandatory.
+They are an essential tool for managing the complexity of a program as it grows.
 
-*Note: Though Val should not be considered a functional programming language, it does support this style of programming relatively well, as functions are first-class citizen.*
+*Note: Though Val should not be considered a functional programming language, functions are
+first-class citizens, and functional programming style is well-supported.  In fact, Val's mutable
+value semantics can be freely mixed with pure-functional code without eroding that code's local
+reasoning properties*
 
 ### Free functions
 
-Functions are declared with `fun`, followed by its name, its signature, and finally its body:
+A function declaration is introduced with the `fun` keyword, followed by the function's name, its
+signature, and finally its body:
 
 ```val
 typealias Vector2 = (x: Double, y: Double)
@@ -573,8 +576,11 @@ public fun main() {
 ```
 
 The program above declares a function named `norm` that accepts a 2-dimensional vector (represented as a pair of `Double`) and returns its norm.
-The signature of a function fully specifies its API.
-Most importantly, it describes the function's parameters and their type as well as a return type.
+{% comment %}
+The API of a function arguably includes the its semantics and preconditions.
+{% endcomment %}
+
+A function's signature describes its parameter and a return types.
 
 *Note: The return type of a function that does not return any value may be omitted.*
 *In that case, the declaration is interpreted as though the return type was `Void`.*
@@ -597,7 +603,7 @@ fun scale(_ v: Vector2, by factor: Vector2) -> Vector2 {
 ```
 
 Argument labels are also useful to distinguish between different variants of the same operation.
-Further, note that Val does not suppoer type-based overloading, meaning that the only way for two functions to share the same name is to have different argument labels.
+Further, note that Val does not support type-based overloading, meaning that the only way for two functions to share the same base name is to have different argument labels.
 
 ```val
 typealias Vector2 = (x: Double, y: Double)
