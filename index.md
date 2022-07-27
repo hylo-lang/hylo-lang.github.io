@@ -8,7 +8,7 @@ Val aims to be:
 - **Fast by definition**: Val is compiled ahead-of-time to machine code and relies on its type system to support in-place mutation and avoid unecessary memory allocations. Val avoids hidden costs such as implicit copies and therefore avoids heavy dependence on an optimizer for basic performance.
 - **Safe by default**: Val's foundation of [mutable value semantics](http://www.jot.fm/issues/issue_2022_02/article2.pdf) ensures that ordinary code is memory safe, typesafe, and data-race-free.  By explicit, auditable opt-in, programmers can use unsafe constructs for performance where necessary, and can build safe constructs using unsafe ones.
 - **Simple**: Val borrows heavily from [Swift](https://swift.org) which has demonstrated a user-friendly approach to generic programming and deep support for value semantics.  Val's programming model strengthens and extends this support, while de-emphasizing reference semantics and avoiding the complexities that result from trying to make it statically safe (e.g., memory regions, lifetime annotations, etc.).
-- **Interoperable with C++**: Programming languages rarely survive in vacuum. Val aims to take advantage of the vast software capital of C++ by supporting full interoperability.
+- **Interoperable with C++**: Programming languages rarely survive in a vacuum. Val aims to take advantage of the vast software capital of C++ by supporting full interoperability.
 
 The [language tour](./pages/language-tour.html) gives an overview of Val's features.
 The [specification](https://github.com/val-lang/specification/blob/main/spec.md) (work in progress) provides detailed information about Val's syntax and semantics.
