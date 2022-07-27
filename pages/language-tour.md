@@ -495,6 +495,9 @@ Had that property been declared with `let`, the components of the matrix would r
 
 Members that are not declared `public` cannot be accessed outside of the scope of a record type.
 As we uncover more advanced constructs, we will show how to exploit that feature to design clean and safe APIs.
+{%comment%}
+I'm not sure if teaching general programming principles like encapsulation belongs in this guide.  We should be wary of scope creep.
+{%endcomment%}
 
 A record type can also define static properties.
 Those are not part of record instances.
@@ -520,30 +523,30 @@ public fun main() {
 
 ### Unions
 
-Two or more types can form a union type, also known as a [sum type](https://en.wikipedia.org/wiki/Tagged_union).
-A sum type is a super type of all its elements.
-Among other things, it means that if a type `T` is the union of the types `U` and `V`, then a binding of type `T` can be assigned to a value of type `U` *or* a value of type `V`.
+Two or more types can form a union type, also known as a [sum
+type](https://en.wikipedia.org/wiki/Tagged_union).  In Val, a union is a supertype of all its
+element types, so any element type can be used in an expression where the union type is expected:
 
 ```val
 public fun main() {
   var x: Int | String = "Hello, World!"
+  print(x) // Hello, World!
   x = 42
   print(x) // 42
 }
 ```
 
-It is often convenient to create type aliases to denote unions.
-Those can even define generic type arguments.
+It is often convenient to create (generic) type aliases to denote unions.
 For example, Val's standard library defines [option types](https://en.wikipedia.org/wiki/Option_type) as follows:
 
 ```val
 public typealias Option<T> = T | Nil
 public type Nil {
-  public memberwise init
+  public init() {}
 }
 ```
 
-Here, the type `Nil` is an empty record type with no property.
+Here, the type `Nil` is an empty record used only to mark the absence of a `T`.
 The type `Option<T>` is the union of any type `T` and `Nil`, which can be used to indicate that a particular value might be absent.
 
 *Note: the union of `T | U` with `T` is not equal to `T | U`.*
