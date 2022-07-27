@@ -6,7 +6,7 @@ This page gives a quick tour of Val's features in the form of a progressive guid
 It assumes familiarity with an imperative programming language such as JavaScript, Python, C or C++..
 
 This tour does not cover the entire language.
-You may consult the [specification](https://github.com/val-lang/specification/blob/main/spec.md) for more information.
+Please consult the [specification](https://github.com/val-lang/specification/blob/main/spec.md) for more detailed information.
 
 Keep in mind that Val is under active development.
 Some of the features presented in this tour (and in the specification) may not be fully implemented yet or subject to change in the future.
@@ -47,11 +47,11 @@ The first contains the `hello.val` file and is the program's entry module.
 The second is Val's standard library, which is always implicitly imported, and defines commonly-used components like the `Int` and `String` types, and the `print` function used above.
 
 Each module defines an API resilience boundary: only public declarations are visible outside the module, and changes to non-public declarations, or to the bodies of public functions in the module cannot cause code outside the module to fail compilation.
-A module may also define an ABI resilience boundary, within which code and details such as type layout are never encoded into other compiled modules (e.g. via inlining).
+A module *may* also define an ABI resilience boundary, within which code and details such as type layout are never encoded into other compiled modules (e.g. via inlining).
 
 ### Bundling files
 
-You may bundle multiple files in a single module by passing all of them as arguments to `valc`.
+You can bundle multiple files in a single module by passing all of them as arguments to `valc`.
 For example, in a separate file we can define a function, that prints a specialized greeting, and call it from `Hello.val`:
 
 ```val
@@ -74,7 +74,7 @@ To run this program:
 - Run the command `valc Hello.val Greet.val -o hello`
 - Run the command `./hello`
 
-*Alternatively, you may put both source files in a subdirectory, say `Sources/`, and compile the program with `valc Sources -o hello`.*
+*Alternatively, you can put both source files in a subdirectory, say `Sources/`, and compile the program with `valc Sources -o hello`.*
 
 Note that `greet` need not to be `public` to be visible from another file in the module.
 All entities declared at the top level of a file are visible everywhere in a module, but not beyond that module's boundary.
@@ -231,7 +231,7 @@ public fun main() {
 
 The type of a binding is determined at declaration.
 If an initializing expression is present, such as in all previous examples, the binding is given the type of that expression.
-Alternatively, we may state the type of a binding explicitly:
+Alternatively, we can state the type of a binding explicitly:
 
 ```val
 public fun main() {
@@ -373,7 +373,7 @@ public fun main() {
 *The elements of a tuple are laid out contiguously in memory, with potential padding to account for alignment.*
 
 The elements of a tuple are accessed by appending `.n` to a tuple expression, where `n` denotes the `n`th element of the tuple, stating at zero.
-An element may also be referred to by its label, if any.
+An element can also be referred to by its label, if any.
 
 ```val
 public fun main() {
@@ -383,8 +383,8 @@ public fun main() {
 }
 ```
 
-The values of a tuple may be unpacked to local bindings through a process called "destructuring".
-Irrelevant elements may be ignored by using an underscore:
+The values of a tuple can be unpacked to local bindings through a process called "destructuring".
+Irrelevant elements can be ignored by using an underscore:
 
 ```val
 public fun main() {
@@ -490,18 +490,18 @@ public fun main() {
 }
 ```
 
-In the program above, `m.components` can be modified because `m` is a mutable binding **and** the property `components` is mutable, as it is declared with `var`.
-Would that property be declared with `let`, the components of the matrix would remain immutable once the matrix has finished initializing, notwistaning the mutability of the binding to which it is assigned.
+In the program above, `m.components` can only be modified because `m` is a mutable binding **and** the `Matrix3` property `components` is declared with `var`.
+Had that property been declared with `let`, the components of the matrix would remain immutable once the matrix had finished initializing, notwistaning the mutability of the binding to which it is assigned.
 
 Members that are not declared `public` cannot be accessed outside of the scope of a record type.
 As we uncover more advanced constructs, we will show how to exploit that feature to design clean and safe APIs.
 
-A record type may also define static properties.
+A record type can also define static properties.
 Those are not part of record instances.
 Instead, they represent global bindings defined in the namespace of the record.
 
 Static properties are declared with `static`.
-They may only be declared with `let` and are therefore always immutable:
+They can only be declared with `let` and are therefore always immutable:
 
 ```val
 type Matrix3 {
@@ -693,7 +693,7 @@ Namely, because the value is guaranteed immutable, the compiler can compile `let
 In summary, we get the best of two propositions: at the level of the user model, the developer is free to enjoy the benefits of pass by value semantics to uphold local reasoning.
 Meanwhile, at the machine level, the compiler is free to exploit the guarantees of the `let` convention to avoid hidden copy costs.
 
-A C++ developer may understand the `let` convention as *pass by constant reference*, but with additional guarantees, and write the following function:
+A C++ developer can understand the `let` convention as *pass by constant reference*, but with additional guarantees, and write the following function:
 
 ```c++
 Vector2 offset_let(Vector2 const& v, Vector2 const& delta) {
@@ -701,7 +701,7 @@ Vector2 offset_let(Vector2 const& v, Vector2 const& delta) {
 }
 ```
 
-A Rust developer may understand it as a *pass by immutable borrow*, with the same guarantees, and write the following function:
+A Rust developer can understand it as a *pass by immutable borrow*, with the same guarantees, and write the following function:
 
 ```rust
 fn offset_let(v: &Vector2, delta: &Vector2) -> Vector2 {
@@ -709,7 +709,7 @@ fn offset_let(v: &Vector2, delta: &Vector2) -> Vector2 {
 }
 ```
 
-Because of the aforementioned contract, we may not change the body of `offset_let(_:by:)` as follows:
+Because of the aforementioned contract, the compiler will not let us change the body of `offset_let(_:by:)` as follows:
 
 ```val
 fun offset_let(_ v: Vector2, by delta: Vector2) -> Vector2 {
@@ -747,7 +747,7 @@ fun duplicate(_ v: Vector2) -> Vector2 {
 
 Passing arguments to `let` parameters does not require any particular syntax.
 Further, the same value can be passed to multiple parameters, assuming it does not violate any contract.
-In effect, that means the values of two `let` parameters may overlap:
+In effect, that means the values of two `let` parameters can overlap:
 
 ```val
 public fun main() {
@@ -775,7 +775,7 @@ Again, there's a contract between caller and callee.
 Arguments to `inout` parameters are mutable and unique at entry and exit.
 By "unique", we mean that there are no other way to access the referred storage, mutable or otherwise.
 
-A C++ developer may understand the `inout` convention as *pass by reference*, but with additional guarantees, and write the following function:
+A C++ developer can understand the `inout` convention as *pass by reference*, but with additional guarantees, and write the following function:
 
 ```c++
 void offset_inout(Vector2& v, Vector2 const& delta) {
@@ -784,7 +784,7 @@ void offset_inout(Vector2& v, Vector2 const& delta) {
 }
 ```
 
-A Rust developer may understand it as a *pass by mutable borrow*, with the same guarantees, and write the following function:
+A Rust developer can understand it as a *pass by mutable borrow*, with the same guarantees, and write the following function:
 
 ```rust
 fn offset_inout(v: &mut Vector2, delta: &Vector2) {
@@ -809,7 +809,7 @@ In the example above, `v.deinit()` explicitly deinitializes the value of `v`, le
 Thus, trying to access its value would constitute an error caught at compile time.
 Nonetheless, since `v` is reinitialized to a new value before the function returns, the contract is actually satisfied.
 
-*Note: A Rust developer may understand explicit deinitialization as a call to `drop`.*
+*Note: A Rust developer can understand explicit deinitialization as a call to `drop`.*
 *However, explicit deinitialization always consumes the value, even if it is instance of a copyable type.*
 
 Passing an argument to an `inout` parameter requires its expression to be prefixed by an ampersand (i.e., `&`).
@@ -855,7 +855,7 @@ fun offset_sink(_ v: sink Vector2, by delta: Vector2) -> Vector2 {
 Here, the contract says not only that arguments to `sink` parameters are unique, but also that their ownership is transferred to the callee.
 Hence, a caller no can no longer access the value it has given to a `sink` parameter after the callee returns.
 
-A C++ developer may understand the `sink` convention as *pass by rvalue reference*, with guarantee that the argument moves, and write the following below.
+A C++ developer can understand the `sink` convention as *pass by rvalue reference*, with guarantee that the argument moves, and write the following below.
 Further, note that a move is a destructive operation in Val.
 
 ```c++
@@ -864,8 +864,8 @@ Vector2 offset_sink(Vector2&& v, Vector2 const& delta) {
 }
 ```
 
-A Rust developer may understand it as a *pass by move* and write the following below.
-They may note, however, that passing a value to a `sink` parameter always moves it in Val, even if that value has a copyable type.
+A Rust developer can understand it as a *pass by move* and write the following below.
+Note, however, that passing a value to a `sink` parameter always moves it in Val, even if that value has a copyable type.
 
 ```rust
 fn offset_sink(v: Vector2, delta: &Vector2) -> Vector2 {
@@ -930,7 +930,7 @@ public fun main() {
 }
 ```
 
-A C++ developer may understand the `set` convention in terms of the placement new operator, with the guarantee that the storage in which the new value is being created is indeed initialized.
+A C++ developer can understand the `set` convention in terms of the placement new operator, with the guarantee that the storage in which the new value is being created is indeed initialized.
 
 ```c++
 #include <new>
@@ -1047,7 +1047,7 @@ public fun main() {
 In the program above, the method `Vector2.offset(by:)` defining three variants.
 Each variant correspond to an implementation of the same behavior, for a different receiver convention.
 
-*Note: A method bundle may not declare a `set` variant as it does not make sense to operate on a receiver that has not been initialized yet.*
+*Note: A method bundle can not declare a `set` variant as it does not make sense to operate on a receiver that has not been initialized yet.*
 
 At the call site, the compiler determines the variant to apply depending on the context of the call.
 In this example, the first call applies the `inout` variant as the receiver has been marked for mutation.
@@ -1088,7 +1088,7 @@ type Vector2 {
 }
 ```
 
-When the return type of a static method matches the type declared by its namespace, the latter can be omitted if the compiler may infer it from the context of the expression:
+When the return type of a static method matches the type declared by its namespace, the latter can be omitted if the compiler can infer it from the context of the expression:
 
 ```val
 public fun main() {
@@ -1147,7 +1147,7 @@ public fun main() {
 
 #### Closure captures
 
-A function may refer to bindings that are declared outside of its own scope.
+A function can refer to bindings that are declared outside of its own scope.
 When it does so, it is said to create *captures*.
 There exists three kind of captures: `let`, `inout` and `sink`.
 
@@ -1317,7 +1317,7 @@ public fun main() {
 
 Here, the immutable variant of the subscript is synthesized from the mutable one.
 In some cases, however, you may need to implement different behavior.
-You such situations, you may bundle multiple implementations together:
+You such situations, you can bundle multiple implementations together:
 
 ```
 subscript min(_ x: yielded Int, _ y: yielded Int): Int {
