@@ -350,9 +350,8 @@ public fun main() {
 
 ### Tuples
 
-A tuple is a [record](https://en.wikipedia.org/wiki/Record_(computer_science)) that composes zero or
-more heterogeneous values.
-It can be created with a comma-separated list of values, enclosed in parentheses, and optionally labeled.
+A tuple is a composition of zero or more values, each of which can have any type.
+It can be created with a comma-separated list of values, enclosed in parentheses, and each value can (optionally) be labeled.
 Of course, tuples can contain other tuples.
 
 ```val
@@ -446,12 +445,12 @@ public fun main() {
 }
 ```
 
-### Records
+### Structures
 
-Just like a tuple, a record is a container composed of zero or more heterogeneous values.
-Unlike a tuple, however, a record type offers a finer control over the visibility and mutability of its elements.
+Just like a tuple, a structure is a container composed of zero or more heterogeneous values.
+Unlike a tuple, however, a structure offers a finer control over the visibility and mutability of its elements.
 
-A record type is declared with the keyword `type` and contains typed properties declared as bindings:
+A structure is declared with the keyword `type` and contains typed properties declared as bindings:
 
 ```val
 type Matrix3 {
@@ -492,12 +491,12 @@ public fun main() {
 In the program above, `m.components` can only be modified because `m` is a mutable binding **and** the `Matrix3` property `components` is declared with `var`.
 Had that property been declared with `let`, the components of the matrix would remain immutable once the matrix had finished initializing, even though `m` is mutable.
 
-Members that are not declared `public` cannot be accessed outside of the scope of a record type.
+Members that are not declared `public` cannot be accessed outside of the scope of a structure.
 As we uncover more advanced constructs, we will show how to exploit that feature to design clean and safe APIs.
 
-A record type can also define static properties.
-Those are not part of record instances.
-Instead, they represent global bindings defined in the namespace of the record.
+A structure can also define static properties.
+Those are not part of structure instances.
+Instead, they represent global bindings defined in the namespace of the structure.
 
 Static properties are declared with `static`.
 They can only be declared with `let` and are therefore always immutable:
@@ -542,7 +541,7 @@ public type Nil {
 }
 ```
 
-Here, the type `Nil` is an empty record used only to mark the absence of a `T`.
+Here, the type `Nil` is an empty structure used only to mark the absence of a `T`.
 The type `Optional<T>` is the union of any type `T` and `Nil`, which can be used to indicate that a particular value might be absent.
 
 *Note: While `T | U | T` is equivalent to `T | U` (element type repetitions at the same level are collapsed), `(T | U) | T` is a distinct type.  Thus `Optional<Optional<T>>` is not the same as `Optional<T>`.*
@@ -1007,7 +1006,7 @@ public fun main() {
 }
 ```
 
-The program above declares `Vector2` a [record type](#records) with two public properties, a public memberwise initializer and a method.
+The program above declares `Vector2` a [structure](#structures) with two public properties, a public memberwise initializer and a method.
 The latter is nearly identical to the free function we declared in the section on [parameter passing conventions](#parameter-passing-conventions).
 The difference is that its first parameter has become implicit and is now named `self`.
 
