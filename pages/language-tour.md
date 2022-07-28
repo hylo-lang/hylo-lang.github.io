@@ -1011,9 +1011,7 @@ The latter is nearly identical to the free function we declared in the section o
 The difference is that its first parameter has become implicit and is now named `self`.
 
 In a method, `self` denotes the *receiver*, an implicit argument that refers to the value on which the method is called.
-The call `v1.offset_let(by: unit_x)` applies the method `Vector2.offset_let(by:)` with `v1` as receiver and `unit_x` as argument.
-
-*Note: This examples reveals that a method `T.foo(bar:)` is just sugar for a free function `foo(self:bar:)`.*
+The call `v1.offset_let(by: unit_x)` applies the method `Vector2.offset_let(by:)` with `v1` as the receiver and `unit_x` as an explicit argument.
 
 For conciseness, `self` can be omitted from most expressions in a method.
 Therefore, we can rewrite `Vector2.offset_let(by:)` as follows:
@@ -1027,8 +1025,8 @@ type Vector2 {
 }
 ```
 
-Just like for other parameters, the default passing convention of the receiver is `let`.
-Other passing  conventions must be specified explicitly before the return type annotation of the method signature:
+As with explicit parameters, the default passing convention of the receiver is `let`.
+Other passing  conventions must be specified explicitly, just after the closing parenthesis of the method's parameter list:
 
 ```val
 type Vector2 {
@@ -1040,11 +1038,19 @@ type Vector2 {
 }
 ```
 
-A call to a method whose receiver is passed `inout` requires the expression of the receiver to be prefixed by an ampersand.
+In a call to an `inout` method like the one above, the receiver expression is marked with an ampersand, to indicate it is being mutated:
+
+```val
+fun main() {
+  var y = Vector2(x: 3, y: 4)
+  &y.offset_inout(by: Vector2(x: 7, y: 11)) // <== HERE
+  print(y)
+}
+```
 
 #### Method bundles
 
-When multiple methods relate to the same functionality but differs only in the passing convention of their receiver, they can be grouped in a single *bundle*.
+When multiple methods have the same functionality but differ only in the passing convention of their receiver, they can be grouped into a single *bundle*.
 
 ```val
 type Vector2 {
@@ -1071,16 +1077,16 @@ type Vector2 {
 public fun main() {
   let unit_x = Vector2(x: 1.0, y: 0.0)
   var v1 = Vector2(x: 1.5, y: 2.5)
-  &v1.offset(by: unit_x)
-  print(v1)
+  &v1.offset(by: unit_x)           // 1
+
+  print(v1.offset(by: unit_x))     // 2
   
-  let v2 = v1.offset(by: unit_x)
+  let v2 = v1.offset(by: unit_x)   // 3
   print(v2)
 }
 ```
 
-In the program above, the method `Vector2.offset(by:)` defining three variants.
-Each variant correspond to an implementation of the same behavior, for a different receiver convention.
+In the program above, the method `Vector2.offset(by:)` defines three variants, each corresponding to an implementation of the same behavior, for a different receiver convention.
 
 *Note: A method bundle can not declare a `set` variant as it does not make sense to operate on a receiver that has not been initialized yet.*
 
