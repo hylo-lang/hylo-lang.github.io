@@ -984,8 +984,9 @@ int main() {
 
 ### Methods
 
-Methods are functions that are associated with a particular type.
-They are declared very similarly to free functions, but appear in type declarations and extensions.
+A method is a function associated with a particular type, called the **receiver**, on which it
+primarily operates.  Method declaration syntax is the same as that of a free function, except that a
+method is always declared in the scope of its receiver type, and the receiver parameter is omitted.
 
 ```val
 type Vector2 {
@@ -993,28 +994,19 @@ type Vector2 {
   public var y: Double
   public memberwise init
 
-  public fun offset_let(by delta: Vector2) -> Vector2 {
+  public fun offset_let(by delta: Vector2) -> Vector2 { // <== HERE
     Vector2(x: self.x + delta.x, y: self.y + delta.y)
   }
 }
-
-public fun main() {
-  let unit_x = Vector2(x: 1.0, y: 0.0)
-  let v1 = Vector2(x: 1.5, y: 2.5)
-  let v2 = v1.offset_let(by: unit_x)
-  print(v2)
-}
 ```
 
-The program above declares `Vector2` a [structure](#structures) with two public properties, a public memberwise initializer and a method.
-The latter is nearly identical to the free function we declared in the section on [parameter passing conventions](#parameter-passing-conventions).
-The difference is that its first parameter has become implicit and is now named `self`.
+The program above declares `Vector2`, a [structure](#structures) with a method, `offset_let(by:)`,
+which is nearly identical to the similarly named free function we declared in the section on
+[parameter passing conventions](#parameter-passing-conventions).  The difference is that its first
+parameter, a `Vector2` instance, has become implicit and is now named `self`.
 
-In a method, `self` denotes the *receiver*, an implicit argument that refers to the value on which the method is called.
-The call `v1.offset_let(by: unit_x)` applies the method `Vector2.offset_let(by:)` with `v1` as the receiver and `unit_x` as an explicit argument.
-
-For conciseness, `self` can be omitted from most expressions in a method.
-Therefore, we can rewrite `Vector2.offset_let(by:)` as follows:
+For concision, `self` can be omitted from most expressions in a method.
+Therefore, we can rewrite `offset_let` this way:
 
 ```val
 type Vector2 {
@@ -1025,8 +1017,26 @@ type Vector2 {
 }
 ```
 
-As with explicit parameters, the default passing convention of the receiver is `let`.
-Other passing  conventions must be specified explicitly, just after the closing parenthesis of the method's parameter list:
+A method is usually accessed as a member of the receiver instance that forms its implicit first
+parameter, a syntax that binds that instance to the method:
+
+```val
+public fun main() {
+  let unit_x = Vector2(x: 1.0, y: 0.0)
+  let v1 = Vector2(x: 1.5, y: 2.5)
+  let v2 = v1.offset_let(by: unit_x)  // <== HERE
+  print(v2)
+}
+```
+
+When the method is accessed through its type, instead of through an instance, we get a regular function with an explicit self parameter, so we could have made this equivalent call in the marked line above:
+
+```val
+  let v2 = Vector2.offset_let(self: v1, by: unit_x)
+```
+
+As usual, the default passing convention of the receiver is `let`.
+Other passing conventions must be specified explicitly, just after the closing parenthesis of the method's parameter list.  In the following example, `self` is passed `inout`, making this a mutating method:
 
 ```val
 type Vector2 {
