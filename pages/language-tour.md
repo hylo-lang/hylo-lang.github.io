@@ -619,7 +619,7 @@ fun scale(_ v: Vector2, uniformly_by factor: Double) -> Vector2 {
 The two `scale` functions above are similar, but not identical.
 The first accepts a vector as the scaling factor, the second a scalar, a difference that is captured in the argument labels.
 Argument labels are part of the full function name, so the first function can be referred to as `scale(_,by:)` and the second as `scale(_,uniformly_by:)`.
-In fact, Val does not support type-based overloading, so the only way for two functions to share the same base name is to have different argument labels.
+In fact, Val does not support type-based overloading, so the *only* way for two functions to share the same base name is to have different argument labels.
 *Note: many of the use cases for type-based overloading in other languages can best be handled by using [method bundles](#method-bundles).*
 
 A function with multiple statements that does not return `Void` must execute one `return` statement each time it is called.
@@ -863,7 +863,7 @@ Thus, trying to access its value would constitute an error caught at compile tim
 Nonetheless, since `v` is reinitialized before the function returns, the compiler is satisfied.
 
 *Note: A Rust developer can understand explicit deinitialization as a call to `drop`.*
-*However, explicit deinitialization always consumes the value, even if it is instance of a copyable type.*
+*However, explicit deinitialization always consumes the value, even if its type is copyable.*
 
 #### `sink` parameters
 
@@ -879,8 +879,8 @@ fun offset_sink(_ base: sink Vector2, by delta: Vector2) -> Vector2 {
 ```
 
 Just as with `inout` parameters, the compiler enforces that arguments to `sink` parameters are
-unique.  The difference is that, because of the transfer of ownership, the argument
-becomes inaccessible in the caller when the callee is invoked.
+unique.  Because of the transfer of ownership, though, the argument
+becomes inaccessible in the caller after the callee is invoked.
 
 ```val
 fun main()
@@ -927,7 +927,7 @@ fn main() {
 ```
 {% comment %}
 The above rust code is surely wrong.  Sombody please fix!
-{% comment %}
+{% endcomment %}
 
 The `sink` and `inout` conventions are closely related; so much so that `offset_sink` can be written
 in terms of `offset_inout`, and vice versa.
@@ -943,26 +943,30 @@ fun offset_inout2(_ v: inout Vector2, by delta: Vector2) {
 }
 ```
 
-*Note: The correspondence highlights the fact that in-place mutation is an efficient form of [functional update](https://en.wikipedia.org/wiki/Monad_(functional_programming)#State_monads).*
+{% comment %}
+We should say this somewhere, perhaps on a page called "Val for functional programmers," but it really doesn't belong here.
+
+*Note: The correspondence highlights the fact that in-place mutation in Val is an efficient form of [functional update](https://en.wikipedia.org/wiki/Monad_(functional_programming)#State_monads).*
+{% endcomment %}
 
 #### `set` parameters
 
-The `set` convention enables initialization across function boundaries.
-Just like the `inout` convention, it allows a parameter's value to be modified in place, but the contract is different: a `set` parameter is guaranteed to be uninitialized at the function entry.
+The `set` convention lets a callee initialize an uninitialized value.  The compiler will only accept uninitialized objects as arguments to a set parameter.
 
 ```val
-fun init_vector(_ v: set Vector2, x: sink Double, y: sink Double) {
-  v = (x: x, y: y)
+fun init_vector(_ target: set Vector2, x: sink Double, y: sink Double) {
+  target = (x: x, y: y)
 }
 
 public fun main() {
-  var v1: Vector2
-  init_vector(&v1, x: 1.5, y: 2.5)
-  print(v1) // (x: 1.5, y: 2.5)
+  var v: Vector2
+  init_vector(&v, x: 1.5, y: 2.5)
+  print(v)                         // (x: 1.5, y: 2.5)
+  init_vector(&v, x: 3, y: 7).     // error: 
 }
 ```
 
-A C++ developer can understand the `set` convention in terms of the placement new operator, with the guarantee that the storage in which the new value is being created is indeed initialized.
+A C++ developer can understand the `set` convention in terms of the placement new operator, with the guarantee that the storage in which the new value is being created starts out uninitialized, and ends up initialized.
 
 ```c++
 #include <new>
@@ -973,7 +977,7 @@ void init_vector(Vector2* v, double x, double y) {
 
 int main() {
   alignas(Vector2) char _storage[sizeof(Vector2)];
-  auto v1 = reinterpret_cast<Vector2*>(_storage);
+  auto v1 = static_cast<Vector2*>(static_cast<void*>(_storage));
   init_vector(v1, 1.5, 2.5);
   std::cout << *v1 << std::endl;
 }
