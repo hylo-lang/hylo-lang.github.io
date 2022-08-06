@@ -37,7 +37,7 @@ subscript longer_of(_ a: inout String, _ b: inout String): String {
   if b.count() > a.count() { yield &b } else { yield &a }
 }
 
-func emphasize(_ z: inout String, strength: Int = 1) {
+fun emphasize(_ z: inout String, strength: Int = 1) {
   z.append(repeat_element("!", count: strength)))
 }
 
