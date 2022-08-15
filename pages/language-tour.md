@@ -950,8 +950,7 @@ We should say this somewhere, perhaps on a page called "Val for functional progr
 
 #### `set` parameters
 
-The `set` convention lets a callee initialize an uninitialized value.
-The compiler guarantees that arguments to set parameters are uninitialized objects, automatically calling destructors if necessary.
+The `set` convention lets a callee initialize an uninitialized value.  The compiler will only accept uninitialized objects as arguments to a set parameter.
 
 ```val
 fun init_vector(_ target: set Vector2, x: sink Double, y: sink Double) {
@@ -962,6 +961,7 @@ public fun main() {
   var v: Vector2
   init_vector(&v, x: 1.5, y: 2.5)
   print(v)                         // (x: 1.5, y: 2.5)
+  init_vector(&v, x: 3, y: 7).     // error: 'v' is initialized
 }
 ```
 
