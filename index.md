@@ -10,7 +10,7 @@ Val aims to be:
 - **Simple**: Val borrows heavily from [Swift](https://swift.org) which has demonstrated a user-friendly approach to generic programming and deep support for value semantics.  Val's programming model strengthens and extends this support, while de-emphasizing reference semantics and avoiding the complexities that result from trying to make it statically safe (e.g., memory regions, lifetime annotations, etc.).
 - **Interoperable with C++**: Programming languages rarely survive in a vacuum. Val aims to take advantage of the vast software capital of C++ by supporting full interoperability.
 
-The [language tour](./pages/language-tour.html) gives an overview of Val's features.
+The [language tour](https://tour.val-lang.dev) gives an overview of Val's features.
 The [specification](https://github.com/val-lang/specification/blob/main/spec.md) (work in progress) provides detailed information about Val's syntax and semantics.
 
 Val is under active development and is not ready to be used yet.
@@ -67,4 +67,4 @@ A Rust programmer may think of `longer_of` as a function that borrows its argume
 What happens is semantically identical, but notice that in Val, `longer_of` has no lifetime annotations.
 Lifetime annotations were not elided, they simply do not exist in Val because the it uses a simpler model, devoid of references.
 
-Have a look at the section on subscripts in the [language tour](./pages/language-tour.html) to get more information.
+Have a look at the section on subscripts in the [language tour](https://tour.val-lang.dev/subscripts) to get more information.
