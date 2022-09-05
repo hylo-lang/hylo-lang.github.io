@@ -227,7 +227,7 @@ Those resources will be published as an interactive website allowing users to ru
 #### Transparent process to follow and/or contribute
 
 We strongly believe in the power of open source and the diversity of thoughts, ideas, and experiences.
-Not only will we commit to keeping our code and documentation publicly available, but we will also set up a transp
+Not only will we commit to keeping our code and documentation publicly available, but we will also set up a transparent process to discuss the language evalution.
 
 ## 2024 and beyond
 
