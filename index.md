@@ -68,6 +68,6 @@ The language guarantees to `emphasize` that the value of `z` will not be accesse
 
 A Rust programmer may think of `longer_of` as a function that borrows its arguments mutably and returns a mutable reference bound by the lifetime of those arguments.
 What happens is semantically identical, but notice that in Val, `longer_of` has no lifetime annotations.
-Lifetime annotations were not elided, they simply do not exist in Val because the it uses a simpler model, devoid of references.
+Lifetime annotations were not elided, they simply do not exist in Val because it uses a simpler model, devoid of references.
 
 Have a look at the section on subscripts in the [language tour](https://tour.val-lang.dev/subscripts) to get more information.
