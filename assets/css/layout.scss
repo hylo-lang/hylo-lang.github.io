@@ -1,0 +1,13 @@
+---
+---
+
+div.columns {
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+    height: 100%;
+}
+
+div.columns > * {
+   flex: 1;
+}

@@ -1,0 +1,17 @@
+---
+---
+@import "{{ site.theme_name }}";
+@import "headings.css";
+@import "navigation.css";
+
+/* overrides jekyll hover-over-link behavior */
+a:hover {
+    font-weight: inherit;
+    text-decoration: underline;
+}
+
+/* adds scrollbar when navigation menu overflows height of the viewport */
+header {
+    overflow-y: auto;
+    max-height: 100%;
+}
