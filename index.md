@@ -55,7 +55,7 @@ This program declares two character strings, appends an exclamation mark to the 
 No pointers or references are used (`&` in Val does not mean “address of”—it simply marks a mutation), and no unecessary allocation occurs.
 The result of `longer_of` is a *projection* of the longer argument, so the mutation of `z` by `emphasize` occurs directly on the value of `y`.  The value is neither copied, nor moved, and yet it is not being passed by reference to `emphasize`.  The body of `emphasize` *owns* `z` in exactly the same way as it owns `strength`, which is passed by value: `z` is an independent value that can only be touched by `emphasize`.
 
-To better understand, notice that `longer_of` is not a function; its a subscript.
+To better understand, notice that `longer_of` is not a function; it's a subscript.
 A subscript does not return a value, it *projects* one, granting the caller temporary read and/or write access to it.
 
 A Python programmer may think that `String` has reference semantics and that `longer_of` is simply returning a reference to `y`.
@@ -68,6 +68,6 @@ The language guarantees to `emphasize` that the value of `z` will not be accesse
 
 A Rust programmer may think of `longer_of` as a function that borrows its arguments mutably and returns a mutable reference bound by the lifetime of those arguments.
 What happens is semantically identical, but notice that in Val, `longer_of` has no lifetime annotations.
-Lifetime annotations were not elided, they simply do not exist in Val because the it uses a simpler model, devoid of references.
+Lifetime annotations were not elided, they simply do not exist in Val because it uses a simpler model, devoid of references.
 
 Have a look at the section on subscripts in the [language tour](https://tour.val-lang.dev/subscripts) to get more information.
