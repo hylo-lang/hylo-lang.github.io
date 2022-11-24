@@ -11,7 +11,7 @@ Val aims to be:
 - **Interoperable with C++**: Programming languages rarely survive in a vacuum. Val aims to take advantage of the vast software capital of C++ by supporting full interoperability.
 
 The [language tour](https://tour.val-lang.dev) gives an overview of Val's features.
-The [specification](https://github.com/val-lang/specification/blob/main/spec.md) (work in progress) provides detailed information about Val's syntax and semantics.
+The [language specification](https://github.com/val-lang/specification/blob/main/spec.md) and [IR specification](https://val-4.gitbook.io/val-ir/) (work in progress) provides detailed information about Val's syntax and semantics.
 
 Val is under active development and is not ready to be used yet.
 The code of the compiler is open source and [hosted on GitHub](https://github.com/val-lang/val).
