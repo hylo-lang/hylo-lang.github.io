@@ -185,13 +185,15 @@ The Val project aims to develop a programming language that is not only fast and
 By simple, we mean that Val should be accessible to users from all sorts of backgrounds.
 A part of that objective lies in the language design, another in its community.
 
-If Val is to survive, it is therefore essential that we build an inclusive and welcoming community.
-To that end, we plan on developing the following axes throughout 2023.
+We're happy to have already received contributions in the form of discussions, issues, and even pull requests on the code of our compiler.
+If Val is to survive, it is therefore that we continue to build an inclusive and welcoming community.
+To that end, we plan on developing the following axes throughout 2024.
 
 #### Tooling
 
 A language is only as strong as its tooling.
-Therefore, we plan on developing a [LSP server](https://langserver.org) implementation and a language extension for [VS Code](https://code.visualstudio.com).
+We have already started working on a language extension for [VS Code](https://code.visualstudio.com) (see [vscode-val](https://github.com/val-lang/vscode-val)).
+We also plan on developing a [LSP server](https://langserver.org) implementation.
 
 #### Insightful error diagnostics
 
