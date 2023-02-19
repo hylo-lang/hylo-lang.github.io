@@ -8,80 +8,32 @@ Further, some aspects of the language design are still immature and will likely 
 
 This page gives an overview of our roadmap going forward and provides details on our main milestones.
 
-## 2022
+## 2023 - Q1/Q2
 
-Our main objectives for the remainder of 2022 are to:
+While we weren't able to deliver an alpha version of Val in 2022, we made significant progress on our original goals.
+In particular, we finalized the design of stored projections, a feature essential to implement collection views of generic types in safe Val.
+Elements of our design are presented here: https://github.com/val-lang/val-lang.github.io/discussions/39.
+
+Our main objectives for the first half of 2023 are now as follow:
 - deliver an alpha version of Val;
 - validate the language's design; and
 - assess its usability.
 
 Progress toward those objectives will be measured by the following milestones:
 
-### Complete the language design
-
-Though many of the core principles of Val's design have been established already, there are still important open questions to address.
-We consider the answers to these questions essential to the development of a viable alpha version of the language.
-
-#### Stored projections
-
-Stored projections are a feature essential to implement collection views of generic types in safe Val.
-Collection views present the data of a type behind a specific API.
-A canonical example is the slice of an array.
-
-```val
-public fun main() {
- var a = Array([8, 9, 5, 4, 6, 7, 1, 2, 3])
- &a[1 ..< 5].sort()
- print(a) // [8, 4, 5, 6, 9, 7, 1, 2, 3]
-}
-```
-
-The current design does not support the creation of the array subscript in safe Val because there is no way to "store" a projection of the array as part of the yielded slice.
-
-We already developed a base model to represent stored projections and guarantee Val's memory safety guarantees.
-Unfortunately, a few questions remain open:
-
-- How can we distinguish the mutability of the projection from that of the object?
-
-Stored projections are conceptually equivalent to pointers.
-From that observation, it is reasonable to wonder how to distinguish immutable pointers to immutable data and immutable pointers to mutable data.
-
-- How can we express mutable projections of immutable objects?
-
-Implementations in a subscript or property bundle are parameterized by the mutability of the receiver.
-That approach implies that the mutability of the yielded projection is the same as that of the yielded arguments, which is reasonable for most projections.
-However, there are cases where it would make sense to create a mutable object storing an immutable projection (e.g., a slice of an immutable array that implements `pop_front`).
-
-#### Concurrency
-
-The design of Val's concurrency is still immature.
-Though we have laid out some key principles, important questions have yet to be answered:
-
-- Should we support concurrent interprocess communication?
-
-Interprocess communication is a thorny problem in a programming language advocating for mutable value semantics.
-The core issue is that a communication channel is essentially a mutable reference.
-
-Our current position is that safe Val should not compromise on its strict adherence to value semantics, de facto discarding all forms of communication except at spawn and join events.
-Nonetheless, we plan on investigating whether such a restriction is acceptable by developing a collection of concurrent program examples.
-
-- Should we support cancellation at the language level?
-
-Though it might be possible to implement cancellation at the library level with a handful of carefully written types that wrap unsafe operations behind safe APIs, proper language support may be required for the sake of usability and/or performance.
-
 ### Implement a reference compiler
 
-We expect to deliver a first version of an experimental compiler for Val sometime in early Q4.
+We expect to deliver a first version of an experimental compiler for Val sometime in late Q2.
 This implementation will serve as a proof of concept to build non-trivial programs and evaluate the language's usability.
-As such, we will not focus on performance and will push most optimizing code transformations to 2023.
+As such, we will not focus on performance and will push most optimizing code transformations to 2024.
 
-We have already built a [prototype](https://github.com/val-lang/val) capable of compiling a small subset of Val to [LLVM](https://llvm.org).
+We have already built a [prototype](https://github.com/val-lang/val) capable of compiling a small subset of Val to C++.
 The following key components must be either completed or developed from scratch to turn that prototype into a working implementation:
 
 #### Type inferrer/checker
 
 The type inferrer/checker is the component responsible to verify that programs satisfy the flow-insensitive semantics of Val.
-Its current implementation can analyze a significant subset of Val.
+Its current implementation can analyze a sizeable subset of Val.
 However, significant effort is still required to support generic features.
 
 #### Intermediate representation
@@ -105,8 +57,6 @@ The current implementation handles the same small subset as the IR translation.
 We opted to use LLVM as our backend.
 Thus, the last step of our frontend pipeline is to emit bitcode and let LLVM generate machine code.
 
-The current implementation handles the same small subset as the IR translation.
-
 ### Implement one-way interoperability with C++
 
 Interoperability with C++ is one of the main goals of the Val project.
@@ -118,6 +68,38 @@ The first, which we expect to deliver by the end of the year, will only allow Va
 We'll achieve that objective by generating C-like low-level APIs for all public Val symbols using LLVM together with C++ types and functions to wrap these APIs.
 
 The second phase, on which we will work next year, will support seamless two-way interoperability by interfacing Val compiler with [clang](https://clang.llvm.org).
+
+## 2023 - Q3/Q4
+
+Our main objectives for the second half of 2023 will be to:
+- complete the design of our language;
+- implement a standard library; and
+- write and publish a specification.
+
+Progress toward those objectives will be measured by the following milestones:
+
+### Complete the language design
+
+Though many of the core principles of Val's design have been established already, there are still important open questions to address.
+We consider the answers to these questions essential to the development of a viable alpha version of the language.
+
+#### Concurrency
+
+The design of Val's concurrency is still immature.
+Though we have laid out some key principles, important questions have yet to be answered:
+
+- Should we support concurrent interprocess communication?
+
+Interprocess communication is a thorny problem in a programming language advocating for mutable value semantics.
+The core issue is that a communication channel is essentially a mutable reference.
+
+Our current position is that safe Val should not compromise on its strict adherence to value semantics, de facto discarding all forms of communication except at spawn and join events.
+Nonetheless, we plan on investigating whether such a restriction is acceptable by developing a collection of concurrent program examples.
+
+- Should we support cancellation at the language level?
+
+Though it might be possible to implement cancellation at the library level with a handful of carefully written types that wrap unsafe operations behind safe APIs, proper language support may be required for the sake of usability and/or performance.
+
 
 ### Implement a standard library
 
@@ -136,9 +118,9 @@ However, sections that relate to the semantics of the language still require sig
 
 We also plan on publishing the specification in the form of a website or [GitBook](https://www.gitbook.com).
 
-## 2023
+## 2024
 
-Our main objectives for 2023 will be to
+Our main objectives for 2024 will be to
 - develop the missing features of the language;
 - investigate optimal implementation strategies implement an efficient compiler;
 - implement two-way interoperability with C++; and
@@ -173,8 +155,8 @@ As such, we do not plan on delivering interoperability before Q4.
 
 ### Design and implement missing language features
 
-Some of the features on our wishlist are out of scope for 2022, as we believe they are not essential to assess the validity of the language's design.
-2023 will allow us to revisit these features with a working experimental implementation.
+Some of the features on our wishlist are out of scope for 2023, as we believe they are not essential to assess the validity of the language's design.
+2024 will allow us to revisit these features with a working experimental implementation.
 
 One of our main goals will be the inclusion of **variadic** generic parameters.
 Val already supports scalar generic type and value parameters.
@@ -229,7 +211,7 @@ Those resources will be published as an interactive website allowing users to ru
 We strongly believe in the power of open source and the diversity of thoughts, ideas, and experiences.
 Not only will we commit to keeping our code and documentation publicly available, but we will also set up a transparent process to discuss the language evalution.
 
-## 2024 and beyond
+## 2025 and beyond
 
 Total world domination?
 
