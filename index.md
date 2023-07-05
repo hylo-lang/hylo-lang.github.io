@@ -16,7 +16,7 @@ Val is under active development and is not ready to be used yet.
 The code of the compiler is open source and [hosted on GitHub](https://github.com/val-lang/val).
 The current status of the project is described on our [roadmap page](./pages/implementation-status.html).
 
-We opened a forum to host [community discussions](https://github.com/val-lang/val-lang.github.io/discussions).
+We opened a forum to host [community discussions](https://github.com/orgs/val-lang/discussions).
 Please ask questions and/or tell us what you think about the Val project!
 
 ## Sounds great, but why another language?
