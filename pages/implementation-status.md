@@ -142,14 +142,14 @@ Nonetheless, discussions with experts have revealed that such a strategy may ind
 
 One solution might be to adopt a sackful model as a default strategy and surface stack information in the type system to let the compiler opt for stackless code generation whenever possible.
 
-We on plan having adopted and implemented a strategy by the end of Q3.
+We plan on having adopted and implemented a strategy by the end of Q3.
 
 ### Implement two-way interoperability with C++
 
 The objective of the second phase of C++ interoperability is to support seamless interaction of Val and C++ code in the same project.
 To that end, we will interface with clang to let Val compiler understand C++ and generate any necessary glue code.
 
-The main challenge will be to map C++ types to Val, as the former supports features that have no obvious equivalent in the latter (e.g., throwing destructors).
+The main challenge will be to map C++ types to Val, as the former supports features that have no obvious equivalent in the latter (e.g. throwing destructors).
 We also expect our investigation and implementation to raise a plethora of new open questions.
 As such, we do not plan on delivering interoperability before Q4.
 
