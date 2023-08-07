@@ -40,7 +40,7 @@ subscript longer_of(_ a: inout String, _ b: inout String): String {
 }
 
 fun emphasize(_ z: inout String, strength: Int = 1) {
-  z.append(repeat_element("!", count: strength)))
+  z.append(repeat_element("!", count: strength))
 }
 
 public fun main() {
