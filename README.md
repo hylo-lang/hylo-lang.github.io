@@ -1,6 +1,6 @@
-# Val website
+# Hylo website
 
-This repository contains Val's website, which you can browse [here](https://val-lang.github.io).
+This repository contains Hylo's website, which you can browse [here](https://hylo-lang.org).
 
 ### Infrastructure
 
