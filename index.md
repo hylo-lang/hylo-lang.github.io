@@ -9,8 +9,8 @@ Hylo aims to be:
 - **Safe by default**: Hylo's foundation of [mutable value semantics](http://www.jot.fm/issues/issue_2022_02/article2.pdf) ensures that ordinary code is memory safe, typesafe, and data-race-free. By explicit, auditable opt-in, programmers can use unsafe constructs for performance where necessary, and can build safe constructs using unsafe ones.
 - **Simple**: Hylo borrows heavily from [Swift](https://swift.org) which has demonstrated a user-friendly approach to generic programming and deep support for value semantics. Hylo's programming model strengthens and extends this support, while de-emphasizing reference semantics and avoiding the complexities that result from trying to make it statically safe (e.g., memory regions, lifetime annotations, etc.).
 
-The [language tour](https://tour.hylo-lang.org) gives an overview of Hylo's features.
-The [language specification](https://github.com/hylo-lang/specification/blob/main/spec.md) and [IR specification](https://val-4.gitbook.io/val-ir/) (work in progress) provides detailed information about Hylo's syntax and semantics.
+The [language tour](https://docs.hylo-lang.org/language-tour/) gives an overview of Hylo's features.
+The [language specification](https://github.com/hylo-lang/specification/blob/main/spec.md) and [IR specification](https://docs.hylo-lang.org/hylo-ir/) (work in progress) provides detailed information about Hylo's syntax and semantics.
 
 Hylo is under active development and is not ready to be used yet.
 The code of the compiler is open source and [hosted on GitHub](https://github.com/hylo-lang/hyloc).
@@ -69,4 +69,4 @@ A Rust programmer may think of `longer_of` as a function that borrows its argume
 What happens is semantically identical, but notice that in Hylo, `longer_of` has no lifetime annotations.
 Lifetime annotations were not elided, they simply do not exist in Hylo because it uses a simpler model, devoid of references.
 
-Have a look at the section on subscripts in the [language tour](https://tour.hylo-lang.org/subscripts) to get more information.
+Have a look at the section on subscripts in the [language tour](https://docs.hylo-lang.org/language-tour/subscripts) to get more information.
