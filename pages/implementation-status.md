@@ -128,7 +128,7 @@ Once we will have finalized the design of Hylo's concurrency model, we will be a
 We are leaning toward a [stackful coroutines](https://dl.acm.org/doi/10.1145/1462166.1462167), mostly to avoid monadic asynchronous programming (a.k.a. [polychromatic functions](https://journal.stuffwithstuff.com/2015/02/01/what-color-is-your-function/)), where asynchronous operations can only be called from asynchronous contexts.
 Nonetheless, discussions with experts have revealed that such a strategy may induce unfortunate runtime costs and that stackless coroutines may not necessarily force a monadic asynchronous style upon the language.
 
-One solution might be to adopt a sackful model as a default strategy and surface stack information in the type system to let the compiler opt for stackless code generation whenever possible.
+One solution might be to adopt a stackful model as a default strategy and surface stack information in the type system to let the compiler opt for stackless code generation whenever possible.
 
 We plan on having adopted and implemented a strategy by the end of Q3.
 
