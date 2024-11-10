@@ -15,17 +15,14 @@
   <body>
     <div class="wrapper">
       <header>
-        {% if site.logo %}
+        <a href="/">
+          {% if site.logo %}
           <img src="{{site.logo | relative_url}}" alt="Logo" />
-        {% endif %}
-
+          {% endif %}
+        </a>
         <p>{{ site.description | default: site.github.project_tagline }}</p>
 
         {% include global_links.html %}
-
-        {% if site.github.is_project_page %}
-        <p class="view"><a href="{{ site.github.repository_url }}">View the Project on GitHub <small>{{ site.github.repository_nwo }}</small></a></p>
-        {% endif %}
 
         {% if site.show_downloads %}
         <ul class="downloads">
