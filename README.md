@@ -10,7 +10,7 @@ currently being served by [GitHub Pages](https://pages.github.com).
 ## Running a local server
 
 ### Setting up the environment
-To set up the dependencies, you need to have [Ruby]() and the [Bundler](https://bundler.io/) package manager installed (`gem install bundler`). Alternatively, you can also use a devcontainer to set up a VM with all the required dependencies, and have a nicely integrated coding enviroment.
+To set up the dependencies, you need to have [Ruby](https://www.ruby-lang.org/en/documentation/installation/) and the [Bundler](https://bundler.io/) package manager installed (`gem install bundler`). Alternatively, you can also use a devcontainer to set up a VM with all the required dependencies, and have a nicely integrated coding enviroment.
 
 Then, you can run 
 ```
