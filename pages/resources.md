@@ -2,7 +2,7 @@
 
 ## Conference Talks
 
-| Conference |  Year   |            Speaker            |                                                              Title                                                              |
+| Conference |  Date   |            Speaker            |                                                              Title                                                              |
 |:----------:|:-------:|:-----------------------------:|:-------------------------------------------------------------------------------------------------------------------------------:|
 | C++ on Sea | 2024-07 |         Dave Abrahams         | [Hylo: The Safe Systems and Generic-programming Language Built on Value Semantics](https://www.youtube.com/watch?v=5lecIqUhEl4) |
 |    ACCU    | 2024-07 |    Lucian Radu Teodorescu     |                                    [Concurrency Hylomorphism](https://youtu.be/k6fI4asLJxo)                                     |
@@ -15,12 +15,26 @@
 
 ## Scientific Talks
 
-| Venue |  Year   |    Speaker    | Title                                                |
+| Venue |  Date   |    Speaker    | Title                                                |
 |:-----:|:-------:|:-------------:|:-----------------------------------------------------|
 | IWACO | 2023-05 | Dimi Racordon | [Borrow checking Hylo](https://youtu.be/oFupPFniD9s) |
 
 ## Scientific Papers
 
+|  Date   |                                                     Title                                                     | 
+|:-------:|:-------------------------------------------------------------------------------------------------------------:|
+| 2024-10 |            [Type Checking with Rewrite Rules](https://dl.acm.org/doi/pdf/10.1145/3687997.3695640)             |
+| 2024-10 |                     [Method Bundles](https://dl.acm.org/doi/pdf/10.1145/3687997.3695633)                      |
+| 2023-10 |      [Borrow checking Hylo](https://2023.splashcon.org/details/iwaco-2023-papers/5/Borrow-checking-Hylo)      |
+| 2022-10 |     [P2676R0: The Val Object Model](https://www.open-std.org/jtc1/sc22/wg21/docs/papers/2022/p2676r0.pdf)     |
+| 2022-01 | [Implementation Strategies for Mutable Value Semantics](https://www.jot.fm/issues/issue_2022_02/article2.pdf) |
+
+#### Other Related Papers
+
+|  Date   |                                           Title                                            |
+|:-------:|:------------------------------------------------------------------------------------------:|
+| 2024-10 | [Use Site Checking Considered Harmful](https://dl.acm.org/doi/pdf/10.1145/3689492.3689814) |
+| 2024-09 |   [Existential Containers in Scale](https://dl.acm.org/doi/abs/10.1145/3679007.3685056)    |
 
 ## Podcasts
 
