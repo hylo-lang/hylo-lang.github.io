@@ -32,7 +32,7 @@ Yet, it presents a user model that marries these constraints with the benefits o
 ## Enough, show me some code!
 
 Okay, okay.
-Here's a the kind of program we envision writing in Hylo:
+Here's the kind of program we envision writing in Hylo:
 
 ```hylo
 subscript longer_of(_ a: inout String, _ b: inout String): String {
