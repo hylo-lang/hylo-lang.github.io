@@ -52,10 +52,7 @@ jobs:
         run: pnpm install --frozen-lockfile
         working-directory: ${{ env.BUILD_PATH }}
       - name: Build with Astro
-        run: |
-          pnpm astro build \
-            --site "https://hylo-lang.org" \
-            --base ""
+        run: pnpm astro build
         working-directory: ${{ env.BUILD_PATH }}
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3

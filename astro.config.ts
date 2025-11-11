@@ -10,6 +10,7 @@ import {compilerRepoLink, slackLink} from "./src/links.ts";
 
 // https://astro.build/config
 export default defineConfig({
+    site: 'https://hylo-lang.org',
     integrations: [
         starlight({
             title: 'Hylo',
