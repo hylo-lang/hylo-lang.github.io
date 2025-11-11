@@ -54,8 +54,8 @@ jobs:
       - name: Build with Astro
         run: |
           pnpm astro build \
-            --site "${{ steps.pages.outputs.origin }}" \
-            --base "${{ steps.pages.outputs.base_path }}"
+            --site "https://hylo-lang.org" \
+            --base ""
         working-directory: ${{ env.BUILD_PATH }}
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
@@ -65,7 +65,7 @@ jobs:
   deploy:
     environment:
       name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
+      url: https://hylo-lang.org
     needs: build
     runs-on: ubuntu-latest
     name: Deploy
