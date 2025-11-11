@@ -10,7 +10,6 @@
     "astro": "astro"
   },
   "dependencies": {
-    "@astrojs/cloudflare": "^12.6.10",
     "@astrojs/starlight": "^0.36.1",
     "@astrojs/starlight-tailwind": "^4.0.1",
     "@expressive-code/core": "^0.41.3",
@@ -22,8 +21,5 @@
     "sharp": "^0.34.2",
     "starlight-theme-rapide": "^0.5.2",
     "tailwindcss": "^4.1.16"
-  },
-  "devDependencies": {
-    "wrangler": "^4.45.0"
   }
 }

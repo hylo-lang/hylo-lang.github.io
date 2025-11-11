@@ -2,9 +2,6 @@
 import {defineConfig} from 'astro/config';
 import starlight from '@astrojs/starlight';
 import starlightThemeRapide from 'starlight-theme-rapide'
-
-import cloudflare from '@astrojs/cloudflare';
-
 import tailwindcss from '@tailwindcss/vite';
 import {sidebar} from "./src/content/docs/.sidebar.ts";
 import * as fs from "node:fs";
@@ -54,10 +51,7 @@ export default defineConfig({
         }),
 
     ],
-
-    adapter: cloudflare(),
     vite: {
         plugins: [tailwindcss()],
     },
-})
-;
+});
