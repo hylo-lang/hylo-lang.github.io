@@ -1,0 +1,314 @@
+{
+  "$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
+  "name": "hylo",
+  "patterns": [
+    {
+      "include": "#comments"
+    },
+    {
+      "include": "#declarations"
+    },
+    {
+      "include": "#keywords"
+    },
+    {
+      "include": "#literals"
+    }
+  ],
+  "repository": {
+    "comments": {
+      "patterns": [
+        {
+          "name": "comment.line.documentation.hylo",
+          "begin": "//",
+          "end": "$",
+          "patterns": [
+            {
+              "include": "#commentContents"
+            }
+          ]
+        },
+        {
+          "name": "comment.block.documentation.hylo",
+          "begin": "/\\*",
+          "end": "\\*/",
+          "patterns": [
+            {
+              "include": "#commentContents"
+            }
+          ]
+        }
+      ],
+      "repository": {
+        "commentContents": {
+          "patterns": [
+            {
+              "name": "keyword.todo.hylo",
+              "match": "\\b(TODO|FIXME|XXX|NOTE)\\b:?"
+            }
+          ]
+        }
+      }
+    },
+    "declarations": {
+      "patterns": [
+        {
+          "include": "#function"
+        },
+        {
+          "include": "#type"
+        },
+        {
+          "include": "#trait"
+        }
+      ],
+      "repository": {
+        "function": {
+          "name": "meta.definition.function.hylo",
+          "begin": "\\b(fun)\\s+(\\w+)?(?=\\(|<)",
+          "beginCaptures": {
+            "1": {
+              "name": "storage.type.function.hylo"
+            },
+            "2": {
+              "name": "entity.name.function.hylo"
+            }
+          },
+          "end": "(?<=\\})|$",
+          "patterns": [
+            {
+              "include": "#comments"
+            },
+            {
+              "include": "#generic-parameter-clause"
+            },
+            {
+              "include": "#keywords"
+            }
+          ]
+        },
+        "type": {
+          "name": "meta.definition.type.hylo",
+          "begin": "\\b(type )",
+          "beginCaptures": {
+            "1": {
+              "name": "storage.type.type.hylo"
+            },
+            "2": {
+              "name": "entity.name.type.hylo"
+            }
+          },
+          "end": "(?<=\\})|$",
+          "patterns": [
+            {
+              "include": "#comments"
+            },
+            {
+              "include": "#generic-parameter-clause"
+            },
+            {
+              "include": "#keywords"
+            }
+          ]
+        },
+        "trait": {
+          "name": "meta.definition.trait.hylo",
+          "begin": "\\b(trait )",
+          "beginCaptures": {
+            "1": {
+              "name": "storage.type.trait.hylo"
+            },
+            "2": {
+              "name": "entity.name.trait.hylo"
+            }
+          },
+          "end": "(?<=\\})|$",
+          "patterns": [
+            {
+              "include": "#comments"
+            },
+            {
+              "include": "#generic-parameter-clause"
+            },
+            {
+              "include": "#keywords"
+            }
+          ]
+        },
+        "generic-parameter-clause": {
+          "begin": "<",
+          "beginCaptures": {
+            "0": {
+              "name": "punctuation.separator.generic-parameter-clause.begin.hylo"
+            }
+          },
+          "end": ">",
+          "endCaptures": {
+            "0": {
+              "name": "punctuation.separator.generic-parameter-clause.end.hylo"
+            }
+          },
+          "patterns": [
+            {
+              "include": "#comments"
+            },
+            {
+              "name": "punctuation.separator.generic-parameters.hylo",
+              "match": ","
+            },
+            {
+              "match": "\\b((?!\\d)\\w[\\w\\d]*)\\b",
+              "captures": {
+                "1": {
+                  "name": "variable.language.generic-parameter.hylo"
+                }
+              }
+            },
+            {
+              "name": "meta.generic-parameter-constraint.hylo",
+              "begin": "(:)\\s*",
+              "beginCaptures": {
+                "1": {
+                  "name": "punctuation.separator.generic-parameter-constraint.hylo"
+                }
+              },
+              "end": "(?=[,>]|(?!\\G)\\bwhere\\b)",
+              "patterns": [
+                {
+                  "name": "entity.other.conforming-trait.hylo",
+                  "begin": "\\G",
+                  "end": "(?=[,>]|(?!\\G)\\bwhere\\b)"
+                }
+              ]
+            }
+          ]
+        }
+      }
+    },
+    "keywords": {
+      "patterns": [
+        {
+          "name": "keyword.fun.hylo",
+          "match": "\\b(fun)\\b"
+        },
+        {
+          "name": "keyword.control.import.hylo",
+          "match": "\\b(import)\\b"
+        },
+        {
+          "name": "keyword.control.transfer.hylo",
+          "match": "\\b(break|continue|return|throw|yield|yielded)\\b"
+        },
+        {
+          "name": "keyword.control.loop.hylo",
+          "match": "\\b(while|for|do|in)\\b"
+        },
+        {
+          "name": "keyword.control.conditional.hylo",
+          "match": "\\b(if|else|match|where)\\b"
+        },
+        {
+          "name": "keyword.control.scope.hylo",
+          "match": "\\b(catch|defer|try)\\b"
+        },
+        {
+          "name": "keyword.type.hylo",
+          "match": "\\b(conformance|extension|namespace|typealias)\\b"
+        },
+        {
+          "name": "keyword.operator.hylo",
+          "match": "\\b(operator|postfix|prefix|infix)\\b"
+        },
+        {
+          "name": "keyword.modifier.hylo",
+          "match": "\\b(public|private|fileprivate|internal|static)\\b"
+        },
+        {
+          "name": "keyword.convention.hylo",
+          "match": "\\b(inout|let|set|sink)\\b"
+        },
+        {
+          "name": "keyword.subscript.hylo",
+          "match": "\\b(property|subscript)\\b"
+        },
+        {
+          "name": "keyword.var.hylo",
+          "match": "\\b(var)\\b"
+        },
+        {
+          "name": "keyword.misc.hylo",
+          "match": "\\b(deinit|some|spawn|is|as)\\b"
+        },
+        {
+          "name": "variable.language.hylo",
+          "match": "\\b(?:self|Self)\\b"
+        }
+      ]
+    },
+    "literals": {
+      "patterns": [
+        {
+          "include": "#boolean"
+        },
+        {
+          "include": "#numeric"
+        },
+        {
+          "include": "#nil"
+        },
+        {
+          "include": "#any"
+        },
+        {
+          "include": "#string"
+        }
+      ],
+      "repository": {
+        "boolean": {
+          "name": "constant.language.boolean.hylo",
+          "match": "\\b(true|false)\\b"
+        },
+        "nil": {
+          "name": "constant.language.nil.hylo",
+          "match": "\\b(nil)\\b"
+        },
+        "any": {
+          "name": "constant.language.any.hylo",
+          "match": "\\b(any)\\b"
+        },
+        "numeric": {
+          "patterns": [
+            {
+              "name": "constant.numeric.decimal.hylo",
+              "match": "\\b[0-9][0-9_]*\\b"
+            },
+            {
+              "name": "constant.numeric.hexadecimal.hylo",
+              "match": "\\b0x[a-fA-F0-9_]+\\b"
+            },
+            {
+              "name": "constant.numeric.octal.hylo",
+              "match": "\\b0o[0-7_]+\\b"
+            },
+            {
+              "name": "constant.numeric.binary.hylo",
+              "match": "\\b0b[01_]+\\b"
+            }
+          ]
+        },
+        "string": {
+          "name": "string.quoted.double.hylo",
+          "begin": "\"",
+          "end": "\"",
+          "patterns": [
+            {
+              "name": "constant.character.escape.hylo",
+              "match": "\\\\."
+            }
+          ]
+        }
+      }
+    }
+  },
+  "scopeName": "source.hylo"
+}

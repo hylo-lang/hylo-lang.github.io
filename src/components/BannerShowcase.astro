@@ -1,0 +1,49 @@
+---
+import Banner1 from "./Banner1.astro";
+import Banner3 from "./Banner3.astro";
+import Button from "./CalloutButton.astro";
+import {Icon} from '@astrojs/starlight/components';
+---
+
+<Banner1
+        title="Join the Hylo Community"
+        subtitle="Connect with developers and contributors"
+>
+    <Button href="https://slack.com" variant="primary">
+        <Fragment slot={"icon"}>
+            <Icon name="slack"/>
+        </Fragment>
+        <span>Slack</span>
+    </Button>
+    <Button href="https://github.com" variant="secondary">
+        <Icon name="github" slot="icon"/>
+        <span>GitHub Discussions</span>
+    </Button>
+</Banner1>
+
+
+<Banner3
+        title="Join the Hylo Community"
+        subtitle="Connect with developers and contributors"
+>
+    <Button href="https://slack.com" variant="dark">
+        <Icon name="slack" slot="icon"/>
+        <span>Slack</span>
+    </Button>
+    <Button href="https://github.com" variant="light">
+        <Icon name="github" slot="icon"/>
+        <span>GitHub Discussions</span>
+    </Button>
+</Banner3>
+
+<Banner1
+        title="Join the Hylo Community"
+        subtitle="Connect with developers and contributors"
+>
+    <Button href="https://slack.com" variant="primary">
+        Slack
+    </Button>
+    <Button href="https://github.com" variant="secondary">
+        GitHub Discussions
+    </Button>
+</Banner1>

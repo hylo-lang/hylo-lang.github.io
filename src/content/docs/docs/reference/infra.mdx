@@ -1,0 +1,13 @@
+---
+title: Infrastructure Overview
+---
+
+- **[hylo](https://github.com/hylo-lang/hylo):** The main compiler, written in Swift.
+- **[swifty-llvm](https://github.com/hylo-lang/Swifty-LLVM):** Swift wrapper around LLVM's C API. We use this for code generation.
+- **[durian](https://github.com/hylo-lang/Durian/):** A parser combinator library written in Swift, used by Hylo's frontend.
+- **[hylo-dev-toolchain](https://github.com/hylo-lang/hylo-dev-toolchain/):** It's CI actions pre-build and publish Docker images with the development toolchain needed to build Hylo's compiler.
+- **[llvm-build](https://github.com/hylo-lang/llvm-build):** Pre-built LLVM binaries with assertions enabled.
+- **[hylo-new](https://github.com/hylo-lang/hylo-new):** A rewrite of Hylo's frontend with more principled architecture, implicit resolution, and significantly better performance (over 10x speedup). We are working towards merging this with the current compiler.
+- **[vscode-hylo](https://github.com/hylo-lang/vscode-hylo/):** VSCode extension with syntax highlighting and code execution support. (LSP is WIP)
+- **[hylo-language-server](https://github.com/hylo-lang/hylo-language-server):** A prototype Language Server for Hylo, written in Swift.
+- **[cmakemodules](https://github.com/hylo-lang/CMakeModules):** Common dependencies and utilities that are shared between Hylo projects, such as the Hylo Compiler, SwiftyLLVM and Durian.

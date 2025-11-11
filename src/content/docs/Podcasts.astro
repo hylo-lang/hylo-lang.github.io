@@ -1,0 +1,36 @@
+---
+import {getCollection} from 'astro:content';
+import {Badge, Icon} from '@astrojs/starlight/components';
+
+const podcasts = (await getCollection('podcasts')).sort((a, b) => {
+    // by date (descending), then by podcast name, then by episode
+    const dateComparison = new Date(b.data.date).getTime() - new Date(a.data.date).getTime();
+    if (dateComparison !== 0) {
+        return dateComparison;
+    }
+
+    const podcastComparison = a.data.podcast.localeCompare(b.data.podcast);
+    if (podcastComparison !== 0) {
+        return podcastComparison;
+    }
+
+    return b.data.episode - a.data.episode;
+});
+---
+<table>
+    <tbody>
+    {podcasts.map((podcast) => (
+            <tr>
+                <td>
+                    <a href={podcast.data.url}>
+                        <Icon name="seti:video" class="inline mr-1 translate-y-0.5"/>
+                        {podcast.data.title}
+                    </a>
+                </td>
+                <td>{podcast.data.guest}</td>
+                <td class="whitespace-nowrap">{podcast.data.podcast} #{podcast.data.episode}</td>
+                <td class="whitespace-nowrap">{podcast.data.date}</td>
+            </tr>
+    ))}
+    </tbody>
+</table>

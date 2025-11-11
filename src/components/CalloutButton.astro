@@ -1,0 +1,25 @@
+---
+interface Props {
+    href: string;
+    variant?: 'primary' | 'secondary' | 'outline' | 'dark' | 'light';
+    icon?: any;
+}
+
+const { href, variant = 'primary', icon } = Astro.props;
+
+const variants = {
+    primary: 'bg-white text-[#667eea] hover:bg-[#f8f9ff]',
+    secondary: 'bg-white/20 text-white backdrop-blur-md border border-white/30 hover:bg-white/30',
+    outline: 'bg-transparent text-white border-2 border-white/30 hover:border-white hover:bg-white/10',
+    dark: 'bg-gradient-to-br from-[#667eea] to-[#764ba2] text-white hover:shadow-lg hover:shadow-[#667eea]/40',
+    light: 'bg-[#f7fafc] text-[#1a202c] border-2 border-[#e2e8f0] hover:bg-[#edf2f7] hover:border-[#cbd5e0]',
+};
+---
+
+<a
+        href={href}
+        class={`inline-flex items-center no-underline gap-2 px-7 py-3.5 rounded-lg font-semibold transition-all duration-300 hover:-translate-y-0.5 ${variants[variant]}`}
+>
+    <slot name="icon"/>
+    <slot />
+</a>

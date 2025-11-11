@@ -1,0 +1,124 @@
+---
+title: Intermediate Representation (IR)
+---
+
+## Lowering
+
+The process of transforming high-level source code to its equivalent intermediate representation is called *lowering*.
+
+Lowering is takes place over multiple translation phases, each of which resulting in IR code at a different *stage*:
+
+1. High-level source code is translated to *raw IR*.
+2. Raw IR is translated to *legal IR*.
+3. Legal IR is translated to *canonical IR*.
+
+A program in raw IR may contain incomplete deinitialization and flow-sensitive type errors. A program in legal or canonical IR shall not violate any of the static semantic rules of the Hylo programming language.
+
+## Modules
+
+IR code is organized into *modules*. A module consists of an application programming interface (API), an application binary interface (ABI), a collection of lowered type definitions, a collection of lowered functions, and a collection of resources.
+
+An API is a collection of type, function, subscript, and property signatures which document how to interact with Hylo code present in the module at source or IR level.
+
+An ABI is a collection of type and function signatures which document how to interact with compiled Hylo code present in the module.
+
+A resource is an arbitrary file that is part of a module and not processed as a source file.
+
+A module is represented using a target-independent binary format called the *hylomodule* format. Module files should use `.hylomodule`extension and `application/octet-stream` media type.
+
+<span style="color:orange;">TBD: Describe the valmodule format.</span>
+
+
+
+## Lowered functions
+
+A lowered function is a set of IR instructions packaged as a single unit of computation. A lowered function has a name that must be unique across all linked modules.
+
+A lowered function has a signature describing the type and passing conventions of its inputs and outputs.
+
+A lowered function may have a body defined as a set of one or more basic blocks, one of which is designated as the function entry. A lowered function that does not define a body is called a *stub* and denotes the API of a function defined in another module or the ABI of a function linked from a binary.
+
+### Lowered function signatures
+
+<mark style="color:orange;">TBD</mark>
+
+### Basic blocks
+
+A basic block is a non-empty sequence of [instructions](#instructions). The first and last instructions of a basic block are called its entry and exit points, respectively. Control flow shall always enter at entry points and exit at exit points. The last instruction of a basic block shall be a [terminator instruction](#terminator-instructions).
+
+A basic block may accept arguments.
+
+Given two basic blocks `bb1` and `bb2`, `bb1` is *successor* of `bb2` (or, equivalently, `bb2` is predecessor of `bb1`) if the exit point of `bb2` may cause control flow to jump to `bb1`.
+
+A basic block is *reachable* if it is an entry point or a successor of a reachable block. All basic blocks of a function shall be reachable in legal or canonical IR.
+
+Given two basic blocks `bb1` and `bb2`:
+
+* `bb1` dominates `bb2` if control flow must go through `bb1` before it can reach `bb2` or if `bb1` is `bb2`;
+* `bb1` *strictly dominates* `bb2` if it dominates `bb2` and it is not `bb2`;
+* `bb1` *immediately dominates* `bb2` if it strictly dominates `bb2` and does not strictly dominate any other basic block that strictly dominates `bb2`.
+
+import {Aside} from '@astrojs/starlight/components';
+
+<Aside type="note">
+    As every reachable basic block of a function except its entry point has exactly one immediate dominator, the dominance relation of a function may be represented as a tree whose nodes are basic blocks and each node's children are those nodes it immediately dominates.
+</Aside>
+
+
+## Operands
+
+Instructions in Val IR may accept operands embodying values to be operated upon. There exists 5 types of operands:
+
+* **Type references**: A type reference denotes a lowered type definition.
+* **Basic block references**: A basic block reference denotes a basic block.
+* **Constants**: A constant is a value that is computed at compile time and immutable at runtime.
+* **Basic block arguments**: A basic block argument denotes the value passed to a basic block when control flow entered to its entry point.
+* **Instruction results**: An instruction result denotes the one of the values produced by the evaluation of an instruction.
+
+<Aside type="note">
+    A thin function reference is a constant because it is immutable. Similarly, the memory location of a global binding's storage is a constant.
+</Aside>
+
+Each basic block argument and instruction result is assigned to a unique local register in the function. The value of a register&#x20;
+
+### Uses
+
+An instruction `i` is said to be a *user* of an operand `o` if `o` is argument of `i`. Each occurence of an operand in one of its users is called a *use*.
+
+Given two uses `u1` and `u2`, `u2` is sequenced after `u1` (or, equivalently, u1 is sequenced before u2) if and only if:
+
+* the user of `u2` is sequenced after the user of `u1`, or
+* `u1` and `u2` have the same user and `u1` appears before `u2`.
+
+
+## Abstract machine
+
+The semantics of Hylo IR is defined in terms of an abstract machine. A language implementation shall interpret or compile native programs that follow the same behavior.
+
+The Val abstract machine consists of a collection of *threads* and a global memory space. A thread consists of a *register map* that associates local register names to objects or locations in the machine's global memory, a *control stack* that contains instructions, and a *call stack* that contains register map&#x73;*.*
+
+<Aside type="note">
+    A thread is similar to a [SECD machine](https://en.wikipedia.org/wiki/SECD_machine) without a register stack. Just like in [ANF](https://en.wikipedia.org/wiki/A-normal_form), instruction operands are either constants or names denoting the value of a local register.
+</Aside>
+
+When a basic block is loaded into a thread, its instructions are pushed onto the stack in reverse order (i.e., the last instruction is pushed first).
+
+### Program execution
+
+Program execution starts by adding a thread to the abstract machine, which gets designated as the *main thread*. The register map and call stack of the main thread are initialized empty. The control stack is initialized by loading the entry block of the main function of the program's entry module.
+
+
+## Instructions
+
+An instruction is a basic unit of computation in Val IR that modifies the state of the executing machine. An instruction may accept zero or more arguments and return zero or more values.
+
+### Terminator instructions
+
+An instruction is called a terminator instruction if it causes control flow to jump to another basic block or exit the current function.
+
+The terminator instructions of Val IR are:
+
+* `branch`
+* `cond_branch`
+* `call_fallible`
+* `terminate`

@@ -1,0 +1,27 @@
+---
+import {getCollection} from 'astro:content';
+import {Badge} from '@astrojs/starlight/components'
+
+const papers = (await getCollection('papers')).sort((a, b) => {
+    const yearDiff = b.data.year - a.data.year;
+    if (yearDiff !== 0) return yearDiff;
+    const monthA = a.data.month || 0;
+    const monthB = b.data.month || 0;
+    return monthB - monthA;
+});
+---
+
+<table class="w-full">
+    <tbody class="w-full">
+    {papers.map((paper) => (
+            <tr>
+                <td><a href={paper.data.url}>{paper.data.title}</a></td>
+                <td class="whitespace-nowrap">
+                    {paper.data.pdf && <a href={paper.data.pdf}><Badge text="PDF" variant="tip"/></a>}
+                </td>
+                <td>{paper.data.authors.join(', ')}</td>
+                <td class="whitespace-nowrap">{paper.data.year}{paper.data.month && ("-" + String(paper.data.month).padStart(2, '0'))}</td>
+            </tr>
+    ))}
+    </tbody>
+</table>

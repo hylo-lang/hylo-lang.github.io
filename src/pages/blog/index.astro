@@ -1,0 +1,15 @@
+---
+import StarlightPage from '@astrojs/starlight/components/StarlightPage.astro';
+import {getCollection} from 'astro:content';
+import {formatDate} from "date-fns";
+const posts = (await getCollection('blog')).sort((a, b) => +new Date(b.data.date) - +new Date(a.data.date));
+---
+<StarlightPage frontmatter={{title: "Blog"}} hasSidebar={false}>
+
+    <ul>
+        {posts.map(post => (
+                <li><a href={`/blog/${post.id}`}>{post.data.title}</a> <span class="opacity-40 italic">~ {formatDate(post.data.date, "yyyy-MM-dd")}</span></li>
+        ))}
+    </ul>
+
+</StarlightPage>

@@ -1,0 +1,41 @@
+---
+import { Image } from 'astro:assets';
+import { LinkButton } from '@astrojs/starlight/components';
+import Houston from '../assets/houston.webp';
+---
+
+<div class="grid items-center gap-4 pb-4 lg:grid-cols-[7fr_4fr] lg:gap-[3%] lg:py-[clamp(2.5rem,calc(1rem+10vmin),10rem)]">
+    <Image
+        src={Houston}
+        loading="eager"
+        decoding="async"
+        width={400}
+        height={400}
+        alt="Houston mascot"
+        class="object-contain w-[min(70%,20rem)] h-auto mx-auto lg:order-2 lg:w-[min(100%,25rem)]"
+    />
+
+    <div class="flex flex-col gap-[clamp(1.5rem,calc(1.5rem+1vw),2rem)] text-center lg:text-left">
+        <div class="flex flex-col gap-4 items-center lg:items-start">
+            <h1
+                id="main-title"
+                data-page-title
+                class="text-[clamp(var(--sl-text-3xl),calc(0.25rem+5vw),var(--sl-text-6xl))] leading-[var(--sl-line-height-headings)] font-semibold text-white max-w-[50ch]"
+            >
+                Hylo
+            </h1>
+            <div class="text-[clamp(var(--sl-text-base),calc(0.0625rem+2vw),var(--sl-text-xl))] text-[var(--sl-color-gray-2)] max-w-[50ch]">
+                All in on Value Semantics and Generic Programming
+            </div>
+        </div>
+
+        <div class="flex gap-4 flex-wrap justify-center lg:justify-start">
+            <LinkButton href="/vision" icon="right-arrow">
+                Read Our Vision
+            </LinkButton>
+            <LinkButton href="https://youtu.be/5lecIqUhEl4" variant="minimal" icon="external">
+                Read Our Vision
+            </LinkButton>
+        </div>
+    </div>
+</div>

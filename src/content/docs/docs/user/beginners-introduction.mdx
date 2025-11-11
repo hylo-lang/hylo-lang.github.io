@@ -1,0 +1,44 @@
+---
+title: Beginner's Introduction to Hylo
+---
+
+{
+// (TODO: describe the syntax and language features in a beginner-friendly, inclusive way, with code examples. Use side)
+// (notes or collapsed sections for more advanced topics, or make a separate page for more details.)
+}
+
+## Introduction
+
+This tour gives an overview of Hylo's features in the form of a progressive guide. It assumes familiarity with an imperative programming language such as JavaScript, Python, C or C++.
+
+This tour does not cover the entire language. Please consult the [specification](/docs/reference/specification) for more detailed information.
+
+Keep in mind that Hylo is under active development. Some of the features presented in this tour (and in the specification) may not be fully implemented yet or subject to change in the future.
+
+## Hello, World!
+
+Tradition says language guides should start with a program that displays "Hello, World!" on the screen. Let's oblige!
+
+```hylo
+public fun main() {
+  print("Hello, World!")
+}
+```
+
+Every program in Hylo must define a `main` function, with no parameters and no return value, as its entry point. Here, `main` contains a single statement, which is a call to a global function `print` with a string argument.
+
+_The standard library provides an API to interact with the program's environment._ _Command line arguments are accessed by reading a constant named `Environment.arguments`._ _Return statuses are signaled by calling the global function `exit(status:)`._
+
+To run this program:
+
+* Copy that `main` function into a file called `Hello.hylo`.
+* Run the command `hc Hello.hylo -o hello`.
+* Run the command `./hello` to run the executable.
+
+
+## Further Reading
+
+If you want to see more code examples, we recommend checking out these sources:
+- [Standard Library](https://github.com/hylo-lang/hylo/tree/main/StandardLibrary/Sources) and its [documentation](https://hylodoc.web.app/)
+- [End-to-End test cases](https://github.com/hylo-lang/hylo/tree/main/Tests/EndToEndTests/TestCases)
+- [Unit test cases](https://github.com/hylo-lang/hylo/tree/main/Tests/HyloTests/TestCases)

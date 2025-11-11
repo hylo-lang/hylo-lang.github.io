@@ -1,0 +1,50 @@
+---
+title: Our Strategy
+layout: ../layouts/Page.astro
+---
+
+Desires:
+- Solid core language and a working compiler
+- Great UX for developer tooling
+  - Diagnosis:
+    - Compilers can be very slow
+    - Lagging IDEs are frustrating
+    - Crashing LSPs are frustrating
+    - Lack of proper debugging value inspection -> slower debugging
+    -
+  - Strategic Objectives:
+    - Reasonably fast compile time from scratch (for a medium-sized project, 2-3 minutes)
+    - Fast incremental compile time (under 8 seconds)
+    - Responsive IDE experience (under 200ms for common operations - todo clarify)
+    - Good code quality of the compiler and tools.
+  - Actions
+    - testing, code review, benchmarking, profiling, CI/CD
+    - explore SOTA LSP and debugger testing techniques, make new ones if needed
+
+
+## Diagnosis
+
+## Strategic Objectives
+
+
+## Guiding Policies and Strategic Actions
+
+### 1. Curiosity and Research
+We push the boundaries of the state-of-the-art by being research-driven: studying the
+industry's existing approaches and relevant academic literature, engaging with domain experts of our problems, and
+experimenting with new ideas.
+
+### 2. Collaboration over Competition
+
+We see language development as a shared effort, not a zero-sum game. We learn from Swift, Rust, C++, and
+Odin among others, and we give back through blog posts, bug reports, patches, research findings, and libraries we build along the way. By sharing
+our work early and helping others, we get feedback, connections, and make faster progress than we would alone. We value the
+world's success first, the community's second, and personal success third - generosity ultimately strengthens all
+of them.
+
+### 3. Evolving Practical Trade-offs
+import {discussionsLink, slackLink} from '../links.js';
+
+We don't believe a successful systems programming language can exist without trade-offs, nor that we can get them all
+right from the start. Therefore, we aim to document our design decisions in <a href={discussionsLink}>GitHub Discussions</a>, so that we can revisit
+them later and make it easy to add resources or comment on them over time.

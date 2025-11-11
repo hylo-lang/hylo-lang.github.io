@@ -1,0 +1,17 @@
+---
+title: Getting Started
+---
+
+import {Aside} from '@astrojs/starlight/components';
+import {slackLink} from "../../../../links.js";
+
+<Aside type="caution">
+    The compiler is in active development, so many features don't work yet. There are also some cases when the compiler
+    fails to emit useful diagnostics and crashes instead. If you encounter any issues, please
+    [file an issue](https://github.com/hylo-lang/hylo/issues/) or reach out on
+    [Slack]({slackLink}).
+</Aside>
+
+Hylo is available on [Compiler Explorer](https://godbolt.org/z/P7ooxsacd) for you to experiment with without needing to
+install anything locally. We do not yet have pre-built binaries available for download (contributions welcome!), but if
+you want to run the compiler locally, you can [build it from source](/docs/contributing/building-the-compiler).

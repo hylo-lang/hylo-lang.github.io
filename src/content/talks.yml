@@ -1,0 +1,106 @@
+# yaml-language-server: $schema=../../../.astro/collections/papers.schema.json
+
+cpp_on_sea_2024:
+  title: "Hylo: The Safe Systems and Generic-programming Language Built on Value Semantics"
+  authors:
+    - "Dave Abrahams"
+  venue: "C++ on Sea"
+  year: 2024
+  month: 7
+  url: "https://www.youtube.com/watch?v=5lecIqUhEl4"
+  isKeynote: true
+
+cpp_on_sea_2024_hylodoc:
+  title: "HyloDoc: A Documentation Compiler for Hylo"
+  authors:
+    - "Ambrus Tóth"
+  venue: "C++ on Sea"
+  year: 2024
+  month: 6
+  url: "https://www.youtube.com/watch?v=M-wyeiIQrvk"
+  isLightningTalk: true
+
+accu_2024_concurrency_hylomorphism:
+  title: "Concurrency Hylomorphism"
+  authors:
+    - "Lucian Radu Teodorescu"
+  venue: "ACCU"
+  year: 2024
+  month: 7
+  url: "https://youtu.be/k6fI4asLJxo"
+
+cppcon_2022_val_safe_language:
+  title: "Val: A Safe Language to Interoperate with C++"
+  authors:
+    - "Dimi Racordon"
+  venue: "CppCon"
+  year: 2022
+  month: 9
+  url: "https://www.youtube.com/watch?v=ws-Z8xKbP4w"
+
+cppcon_2022_value_semantics:
+  title: "Value Semantics: Safety, Independence, Projection, & Future of Programming"
+  authors:
+    - "Dave Abrahams"
+  venue: "CppCon"
+  year: 2022
+  month: 9
+  url: "https://www.youtube.com/watch?v=QthAU-t3PQ4"
+
+cppnorth_2022_lightning_talk:
+  title: "An Object Model for Safety and Efficiency by Definition"
+  authors:
+    - "Dave Abrahams"
+  venue: "CppNorth"
+  year: 2022
+  month: 7
+  url: "https://www.youtube.com/watch?v=KGL02mSaplE"
+  isLightningTalk: true
+
+cppnow_2022_keynote_part1:
+  title: "A Future of Value Semantics and Generic Programming Part 1"
+  authors:
+    - "Dave Abrahams"
+  venue: "C++Now"
+  year: 2022
+  month: 5
+  url: "https://www.youtube.com/watch?v=4Ri8bly-dJs"
+  isKeynote: true
+
+cppnow_2022_keynote_part2:
+  title: "A Future of Value Semantics and Generic Programming Part 2"
+  authors:
+    - "Dave Abrahams"
+    - "Dimi Racordon"
+  venue: "C++Now"
+  year: 2022
+  month: 5
+  url: "https://www.youtube.com/watch?v=GsxYnEAZoNI"
+  isKeynote: true
+
+iwaco_2023_borrow_checking:
+  title: "Borrow checking Hylo"
+  authors:
+    - "Dimi Racordon"
+  venue: "IWACO"
+  year: 2023
+  month: 5
+  url: "https://youtu.be/oFupPFniD9s"
+
+concurrency-past-present-future:
+  title: "Concurrency Approaches: Past, Present, and Future"
+  authors:
+    - "Lucian Radu Teodorescu"
+  venue: "ACCU"
+  year: 2023
+  month: 4
+  url: "https://youtu.be/uSG240pJGPM"
+
+structured-concurrency:
+  title: "Structured Concurrency"
+  authors:
+    - "Lucian Radu Teodorescu"
+  venue: "ACCU"
+  year: 2022
+  month: 4
+  url: "https://youtu.be/Xq2IMOPjPs0"

@@ -1,0 +1,31 @@
+adsp-137:
+  podcast: "ADSP"
+  episode: 137
+  date: "2023-07-07"
+  guest: "Sean Parent"
+  title: "Sean Parent on Hylo (vs Rust)!"
+  url: "https://adspthepodcast.com/2023/07/07/Episode-137.html"
+
+adsp-138:
+  podcast: "ADSP"
+  episode: 138
+  date: "2023-07-14"
+  guest: "Sean Parent"
+  title: "Sean Parent on Hylo! (Part 2)"
+  url: "https://adspthepodcast.com/2023/07/14/Episode-138.html"
+
+cppcast-352:
+  podcast: "CppCast"
+  episode: 352
+  date: "2023-01-20"
+  guest: "Dimi Racordon"
+  title: "Val and Mutable Value Semantics"
+  url: "https://cppcast.com/val-and-mutable-value-semantics"
+
+adsp-160:
+  podcast: "ADSP"
+  episode: 160
+  date: "2023-12-15"
+  guest: "Sean Parent"
+  title: "Rust & Safety at Adobe with Sean Parent"
+  url: "https://adspthepodcast.com/2023/12/15/Episode-160.html"

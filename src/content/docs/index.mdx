@@ -1,0 +1,216 @@
+---
+title: Hylo
+description: All in on Value Semantics and Generic Programming
+template: splash
+hero:
+  tagline: A Systems Programming Language <br>All in on Value Semantics and Generic Programming
+  image:
+    html: |
+        <div class="rotate-3 relative ">
+            <img src="/splash.png" class="w-[500px]"/>
+            <a title="Try Hylo on Compiler Explorer!" href="https://godbolt.org/z/PvWaEE6WG" class="absolute bottom-12 right-12 transition-[0.3s] hover:scale-100 hover:translate-y-[-2px]">
+                <img src="ce.png" class="h-16">
+            </a>
+        </div>
+  actions:
+    - text: Read Our Introduction
+      link: /introduction/
+      icon: right-arrow
+    - text: Watch Dave's Talk at C++ On Sea
+      link: https://www.youtube.com/watch?v=5lecIqUhEl4
+      icon: external
+      variant: minimal
+---
+
+import {Card, CardGrid} from '@astrojs/starlight/components';
+import {Icon} from '@astrojs/starlight/components';
+import {discussionsLink, slackLink} from "../../links.ts";
+//     - text: Take the Language Tour
+//       link: /docs/user/language-tour/
+
+import Banner2 from '../../components/Banner2.astro';
+import Button from '../../components/CalloutButton.astro';
+import Papers from './Papers.astro';
+import Talks from './Talks.astro';
+import Podcasts from './Podcasts.astro';
+import Factorial from '../../components/Factorial.astro';
+
+
+<Banner2
+    title="Join the Hylo Community"
+    subtitle="Connect with developers and contributors"
+>
+    <Button href={slackLink} variant="dark">
+        <Icon name="slack" slot="icon" />
+        <span>Slack</span>
+    </Button>
+    <Button href={discussionsLink} variant="outline">
+        <Icon name="github" slot="icon" />
+        <span>GitHub Discussions</span>
+    </Button>
+</Banner2>
+
+
+<Factorial/>
+
+## Achievements
+
+<CardGrid>
+    <Card title="MVS & Theory" icon="pencil">
+        - Extending Swift's subscripts with inout projections
+        - [Method bundles](https://dl.acm.org/doi/abs/10.1145/3687997.3695633)
+        - [Structured concurrency made easy](https://youtu.be/k6fI4asLJxo): thread hopping, no function coloring
+        - Expressing [double linked lists with value semantics](https://drops.dagstuhl.de/entities/document/10.4230/OASIcs.Programming.2025.25) is safe and faster than doing it with reference semantics.
+    </Card>
+    <Card title="Compiler" icon="document">
+        - Compilation [using LLVM](https://github.com/hylo-lang/Swifty-LLVM)
+        - Novel techniques for compiling generics with coherence
+        - Caching and serialization of the compiler's program state
+        - [C interop](https://ambrus.dev/_astro/High-Fidelity%20C%20Interoperability%20in%20Hylo.7fUYiq3A.pdf) research
+    </Card>
+    <Card title="Standard Library" icon="add-document">
+        - [See the documentation](https://hylodoc.web.app) of the current implementation with some fundamental traits and data structures.
+        - [Positionless Collection Algorithms](https://github.com/hylo-lang/positionless-swift/)
+        - [rs-stl](https://github.com/RishabhRD/rs-stl): A Rust port of the C++ STL algorithms for improved generic programming
+    </Card>
+    <Card title="Developer Experience" icon="setting">
+        - [VSCode extension](https://github.com/hylo-lang/vscode-hylo) with syntax highlighting and code execution
+        - [Documentation compiler](https://github.com/hylo-lang/hylodoc)
+        - [Language Server](https://github.com/hylo-lang/hylo-language-server) prototype
+    </Card>
+    <Card title="Compiler DevOps" icon="open-book">
+        - [Development Containers](https://containers.dev/) support - easy to get started
+        - Support SPM/CMake, Ninja/Xcode, Windows/Linux/macOS
+        - Test generation compiler plugin
+        - Pre-built [Hylo development toolchain](https://github.com/hylo-lang/hylo-dev-toolchain/) Docker images
+        - Compiler written in Swift 6.2
+    </Card>
+</CardGrid>
+
+## Research Around Hylo
+<Papers/>
+<div className="relative overflow-hidden bg-gradient-to-br from-[#1a202c] to-[#2d3748] rounded-2xl shadow-lg transition-all duration-300">
+
+    <div className="not-content relative m-0 z-10 flex flex-col md:flex-row items-center justify-between gap-6 p-8 md:px-10">
+        <div className="text-white/80 text-lg">
+            <p className="">
+                Are you interested in research collaboration — as a student, professor, or independent contributor?
+                Learn about our <a className="text-inherit" href="/docs/contributing/research-collab/">open research topics</a>, or suggest a new topic!
+            </p>
+        </div>
+
+        <div className="flex flex-col md:flex-row gap-4 w-full md:w-auto">
+            <slot />
+        </div>
+    </div>
+</div>
+
+## Talks
+<Talks/>
+
+## Podcasts
+<Podcasts/>
+
+# Working Examples
+Even though the compiler and standard library are still in their early stages, we can already show some advanced examples
+of Hylo code that you can try out on [Compiler Explorer](https://godbolt.org/z/Mv9a77a4c).
+
+```hylo title=GlobalBinding.hylo
+public fun main() {
+  precondition((x + y) == 42)
+}
+
+public let (x, y) = (40, 2)
+```
+
+```hylo title=Geometry.hylo
+/// The orientation of a 2D vector.
+public type Angle: Deinitializable {
+
+  /// The value of `self` in radians.
+  public var radians: Float64
+
+  /// Creates an instance with its value in radians.
+  public memberwise init
+
+  /// Creates an instance with its value in degrees.
+  public init(degrees: Float64) {
+    &self.radians = degrees * Float64.pi() / 180.0
+  }
+
+  /// The value of `self` in degrees.
+  public property degrees: Float64 {
+    let { radians * 180.0 / Float64.pi() }
+    inout {
+      var d = radians * 180.0 / Float64.pi()
+      yield &d
+      &self.radians = d * Float64.pi() / 180.0
+    }
+  }
+
+  /// A copy of `self` wrapped within the interval `[0, 2 * pi[`.
+  public fun wrapped() -> Self {
+    // inefficient implementation until 
+    // `Float64.remainder(dividingBy:)` is available 
+    var r = radians.copy()
+    if r < 0.0 {
+      while r < 0.0 {
+        &r = r + 2.0 * Float64.pi()
+      }
+    } else {
+      while r >= 2.0 * Float64.pi() {
+        &r = r - 2.0 * Float64.pi()
+      }
+    }
+    return Angle(radians: r)
+  }
+
+}
+
+public fun main() {
+  var a = Angle(radians: .pi())
+
+  inout d = &a.degrees
+  precondition(d == 180.0)
+  &d = 0.0
+  precondition(a.radians == 0.0)
+
+  &a.radians = 2.0 * Float64.pi()
+  precondition(a.wrapped().radians == 0.0)
+}
+```
+
+```hylo title=CustomMove.hylo
+
+type A: Deinitializable {
+  public var witness: Int
+  public var x: Int
+  public init(x: sink Int) {
+    &self.x = x
+    &self.witness = 0
+  }
+}
+
+conformance A: Movable {
+  public fun take_value(from source: sink Self) {
+    set {
+      &self.x = source.x
+      &self.witness = 0
+    }
+    inout {
+      &self.x = source.x
+      &self.witness += 1
+    }
+  }
+}
+
+public fun main() {
+  var s = A(x: 1)
+  &s = A(x: 2)
+  &s = A(x: 2)
+
+  precondition(s.x == 2)
+  precondition(s.witness == 2)
+}
+```
+See more examples in the [compiler test suite](https://github.com/hylo-lang/hylo/tree/main/Tests/EndToEndTests/TestCases).

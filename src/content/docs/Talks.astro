@@ -1,0 +1,35 @@
+---
+import {getCollection} from 'astro:content';
+import {Badge, Icon} from '@astrojs/starlight/components';
+
+const talks = (await getCollection('talks')).sort((a, b) => {
+    // by year, month, title
+
+    if (b.data.year !== a.data.year) {
+        return b.data.year - a.data.year;
+    }
+    if ((b.data.month || 0) !== (a.data.month || 0)) {
+        return (b.data.month || 0) - (a.data.month || 0);
+    }
+    return a.data.title.localeCompare(b.data.title);
+});
+---
+<table>
+    <tbody>
+    {talks.map((talk) => (
+            <tr>
+                <td>
+                    <Icon name="youtube" class="inline mr-1 translate-y-0.5"/>
+                    {talk.data.isKeynote &&
+                            <Badge text="Keynote" variant="note"/>}
+                    {talk.data.isLightningTalk &&
+                    <span title="Lightning Talk">⚡</span>}
+                    <a href={talk.data.url}>{talk.data.title}</a>
+                </td>
+                <td>{talk.data.authors.join(', ')}</td>
+                <td class="whitespace-nowrap">{talk.data.venue}</td>
+                <td class="whitespace-nowrap">{talk.data.year}{talk.data.month && ("-" + String(talk.data.month).padStart(2, '0'))}</td>
+            </tr>
+    ))}
+    </tbody>
+</table>

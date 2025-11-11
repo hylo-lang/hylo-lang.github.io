@@ -1,0 +1,258 @@
+---
+import { format, addDays, nextTuesday, nextThursday, isAfter, isBefore, startOfDay } from 'date-fns';
+import { toZonedTime, fromZonedTime } from 'date-fns-tz';
+import NormalButton from './NormalButton.astro';
+import {meetingLink} from '../links.js';
+import {Video} from "@lucide/astro";
+import {Calendar} from "@lucide/astro";
+
+export interface Props {
+  startTime: string; // Format: "13:00" (24-hour format)
+  endTime: string;   // Format: "14:00" (24-hour format)
+  timezone: string;  // IANA timezone like "America/Los_Angeles"
+  fallbackText?: string; // Optional fallback display text
+}
+
+const { startTime, endTime, timezone, fallbackText = "Meeting time" } = Astro.props;
+
+// Parse time string to hours/minutes (24-hour format only)
+function parseTime(timeStr: string): { hours: number, minutes: number } {
+  // Only accept 24-hour format (13:00)
+  const match = timeStr.match(/^(\d{1,2}):(\d{2})$/);
+  if (!match) {
+    throw new Error(`Invalid time format: ${timeStr}. Expected format: "HH:MM" (24-hour)`);
+  }
+  
+  const hours = parseInt(match[1]);
+  const minutes = parseInt(match[2]);
+  
+  if (hours < 0 || hours > 23 || minutes < 0 || minutes > 59) {
+    throw new Error(`Invalid time values: ${timeStr}. Hours must be 0-23, minutes 0-59`);
+  }
+  
+  return { hours, minutes };
+}
+
+// Find next Tuesday or Thursday
+function getNextMeetingDate(): Date {
+  const now = new Date();
+  const today = startOfDay(now);
+  
+  // Get next Tuesday and Thursday
+  const upcomingTuesday = nextTuesday(today);
+  const upcomingThursday = nextThursday(today);
+  
+  // If today is Tuesday or Thursday, check if the meeting time has passed
+  const dayOfWeek = now.getDay();
+  
+  const tuesday = 2;
+  const thursday = 4;
+  if (dayOfWeek === tuesday || dayOfWeek === thursday) {
+    // Check if current time is before the meeting start time
+    const startParsed = parseTime(startTime);
+    const meetingStartToday = new Date(now.getFullYear(), now.getMonth(), now.getDate(), startParsed.hours, startParsed.minutes);
+    
+    if (isBefore(now, meetingStartToday)) {
+      // Meeting hasn't happened yet today
+      return today;
+    }
+  }
+  
+  // Return the next Tuesday or Thursday (whichever comes first)
+  if (isBefore(upcomingTuesday, upcomingThursday)) {
+    return upcomingTuesday;
+  } else {
+    return upcomingThursday;
+  }
+}
+
+const nextMeetingDate = getNextMeetingDate();
+const meetingDateStr = format(nextMeetingDate, 'MMMM d');
+const isToday = format(nextMeetingDate, 'yyyy-MM-dd') === format(new Date(), 'yyyy-MM-dd');
+const dateDisplay = isToday ? 'Today' : meetingDateStr;
+
+// Create Google Calendar link
+const startParsed = parseTime(startTime);
+const endParsed = parseTime(endTime);
+
+// Format date for Google Calendar (YYYYMMDDTHHMMSS format in UTC)
+const meetingStartUTC = fromZonedTime(
+  new Date(nextMeetingDate.getFullYear(), nextMeetingDate.getMonth(), nextMeetingDate.getDate(), startParsed.hours, startParsed.minutes),
+  timezone
+);
+const meetingEndUTC = fromZonedTime(
+  new Date(nextMeetingDate.getFullYear(), nextMeetingDate.getMonth(), nextMeetingDate.getDate(), endParsed.hours, endParsed.minutes),
+  timezone
+);
+
+const formatGoogleCalendarDate = (date: Date) => {
+  return date.toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z';
+};
+
+const googleCalendarUrl = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=Hylo%20Developer%20Meeting&dates=${formatGoogleCalendarDate(meetingStartUTC)}/${formatGoogleCalendarDate(meetingEndUTC)}&details=Join%20the%20Hylo%20developer%20meeting&location=${encodeURIComponent(meetingLink)}`;
+---
+
+<div class="flex gap-4 flex-wrap">
+  <NormalButton href={meetingLink}>
+      <Video/>
+      <span id="meeting-time" class="font-medium leading-snug inline-block" data-start-time={startTime} data-end-time={endTime} data-timezone={timezone} data-meeting-date={nextMeetingDate.toISOString()}>
+        {fallbackText}
+      </span>
+  </NormalButton>
+
+  <NormalButton href={googleCalendarUrl}>
+      <Calendar/>
+      <span>Add to Calendar</span>
+  </NormalButton>
+</div>
+
+<script>
+import { format, parseISO } from 'date-fns';
+import { toZonedTime, fromZonedTime } from 'date-fns-tz';
+
+function parseTime(timeStr: string): { hours: number, minutes: number } {
+  // Only accept 24-hour format (13:00)
+  const match = timeStr.match(/^(\d{1,2}):(\d{2})$/);
+  if (!match) {
+    throw new Error(`Invalid time format: ${timeStr}. Expected format: "HH:MM" (24-hour)`);
+  }
+  
+  const hours = parseInt(match[1]);
+  const minutes = parseInt(match[2]);
+  
+  if (hours < 0 || hours > 23 || minutes < 0 || minutes > 59) {
+    throw new Error(`Invalid time values: ${timeStr}. Hours must be 0-23, minutes 0-59`);
+  }
+  
+  return { hours, minutes };
+}
+
+function updateMeetingTime() {
+  const meetingTimeElement = document.getElementById('meeting-time');
+  if (!meetingTimeElement) return;
+
+  try {
+    // Get data from element attributes
+    const startTimeStr = meetingTimeElement.dataset.startTime;
+    const endTimeStr = meetingTimeElement.dataset.endTime;
+    const sourceTimezone = meetingTimeElement.dataset.timezone;
+    const meetingDateStr = meetingTimeElement.dataset.meetingDate;
+    
+    if (!startTimeStr || !endTimeStr || !sourceTimezone || !meetingDateStr) {
+      throw new Error('Missing required data attributes');
+    }
+    
+    // Get user's timezone
+    const userTimeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    
+    // Parse the meeting date and times
+    const meetingDate = parseISO(meetingDateStr);
+    const startParsed = parseTime(startTimeStr);
+    const endParsed = parseTime(endTimeStr);
+    
+    // Create meeting times in the source timezone
+    const sourceMeetingStart = new Date(
+      meetingDate.getFullYear(),
+      meetingDate.getMonth(), 
+      meetingDate.getDate(),
+      startParsed.hours,
+      startParsed.minutes
+    );
+    
+    const sourceMeetingEnd = new Date(
+      meetingDate.getFullYear(),
+      meetingDate.getMonth(),
+      meetingDate.getDate(), 
+      endParsed.hours,
+      endParsed.minutes
+    );
+    
+    // Convert from source timezone to UTC, then to user's timezone
+    const utcMeetingStart = fromZonedTime(sourceMeetingStart, sourceTimezone);
+    const utcMeetingEnd = fromZonedTime(sourceMeetingEnd, sourceTimezone);
+    
+    const localMeetingStart = toZonedTime(utcMeetingStart, userTimeZone);
+    const localMeetingEnd = toZonedTime(utcMeetingEnd, userTimeZone);
+    
+    // Format the times
+    const localStartFormatted = format(localMeetingStart, 'h:mm a');
+    const localEndFormatted = format(localMeetingEnd, 'h:mm a');
+    
+    // Check if the meeting is on a different day
+    const localMeetingDay = format(localMeetingStart, 'yyyy-MM-dd');
+    const originalMeetingDay = format(meetingDate, 'yyyy-MM-dd');
+    
+    let dayNote = '';
+    if (localMeetingDay !== originalMeetingDay) {
+      const localDate = new Date(localMeetingDay);
+      const originalDate = new Date(originalMeetingDay);
+      if (localDate > originalDate) {
+        dayNote = ' (next day)';
+      } else {
+        dayNote = ' (previous day)';
+      }
+    }
+    
+    // Format the original time for reference
+    const originalStartFormatted = format(sourceMeetingStart, 'h:mm a');
+    const originalEndFormatted = format(sourceMeetingEnd, 'h:mm a');
+    const sourceTimezoneDisplay = sourceTimezone.split('/').pop() || sourceTimezone;
+    
+    // Check if user is in the same timezone as the source
+    const isSameTimezone = userTimeZone === sourceTimezone;
+    
+    // Format the meeting date
+    const today = new Date();
+    const isToday = format(localMeetingStart, 'yyyy-MM-dd') === format(today, 'yyyy-MM-dd');
+    const isTomorrow = format(localMeetingStart, 'yyyy-MM-dd') === format(new Date(today.getTime() + 24*60*60*1000), 'yyyy-MM-dd');
+    
+    let dateDisplay = '';
+    if (isToday) {
+      dateDisplay = 'Today, ';
+    } else if (isTomorrow) {
+      dateDisplay = 'Tomorrow, ';
+    } else {
+      dateDisplay = format(localMeetingStart, 'MMMM d, ');
+    }
+    
+    // Build the display with proper structure
+    const meetingTitle = 'Developer Meetings on Tuesdays and Thursdays';
+    
+    if (isSameTimezone) {
+      meetingTimeElement.innerHTML = `
+        ${meetingTitle}<br>
+        <small style="opacity: 0.7; font-size: 0.85em;">Next meeting: ${dateDisplay}${localStartFormatted}–${localEndFormatted}</small>
+      `;
+    } else {
+      const userTimezoneDisplay = userTimeZone.split('/').pop() || userTimeZone;
+      meetingTimeElement.innerHTML = `
+        ${meetingTitle}<br>
+        <small style="opacity: 0.7; font-size: 0.85em;">Next meeting: ${dateDisplay}${localStartFormatted}–${localEndFormatted} ${userTimezoneDisplay}${dayNote}</small>
+      `;
+    }
+    
+  } catch (error) {
+    console.error('Timezone conversion error:', error);
+    // Fallback to original text if there's an error
+    const fallbackText = meetingTimeElement.textContent;
+    meetingTimeElement.textContent = fallbackText || 'Meeting time';
+  }
+}
+
+// Initialize when DOM is ready
+if (typeof window !== 'undefined') {
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', updateMeetingTime);
+  } else {
+    updateMeetingTime();
+  }
+  
+  document.addEventListener('visibilitychange', () => {
+    if (!document.hidden) {
+      updateMeetingTime();
+    }
+  });
+}
+</script>
+
+

@@ -1,0 +1,67 @@
+---
+title: The Hylo Community
+layout: ../layouts/Page.astro
+---
+
+import NormalButton from "../components/NormalButton.astro";
+import { discussionsLink, slackLink } from "../links.js";
+import { Icon } from "@astrojs/starlight/components";
+import MeetingTime from "../components/MeetingTime.astro";
+
+<NormalButton href={slackLink} variant="outline">
+  <Fragment slot={"icon"}>
+    <Icon name="slack" />
+  </Fragment>
+  <span>Slack</span>
+</NormalButton>
+<NormalButton href={discussionsLink} variant="outline">
+  <Icon name="github" slot="icon" />
+  <span>Github Discussions</span>
+</NormalButton>
+<MeetingTime
+  startTime="12:00"
+  endTime="13:00"
+  timezone="America/Los_Angeles"
+  fallbackText="Developer Meetings on Tuesdays and Thursdays"
+/>
+
+## Ways to Be Part of Hylo
+
+- **Curious Visitors**<br/>
+  Explore our [documentation](https://docs.hylo-lang.org/), join discussions on <a href={discussionsLink}>GitHub</a>/<a href={slackLink}>Slack</a>, and follow our progress on our [blog](/blog).
+- **Contributors**<br/>
+  Help improve Hylo by reporting issues, submitting pull requests, or propose new research topics. Get started with our [contributing guide](/docs/contributing/). You are also welcome to join our regular developer meetings.
+- **Maintainers**<br/>
+  When you have a deep understanding of one of Hylo's subsystems, you can become a maintainer to review contributions, and guide or lead development.
+- **Core Team**<br/>
+  If you are deeply committed to Hylo's vision and actively contribute in discussions and development activities, you will be recognized as being part of the core team.
+- **Researchers**<br/>
+  If you write a paper related to Hylo or answering some of our open research questions, we would love to hear about it and feature it on our website. We are also open to research collaborations, hosting university projects and try to help along the way.
+
+## Values and Culture
+
+1. **Curiosity and Research**<br/>
+   We push the frontier on all aspects, including language design and tooling, by being research-driven and studying the industry's existing approaches 
+   and relevant academic literature, engaging with domain experts of our problems, and experimenting with new ideas.
+   We are building the core language on strong theoretical foundations to have a system that is sound and scalable for the long term.
+
+2. **Collaboration over Competition**<br/>
+   We see language development as a shared effort, not a zero-sum game. We learn from Swift, Rust, C++, and
+   Odin among others, and we give back through blog posts, bug reports, patches, research findings, and libraries we build along the way. By sharing
+   our work early and helping others, we get feedback, connections, and make faster progress than we would alone. We value the
+   world's success first, the community's second, and personal success third - generosity ultimately strengthens all
+   of them.
+
+3. **Evolving Practical Trade-offs**<br/>
+   We don't believe a successful systems programming language can exist without trade-offs, nor that we can get them all
+   right from the start. Therefore, we aim to document our design decisions in <a href={discussionsLink}>GitHub Discussions</a>, so that we can revisit
+   them later and make it easy to add resources and comments on them over time.
+
+## Meet the Core Team
+
+- **Dimi Racordon:** type system, frontend, theorem prover, language design
+- **Dave Abrahams:** interpreter, backend, language design
+- **Lucian Radu Teodorescu:** concurrency, backend, subscripts, language design
+- **Rishabh Dwivedi:** standard library, positionless algorithms, rs-stl, backend, language design
+- **Ambrus Tóth:** website, developer tools, infrastructure, community, language design
+- _More to come ;\)_

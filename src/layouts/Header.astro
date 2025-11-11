@@ -1,0 +1,78 @@
+---
+import LanguageSelect from '@astrojs/starlight/components/LanguageSelect.astro';
+import Search from '@astrojs/starlight/components/Search.astro';
+import SiteTitle from '@astrojs/starlight/components/SiteTitle.astro';
+import SocialIcons from '@astrojs/starlight/components/SocialIcons.astro';
+import ThemeSelect from 'starlight-theme-rapide/overrides/ThemeSelect.astro';
+---
+
+<div class="header">
+    <div class="title-wrapper sl-flex">
+        <SiteTitle />
+        <div class="flex pl-4 items-center">
+            <a class="px-2 no-underline text-inherit" href="/blog">Blog</a>
+            <a class="px-2 no-underline text-inherit" href="/community">Community</a>
+            <!--<a class="px-2 no-underline text-inherit" href="/strategy">Strategy</a>-->
+            <a class="px-2 no-underline text-inherit" href="/docs">Docs</a>
+            <a class="px-2 no-underline text-inherit" href="/docs/contributing/research-collab/">Research</a>
+            <a class="px-2 no-underline text-inherit" href="/docs/contributing">Contribute</a>
+        </div>
+    </div>
+    <div class="sl-flex print:hidden">
+        <Search />
+    </div>
+    <div class="sl-hidden md:sl-flex print:hidden right-group">
+        <div class="sl-flex social-icons">
+            <SocialIcons />
+        </div>
+        <ThemeSelect />
+        <LanguageSelect />
+    </div>
+</div>
+
+<style>
+    @layer starlight.core {
+        .header {
+            display: flex;
+            gap: var(--sl-nav-gap, 1rem);
+            justify-content: space-between;
+            align-items: center;
+            height: 100%;
+        }
+
+        .title-wrapper {
+            /* Prevent long titles overflowing and covering the search and menu buttons on narrow viewports. */
+            overflow: clip;
+            /* Avoid clipping focus ring around link inside title wrapper. */
+            padding: 0.25rem;
+            margin: -0.25rem;
+            min-width: 0;
+        }
+
+        .right-group,
+        .social-icons {
+            gap: 1rem;
+            align-items: center;
+        }
+
+        .social-icons::after {
+            content: '';
+            height: 2rem;
+            border-inline-end: 1px solid var(--sl-color-gray-5);
+        }
+
+        /* Simplified responsive layout that avoids unresolved CSS variables */
+        @media (min-width: 50rem) {
+            .header {
+                display: grid;
+                grid-template-columns: 1fr auto auto;
+                align-content: center;
+                gap: var(--sl-nav-gap, 1rem);
+            }
+
+            .title-wrapper {
+                justify-self: start;
+            }
+        }
+    }
+</style>

@@ -1,0 +1,26 @@
+---
+title: Building the Compiler
+description: Get started with the Hylo compiler development
+
+---
+
+TODO: write a guide for all platforms that details how to set up the development environment for building the Hylo compiler from source. Recommend using development containers for ease of getting started.
+
+...
+
+Good luck :)
+
+import { Tabs, TabItem } from '@astrojs/starlight/components';
+
+<Tabs syncKey={"build-system"}>
+  <TabItem label="SPM">
+      ```shell frame=none
+      swift build
+      ```
+  </TabItem>
+  <TabItem label="CMake">
+      ```shell frame=none
+      cmake --build .build --config Debug
+      ```
+  </TabItem>
+</Tabs>

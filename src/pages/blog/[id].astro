@@ -1,0 +1,42 @@
+---
+import { getCollection, render } from 'astro:content';
+import StarlightPage from '@astrojs/starlight/components/StarlightPage.astro';
+import {formatDate} from "date-fns";
+
+// 1. Generate a new path for every collection entry
+export async function getStaticPaths() {
+    const posts = await getCollection('blog');
+    return posts.map(post => ({
+        params: { id: post.id },
+        props: { post },
+    }));
+}
+// 2. For your template, you can get the entry directly from the prop
+const { post } = Astro.props;
+const { Content } = await render(post);
+---
+
+<StarlightPage
+        frontmatter={{
+            title: post.data.title,
+            description: post.data.description || `Blog post: ${post.data.title}`
+        }}
+        hasSidebar={false}
+>
+    <div class="sl-markdown-content">
+        <header class="not-content">
+            <div class="post-meta relative -translate-y-4 italic">
+                <time datetime={post.data.date.toISOString()}>
+                    ~ {formatDate(post.data.date, "MMMM d, yyyy")}
+                </time>
+                {post.data.author && <span>by {post.data.author}</span>}
+            </div>
+        </header>
+
+        <Content />
+
+        <nav class="post-nav">
+            <a href="/blog">← Back to All Articles</a>
+        </nav>
+    </div>
+</StarlightPage>

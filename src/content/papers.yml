@@ -1,0 +1,279 @@
+# yaml-language-server: $schema=../../../.astro/collections/papers.schema.json
+
+type-checking-with-rewriting-rules:
+  title: "Type Checking with Rewriting Rules"
+  authors:
+    - Dimi Racordon
+  publishedAt: "SLE 2024: Proceedings of the 17th ACM SIGPLAN International Conference on Software Language Engineering"
+  year: 2024
+  month: 10
+  url: "https://doi.org/10.1145/3687997.3695640"
+
+implementation-strategies-for-mvs:
+  title: "Implementation Strategies for Mutable Value Semantics"
+  abstract: |
+    Mutable value semantics is a programming discipline that upholds the independence of values to support local reasoning. In the discipline’s strictest form, references become second-class citizens: they are only created implicitly, at function boundaries, and cannot be stored in variables or object fields. Hence, variables can never share mutable state. Unlike pure functional programming, however, mutable value semantics allows part-wise in-place mutation, thereby eliminating the memory traffic usually associated with functional updates of immutable data. This paper presents implementation strategies for compiling programs with mutable value semantics into efficient native code. We study Swift, a programming language based on that discipline, through the lens of a core language that strips some of Swift’s features to focus on the semantics of its value types. The strategies that we introduce leverage the inherent properties of mutable value semantics to unlock aggressive optimizations. Fixed-size values are allocated on the stack, thereby enabling numerous off-the-shelf compiler optimizations, while dynamically sized containers use copy-on-write to mitigate copying costs.
+  authors:
+    - Dimi Racordon
+    - Denys Shabalin
+    - Daniel Zheng
+    - Dave Abrahams
+    - Brennan Saeta
+  publishedAt: "Journal of Object Technology"
+  pdf: "https://www.jot.fm/issues/issue_2022_02/article2.pdf"
+  url: "https://doi.org/10.5381/jot.2022.21.2.a2"
+  year: 2022
+
+existentialize-your-generics:
+  title: "Existentialize Your Generics"
+  abstract: |
+    The two main approaches to compile generic programs are dynamic dispatch and monomorphization. While the latter is 
+    typically preferred in the context of low latency applications, where the overhead of boxing may be prohibitive, it 
+    also comes at the cost of important limitations in terms of modularity, expressiveness, and code size.
+    
+    The Swift programming language proposes an interesting third alternative that addresses these shortcomings, 
+    supporting dynamic dispatch without requiring boxing by factoring method tables out of object headers. This paper 
+    examines the merits of that strategy, which we call existentialization, across different programming languages. Our 
+    study shows that existentialization can produce code with competitive performance with respect to monomorphization.
+  authors:
+    - Dimi Racordon
+    - Matt Bovel
+    - Hamza Remmal
+  publishedAt: "MPLR '25: Proceedings of the 22nd ACM SIGPLAN International Conference on Managed Programming Languages and Runtimes"
+  year: 2022
+  month: 6
+  url: "https://doi.org/10.1145/3759426.3760975"
+  pdf: "https://dl.acm.org/doi/pdf/10.1145/3759426.3760975"
+
+coherence-type-classes:
+  title: "On the State of Coherence in the Land of Type Classes"
+  abstract: |
+    Type classes are a popular tool for implementing generic algorithms and data structures without loss of efficiency, 
+    bridging the gap between parametric and ad-hoc polymorphism. Since their initial development in Haskell, they now 
+    feature prominently in numerous other industry-ready programming languages, notably including Swift, Rust, and 
+    Scala. The success of type classes hinges in large part on the compilers' ability to infer arguments to implicit 
+    parameters by means of a type-directed resolution. This technique, sometimes dubbed **implicit programming**, lets 
+    users elide information that the language implementation can deduce from the context, such as the implementation of 
+    a particular type class.
+    
+    One drawback of implicit programming is that a type-directed resolution may yield ambiguous results, thereby 
+    threatening coherence, the property that valid programs have exactly one meaning. This issue has divided the 
+    community on the right approach to address it. One side advocates for flexibility where implicit resolution is 
+    context-sensitive and often relies on dependent typing features to uphold soundness. The other holds that context 
+    should not stand in the way of equational reasoning and typically imposes that type class instances be unique across
+    the entire program to fend off ambiguities.
+    
+    Although there exists a large body of work on type classes and implicit programming, most of the scholarly 
+    literature focuses on a few select languages and offers little insight into other mainstream projects. Meanwhile, 
+    the latter have evolved similar features and/or restrictions under different names, making it difficult for language
+    users and designers to get a sense of the full design space. To alleviate this issue, we set to examine Swift, Rust,
+    and Scala, three popular languages featuring type classes heavily, and relate their approach to coherence to 
+    Haskell's. It turns out that, beyond superficial syntactic differences, Swift, Rust, and Haskell are actually 
+    strikingly similar in that the three languages offer comparable strategies to work around the limitations of the 
+    uniqueness of type class instances."
+  authors:
+    - Dimi Racordon
+    - Eugene Flessele
+    - Cao Nguyen Pham
+  publishedAt: "The Art, Science, and Engineering of Programming"
+  year: 2025
+  month: 2
+  url: "https://doi.org/10.48550/arXiv.2502.20546"
+  pdf: "https://arxiv.org/pdf/2502.20546"
+
+doubly-linked-list:
+  title: "Who Owns the Contents of a Doubly-Linked List?"
+  abstract: |
+    Despite their popularity, systems enforcing full ownership guarantees such as Rust leave many users frustrated with 
+    the inability to represent notionally self-referential data structures - e.g., doubly-linked lists - using 
+    first-class references. This frustration has motivated a number of proposals to relax on full ownership to support 
+    idioms common in languages with pervasive reference semantics. In this paper, we take a look at the way 
+    value-oriented languages address this issue and study representations of arbitrary graph-like data structures 
+    without references.
+  authors:
+    - Dimi Racordon
+  publishedAt: "Companion Proceedings of the 9th International Conference on the Art, Science, and Engineering of Programming"
+  year: 2025
+  month: 9
+  url: "https://doi.org/10.4230/OASIcs.Programming.2025.25"
+  pdf: "https://drops.dagstuhl.de/storage/01oasics/oasics-vol134-programming2025/OASIcs.Programming.2025.25/OASIcs.Programming.2025.25.pdf"
+
+use-site-checking-harmful:
+  title: "Use Site Checking Considered Harmful"
+  abstract: |
+    Static type checking aims to detect nonsensical operations based on their domains at compile time. While its 
+    benefits no longer need to be argued, it comes with expressiveness limitations that can only be lifted at the 
+    expense of complexity. This problem is particularly antithetical to generic programming, where algorithms and data 
+    structures are designed in the most general setting possible. In response, some systems have adopted a form of 
+    static duck typing: generic definitions are written against assumed interfaces that are only type checked with 
+    concrete types at their ultimate use sites. This essay claims that such an approach, which we refer to as use site 
+    checking, is harmful to user experience. We study four main problems caused by use site checking and show how they 
+    relate to similar well-known issues in dynamically typed languages. We then look at existing language constructs to 
+    discuss how statically typed languages may address these shortcomings.
+  authors:
+    - Dimi Racordon
+    - Benjamin Chung
+  publishedAt: "Onward! 2024: Proceedings of the 2024 ACM SIGPLAN International Symposium on New Ideas, New Paradigms, and Reflections on Programming and Software"
+  year: 2024
+  month: 10
+  url: "https://doi.org/10.1145/3689492.3689814"
+
+method-bundles:
+  title: "Method Bundles"
+  abstract: |
+    Performance-critical systems commonly optimize memory use and locality by selecting among multiple variants of a 
+    single logical operation. Algorithm developers then typically rely on ad-hoc API patterns or naming conventions to
+    distinguish the variants. Unfortunately, this practice suffers from poor ergonomics. Users are compelled to 
+    understand the conventions and carefully consider the signatures and documentation of different variants, which 
+    creates drag on development and maintenance. Instead, we propose a language construct bundling algorithm variants 
+    having well-defined semantic relationships under a single name. This approach eliminates boilerplate, reduces 
+    cognitive overhead by consolidating APIs, and unlocks compiler optimizations.
+  authors:
+    - Dimi Racordon
+    - Dave Abrahams
+  publishedAt: "SLE 2024: Proceedings of the 17th ACM SIGPLAN International Conference on Software Language Engineering"
+  year: 2024
+  month: 10
+  url: "https://doi.org/10.1145/3687997.3695633"
+
+borrow-checking-hylo:
+  title: "Borrow checking Hylo"
+  abstract: |
+    Hylo is a language for high-level systems programming that promises safety without loss of efficiency. It is based 
+    on mutable value semantics, a discipline that emphasizes the independence of values to support local reasoning. The 
+    result—in contrast with approaches based on sophisticated aliasing restrictions—is an efficient, expressive language 
+    with a simple type system and no need for lifetime annotations.
+
+    Safety guarantees in Hylo programs are verified by an abstract interpreter processing an intermediate
+    representation, Hylo IR, that models lifetime properties with ghost instructions. Further, lifetime constraints are
+    used to eliminate unnecessary memory allocations predictably.
+  authors:
+    - Dimi Racordon
+    - Dave Abrahams
+  publishedAt: "IWACO'23 - SPLASH"
+  year: 2023
+  month: 10
+  url: "https://2023.splashcon.org/details/iwaco-2023-papers/5/Borrow-checking-Hylo"
+  pdf: "https://2023.splashcon.org/details/iwaco-2023-papers/5/Borrow-checking-Hylo"
+
+towards-lingua-france-for-memory-safety:
+  title: "Toward a Lingua Franca for Memory Safety"
+  abstract: |
+    Memory safety checking seeks to protect programs from a wide spectrum of software problems related to memory access 
+    and management, such as using unallocated or uninitialized buffers. Despite decades of research, it remains an 
+    active and fruitful research topic, as issues of scalability and adoption continue to present open challenges. A 
+    popular approach to overcome these obstacles is to rely on type checking. Types are arguably one of the most 
+    scalable techniques to reason about a program’s structural properties. They also offer a convenient tool to impose 
+    restrictions on source code, either to prohibit undesirable behaviors or to facilitate other analyses. Within the 
+    plethora of type systems that have been proposed to combat memory bugs, one recurrent trend is to leverage 
+    uniqueness and/or immutability to limit the impact of mutation, to support local reasoning. Unfortunately, bringing 
+    these properties to existing languages is often met with a deterring engineering effort. Unlike many other features
+    and mechanisms, these are difficult to encode within a host language via simple syntactic extensions or clever 
+    meta-programming. Instead, they require a deeper understanding of the program’s semantics, which can only be 
+    obtained through preliminary analysis. This paper presents results in our effort to address this difficulty. We 
+    introduce Fuel, a compiler framework designed to guarantee uniqueness and immutability properties in arbitrary 
+    programs with explicit memory management. Fuel is centered around a source and platform agnostic low-level 
+    intermediate representation, equipped with a capability-based type system, which can be targeted by compilers for 
+    higher level languages. It is able to guarantee freedom from invalid dereference and duplicate deallocations, and 
+    offers partial support to detect memory leaks. It also advocates for the use of dynamic checks to recover static 
+    type assumptions in places where static reasoning is either impractical or impossible. We present Fuel informally 
+    through a short series of examples and formalize a subset of its intermediate language.
+  authors:
+    - Dimi Racordon
+    - Aurélien Coet
+    - Didier Buchs
+  publishedAt: "Journal of Object Technology"
+  year: 2022
+  url: "https://www.jot.fm/contents/issue_2022_02/article3.html"
+  pdf: "https://www.jot.fm/issues/issue_2022_02/article3.pdf"
+
+native-implementation-of-mvs:
+  title: "Native Implementation of Mutable Value Semantics"
+  abstract: |
+    Unrestricted mutation of shared state is a source of many well-known problems. The predominant safe solutions are 
+    pure functional programming, which bans mutation outright, and flow sensitive type systems, which depend on 
+    sophisticated typing rules. Mutable value semantics is a third approach that bans sharing instead of mutation, 
+    thereby supporting part-wise in-place mutation and local reasoning, while maintaining a simple type system. In the 
+    purest form of mutable value semantics, references are second-class: they are only created implicitly, at function
+    boundaries, and cannot be stored in variables or object fields. Hence, variables can never share mutable state.
+    
+    Because references are often regarded as an indispensable tool to write efficient programs, it is legitimate to 
+    wonder whether such a discipline can compete other approaches. As a basis for answering that question, we 
+    demonstrate how a language featuring mutable value semantics can be compiled to efficient native code. This approach
+    relies on stack allocation for static garbage collection and leverages runtime knowledge to sidestep unnecessary 
+    copies.
+  authors:
+    - Dimi Racordon
+    - Denys Shabalin
+    - Daniel Zheng
+    - Dave Abrahams
+    - Brennan Saeta
+  year: 2021
+  month: 6
+  publishedAt: "ICOOOLPS ’21"
+  url: "https://doi.org/10.48550/arXiv.2106.12678"
+  pdf: "https://arxiv.org/pdf/2106.12678"
+
+swift-value-semantics:
+  title: "A Formal Definition of Swift's Value Semantics"
+  abstract: |
+    Swift is a general-purpose programming language designed as a modern substitute for C-based languages, such as C/C++
+    and Objective-C. As such, its semantics departs from that of most alternative based on a virtual machine. 
+    Specifically, Swift distinguishes between reference and value semantics. The former corresponds to the way most 
+    objects in Java-like languages behave, whereas the latter relates more to passive data structures in C/C++. The 
+    support of value semantics in concert with common object-orientation patterns gives rise to a number of subtleties 
+    with which inexperienced developers may not be familiar. In this work in progress, I attempt to shed light on these
+    aspects with a formal description of Swift's value semantics.
+  authors:
+    - Dimi Racordon
+  publishedAt: "Archive ouverte UNIGE"
+  year: 2020
+  month: 11
+  url: "https://archive-ouverte.unige.ch/unige:145490"
+  pdf: "https://access.archive-ouverte.unige.ch/access/metadata/5bd218af-cca4-4de8-ae90-fd469409a92b/download"
+
+c-interop:
+  title: "High-Fidelity C Interoperability in Hylo"
+  abstract: |
+    Interoperability with C is critical for new systems languages, yet achieving a high-fidelity bridge requires 
+    navigating a complex space of trade-offs between usability, portability, and maintainability. Beyond mastering
+    platform-specific ABIs and C dialects, a robust tool must decipher C’s “semantic dialects”—programming conventions 
+    where syntax alone is insufficient to determine intent,     such as an enum representing a set of mutually exclusive 
+    cases, a collection of combinable bitflags, or simply a group of named integer constants. These idioms defy rigid, 
+    one-size-fits-all translation.
+    
+    This paper presents a principled technical design for a C interoperability layer for Hylo that addresses these
+    challenges. We propose an architecture that leverages Clang for high-fidelity parsing and correct ABI handling, and 
+    a semantic mapping framework based on sensible defaults with developer-driven customization. This approach allows 
+    ambiguous C constructs to be mapped to the most appropriate and idiomatic Hylo representation, balancing automation 
+    with developer control. The result is a complete roadmap for a powerful and usable interoperability solution.
+  authors:
+    - Ambrus Tóth
+  publishedAt: "Delft University of Technology"
+  year: 2025
+  month: 6
+  url: "https://ambrus.dev/posts/hylo-c-interop/"
+  pdf: "https://ambrus.dev/_astro/High-Fidelity%20C%20Interoperability%20in%20Hylo.7fUYiq3A.pdf"
+
+debugging-hylo:
+  title: "Debugging Hylo"
+  abstract: |
+    Debugging is a fundamental part of software development, yet adding debugger support to new programming languages
+    remains a complex and underexplored challenge. This report presents the design and implementation of source-level
+    debugging for Hylo, a new systems programming language that emphasises generic programming and mutable value
+    semantics. To achieve this, we extend the Hylo compiler to emit DWARF debug information, enabling seamless 
+    integration with the LLDB debugger.
+ 
+    Our approach is incremental and guided by the behaviour of the Clang C++ compiler, allowing us to support Hylo core
+    language features, such as variables, functions, user-defined types, and generics. We also identify and analyse key
+    limitations, including challenges in representing Hylo’s fine-grained variable lifetimes and projections, enabling 
+    evaluation of complex expressions in LLDB, and supporting Hylo’s dynamic types (i.e., existentials). Beyond Hylo, 
+    this work aims to outline a general, reusable methodology for equipping new programming languages with modern
+    debugging capabilities, improving their usability and adoption.
+  authors:
+    - Tudor-Stefan Magirescu
+  publishedAt: "Delft University of Technology"
+  year: 2025
+  month: 6
+  url: "https://repository.tudelft.nl/record/uuid:6211f244-1c7b-47ca-bf0f-7e6b6123f125"
+  pdf: "https://repository.tudelft.nl/file/File_fbc6ad08-6db5-4468-99b9-ad036ba2b56e"

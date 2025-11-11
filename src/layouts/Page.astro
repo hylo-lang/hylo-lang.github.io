@@ -1,0 +1,9 @@
+---
+import StarlightPage from '@astrojs/starlight/components/StarlightPage.astro';
+let {frontmatter} = Astro.props;
+let title = frontmatter.title as string;
+---
+
+<StarlightPage frontmatter={{title: title}} hasSidebar={false}>
+    <slot/>
+</StarlightPage>

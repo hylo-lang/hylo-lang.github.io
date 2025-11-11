@@ -1,0 +1,94 @@
+---
+import type { CollectionEntry } from 'astro:content';
+import { getCollection, render } from 'astro:content';
+
+
+export interface Props {
+  post: CollectionEntry<'blog'>;
+}
+
+const { post } = Astro.props;
+const { title, description, date, author, tags } = post.data;
+const { Content } = await render(post);
+
+const formatDate = (date: Date) => {
+  return new Intl.DateTimeFormat('en-US', {
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric'
+  }).format(date);
+};
+
+---
+
+<StarlightPage
+  frontmatter={{
+    title: title,
+    description: description || `Blog post: ${title}`,
+  }}
+>
+  <div class="sl-markdown-content">
+    <header class="not-content">
+      <h1>{title}</h1>
+      {description && <p class="lead">{description}</p>}
+      <div class="post-meta">
+        <time datetime={date.toISOString()}>
+          {formatDate(date)}
+        </time>
+        {author && <span>by {author}</span>}
+      </div>
+      {tags && tags.length > 0 && (
+        <div class="tags">
+          {tags.map(tag => (
+            <span class="tag">{tag}</span>
+          ))}
+        </div>
+      )}
+    </header>
+
+    <Content />
+
+    <nav class="post-nav">
+      <a href="/blog">← Back to Blog</a>
+    </nav>
+  </div>
+</StarlightPage>
+
+<style>
+  .post-meta {
+    display: flex;
+    gap: 1rem;
+    margin: 1rem 0;
+    color: var(--sl-color-gray-3);
+    font-size: var(--sl-text-sm);
+  }
+
+  .tags {
+    display: flex;
+    gap: 0.5rem;
+    margin: 1rem 0;
+  }
+
+  .tag {
+    background: var(--sl-color-accent-low);
+    color: var(--sl-color-accent-high);
+    padding: 0.25rem 0.5rem;
+    border-radius: 0.25rem;
+    font-size: var(--sl-text-xs);
+  }
+
+  .post-nav {
+    margin-top: 2rem;
+    padding-top: 2rem;
+    border-top: 1px solid var(--sl-color-gray-5);
+  }
+
+  .post-nav a {
+    color: var(--sl-color-accent);
+    text-decoration: none;
+  }
+
+  .post-nav a:hover {
+    text-decoration: underline;
+  }
+</style>

@@ -1,0 +1,28 @@
+---
+title: Debugger Support for Hylo
+---
+## Existing Research on LLDB based Debugging:
+
+Debugger support for Hylo has been researched by Tudor-Stefan Magirescu at Delft University of Technology. He got basic
+debugging support for Hylo working using LLDB, just by modifying Swifty-LLVM and the Hylo IR to LLVM transpilation
+process. More advanced features such as visualizing existential types will most likely require making an LLDB plugin or
+forking LLDB as Swift did. All of these, and more are covered in detail in Tudor's thesis, which you can find at
+https://repository.tudelft.nl/file/File_fbc6ad08-6db5-4468-99b9-ad036ba2b56e?preview=1
+
+import {slackLink} from "../../../../../links.js";
+import {Aside} from "@astrojs/starlight/components";
+
+<Aside type="note" title="Help wanted!">
+    Although the research provides a great working prototype, the implementation is not yet transferred to a
+    production-ready state yet. Further work is also needed to research and prototype the advanced debugging features
+    such as debugging existential types, structured concurrency, and to integrate a safer, Hylo compiler based
+    expression evaluator. Join the discussion at [Debuggers for New Languages (&
+    Hylo) - Research Topic](https://github.com/orgs/hylo-lang/discussions/1768) for more information and to get involved!
+</Aside>
+
+## DWARF
+Hylo is an [officially acknowledged language](https://dwarfstd.org/issues/240213.1.html) in the DWARF debugging standard
+as of version 6. We were lucky enough to get the following codes:
+
+- `DW_LANG_Hylo` = `0x0042`
+- `DW_LNAME_Hylo` = `0x0028`
