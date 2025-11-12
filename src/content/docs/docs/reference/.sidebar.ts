@@ -14,6 +14,7 @@ export const referencesSidebar: ArrayElement<Sidebar> = {
         {label: 'Infrastructure', slug: 'docs/reference/infra'},
         {label: 'Intermediate Representation', slug: 'docs/reference/ir', ...outdatedBadge},
         {label: 'Language Specification', slug: 'docs/reference/specification', ...outdatedBadge},
-        {label: 'Standard Library', link: 'https://hylodoc.web.app/Sources/index.html'}
+        {label: 'Standard Library', link: 'https://hylodoc.web.app/Sources/index.html'},
+        {label: 'Extracted Compiler Docs', link: 'https://hylo-lang.org/hylo/'},
     ]
 };
