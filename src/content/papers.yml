@@ -277,3 +277,19 @@ debugging-hylo:
   month: 6
   url: "https://repository.tudelft.nl/record/uuid:6211f244-1c7b-47ca-bf0f-7e6b6123f125"
   pdf: "https://repository.tudelft.nl/file/File_fbc6ad08-6db5-4468-99b9-ad036ba2b56e"
+
+val-object-model:
+  title: The Val Object Model
+  abstract: |
+    This paper presents a low-level programming model that is simple, powerful, efficient, and safe. We believe it
+    could form the basis of a future safe dialect of C++.
+  authors: 
+    - Dave Abrahams
+    - Sean Parent
+    - Dimi Racordon
+    - David Sankel
+  publishedAt: C++ Evolution
+  year: 2022
+  month: 10
+  url: "https://www.open-std.org/jtc1/sc22/wg21/docs/papers/2022/p2676r0.pdf"
+  pdf: "https://www.open-std.org/jtc1/sc22/wg21/docs/papers/2022/p2676r0.pdf"
