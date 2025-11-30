@@ -87,8 +87,8 @@ Just like methods, subscripts and member subscripts can bundle multiple implemen
 An `inout` subscript projects values mutably:
 
 ```hylo
-subscript min_inout(_ x: inout Int, y: inout Int): Int {
-  inout { if y > x { &x } else { &y } }
+subscript min_inout(_ x: inout Int, _ y: inout Int): Int {
+  inout { if y > x { yield &x } else { yield &y } }
 }
 
 public fun main() {
