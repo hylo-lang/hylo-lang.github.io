@@ -5,5 +5,44 @@ title: Coding Conventions
 This document lists the coding conventions that shall be followed by Hylo contributors and assumed when interpreting
 code in the Hylo codebase, unless otherwise specified in the project's README.
 
+## Contracts and documentation
 For now, this is empty and up for discussion. As a starting point, read [Better Code: Chapter 2](https://github.com/stlab/better-code/blob/main/better-code/src/chapter-2-contracts.md#project-wide-documentation-policies).
 
+## Code formatting and conventions
+
+The project uses `swift-format` from Swift 6.2 LSP. The CI currently doesn't enforce code formatting, so reformatting
+an existing file may lead to large diffs. Please avoid reformatting as part of a commit with other significant
+changes.
+
+### File names
+
+All Swift source files end with the extension `.swift` and all Hylo source files end with the extension `.hylo`.
+
+In general, a file is named after the main entity that it defines.
+A file that extends an existing type with a protocol (Swift) or trait (Hylo) conformance is named with a combination of
+the type name and the protocol or trait name, joined with a plus (`+`) sign.
+For more complex situations, exercise your best judgment.
+
+For example:
+- A Swift file defining a type named `MyType` is named `MyType.swift`.
+- A Swift file defining how `MyType` conforms to `Equatable` is named `MyType+Equatable.swift`.
+
+Avoid defining multiple types, protocols, or traits in the same file unless they are scoped by a main entity or meant to be used only in that file.
+Usually, conformances are small and are defined in the same file as the type to which they apply.
+
+### Traps
+
+#### Unimplemented features
+
+It may be sometimes beneficial to stub the API of a feature before it is implemented.
+In those cases,  file an issue with a reproducer for the missing feature and call `UNIMPLEMENTED("description of feature #issue-number")` (defined in `Utils`) to mark the unimplemented code path.
+Many uses of `UNIMPLEMENTED()` predate this policy and don't include the string argument; if you hit one, please file the issue and submit a PR that adds the appropriate string.
+
+#### Unreachable code paths
+
+Call `unreachable()` (defined in `Utils`) on any code path that indicates a bug in the Hylo compiler if ever reached.
+
+## Reporting bugs
+
+Please attach a commit hash to issues reporting a bug.
+Please try to include a minimal Hylo reproducer.
