@@ -8,6 +8,7 @@ export const contributingGuideSidebar: ArrayElement<Sidebar> = {
     items: [
         {label: 'Introduction', slug: 'docs/contributing'},
         {label: 'Building the Compiler', slug: 'docs/contributing/building-the-compiler'},
+        {label: 'Coding Conventions', slug: 'docs/contributing/coding-conventions'},
         {label: 'Research Collaboration', slug: 'docs/contributing/research-collab'},
         {label: 'Editing this Documentation', slug: 'docs/contributing/documentation'},
         {label: 'Diversity and Inclusion', slug: 'docs/contributing/diversity-and-inclusion'},
