@@ -1,0 +1,76 @@
+---
+title: Adding Neovim Support to Your Language
+description: Learn how to use Neovim's Mason package manager and built-in LSP client to set up language server support for your language.
+date: 2025-12-14
+author: Ambrus Tóth
+---
+import { Aside } from '@astrojs/starlight/components';
+
+If you are building a new programming language, one of the most rewarding features you can develop is to add some level
+of editor tooling for your favorite editor (Neovim). This can be either just syntax highlighting (requiring
+just a grammar definition), or a language server implementation that can provide several capabilities, including
+semantic syntax highlighting, code completion, refactoring tools, diagnostics and more.
+
+## Syntax Highlighting
+-
+- https://github.com/uga-rosa/scorpeon.vim
+https://github.com/icedman/nvim-textmate
+https://github.com/vscode-neovim/vscode-neovim
+
+
+Hylo initially had a syntax specification, a native parser inside the compiler, and a TextMate grammar (used for syntax
+highlighting in VSCode when there is no language server available, and in our
+[statically generated website](/blog/website-syntax-highlighting/)). As it usually goes with duplicate information,
+these 3 grammars went out of sync quickly, partly because different people were maintaining them without clear
+links between them, and partly because these syncing tasks are just busy work, probably not something you want to keep
+on doing while experimenting with your syntax.
+
+On the long term, we could phrase the language specification in a formal grammar language, and derive other grammars
+from it, or add property based tests that run the grammars through different (randomly generated) sample programs and
+check that they all parse consistently. But in the short term
+
+## Creating a Language Server
+To get the accelerated benefit of building a language server, Microsoft standardized the Language Server Protocol (LSP),
+which allows you to write all your language-specific logic once in a language server, and configure thin clients in
+different editors for setting up the communication. Language servers run in separate processes and communicate with the
+editor via JSON messages through stdio, pipes, or in whatever other crazy way you want (in which case you will likely
+need to implement custom support on the editor side).
+
+Because of this decoupling, you can implement your server in virtually any [civilized programming
+language](https://microsoft.github.io/language-server-protocol/implementors/sdks/) using a library that lets you handle
+the client's requests and send back responses. It's the best if you can use the same language as your compiler, as you
+will find it useful to use parts of its codebase as a library for different queries, like getting the list of symbols,
+or reporting diagnostics.
+
+## Publishing Your Language Server
+You can skip this step if you are just getting started, but the most convenient way to distribute your language server
+is through setting up a release process on GitHub. This process, at minimum should consist of the following steps:
+- build your language server (for each supported platforms if needed, e.g. Windows/Linux/macOS, x64/arm64)
+- run your tests so you don't accidentally publish a broken version
+- create a GitHub Release with the built binaries as assets, with predictable names (e.g. `hylo-language-server-v1.2.3-linux-x64.zip`)
+
+You can configure GitHub Actions to run the above steps whenever you push a new tag. See Hylo's
+[release workflow](https://github.com/hylo-lang/hylo-language-server/blob/68657d5e7109f7c78d992a518655132343a7a52e/.github/workflows/publish-release-version.yml).
+
+<Aside type="tip">
+    If your language server relies on some assets other than the binary itself (e.g. the standard library sources), it's
+    the most straightforward to bundle them all into a single release archive, and resolve them automatically with a
+    relative path from the binary location. This will simplify the download and extraction logic for all LSP clients you
+    want to add and maintain support for.
+    Nonetheless, you can always make things more complicated if your assets are very large, and you want to avoid
+    bundling them into every platform's release archive.
+</Aside>
+
+## Language Server Integration
+what technologies have existed for integrating LSP for neovim, and what are considered the winners today and why?
+
+
+You will need to fork 2 repositories to add your language to Mason:
+[mason-registry](https://github.com/mason-org/mason-registry/) and
+
+: This package contains the
+  information about how to download and install your language server. It can be as simple as downloading a NodeJS
+  package, but you can also specify different archives for different platforms, containing pre-built binaries. If you
+  have a more complex installation process, you can also write install scripts per platform. Check out
+  [CONTRIBUTING.md](https://github.com/mason-org/mason-registry/blob/main/CONTRIBUTING.md) and existing packages.
+
