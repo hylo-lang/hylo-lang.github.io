@@ -1,40 +1,52 @@
 ---
-title: Adding Neovim Support to Your Language
+title: Add Neovim Support for Your Language
 description: Learn how to use Neovim's Mason package manager and built-in LSP client to set up language server support for your language.
 date: 2025-12-14
 author: Ambrus Tóth
 ---
-import { Aside } from '@astrojs/starlight/components';
+import {Aside} from '@astrojs/starlight/components';
 
-If you are building a new programming language, one of the most rewarding features you can develop is to add some level
-of editor tooling for your favorite editor (Neovim). This can be either just syntax highlighting (requiring
-just a grammar definition), or a language server implementation that can provide several capabilities, including
-semantic syntax highlighting, code completion, refactoring tools, diagnostics and more.
+When we are building a new programming language, one of the most rewarding steps is to add support for our favorite
+editor (Neovim). This can be implemented as just syntax highlighting (requiring a grammar definition),
+or a language server implementation that can be later extended to provide several capabilities, including
+semantic syntax highlighting, code completion, refactoring tools and more.
 
 ## Syntax Highlighting
--
-- https://github.com/uga-rosa/scorpeon.vim
-https://github.com/icedman/nvim-textmate
-https://github.com/vscode-neovim/vscode-neovim
+Neovim has 2 well-established modern ways of adding syntax highlighting for languages (as of 2025): by writing a
+[tree-sitter](https://tree-sitter.github.io/tree-sitter/index.html) grammar, or by leveraging our compiler through the
+language server protocol. Making a tree-sitter grammar unlocks super fast, incremental parsing, and a rich set of Neovim
+functionality involving the syntax tree and [text objects](https://ofirgall.github.io/learn-nvim/chapters/05-text-objects.html#treesitter-text-objects).
+On the other hand, using the language server protocol allows us to use our existing compiler frontend, thus guaranteeing
+100% highlighting accuracy.
 
+When I started using Neovim, Hylo already had a [syntax specification](https://hylo-lang.org/docs/reference/specification/), a native parser in the compiler, and a TextMate
+grammar for our [VSCode extension](https://github.com/hylo-lang/vscode-hylo). As it usually goes with
+redundant information, these 3 grammars went out of sync over time, partly because different people were maintaining them
+without clear links connecting them, and partly because we always have more fun/pressing things to work on
+than synchronizing grammars.
 
-Hylo initially had a syntax specification, a native parser inside the compiler, and a TextMate grammar (used for syntax
-highlighting in VSCode when there is no language server available, and in our
-[statically generated website](/blog/website-syntax-highlighting/)). As it usually goes with duplicate information,
-these 3 grammars went out of sync quickly, partly because different people were maintaining them without clear
-links between them, and partly because these syncing tasks are just busy work, probably not something you want to keep
-on doing while experimenting with your syntax.
+In the long run, we could phrase the language specification in a formal grammar language, deriving other grammars
+from it, or add [property based tests](https://www.youtube.com/watch?v=zvRAyq5wj38) that run the grammars through different
+(randomly generated) sample programs, checking that they all parse consistently. This has its own challenges, and it's likely a fun rabbit hole that we shall
+resist going down *for now ;)*
 
-On the long term, we could phrase the language specification in a formal grammar language, and derive other grammars
-from it, or add property based tests that run the grammars through different (randomly generated) sample programs and
-check that they all parse consistently. But in the short term
+There are some interesting projects, namely [scorpeon.vim](https://github.com/uga-rosa/scorpeon.vim) and
+[nvim-textmate](https://github.com/icedman/nvim-textmate) that aim to bring TextMate grammar support to Neovim through
+NodeJS interop, which would allow us to reuse our grammar from VSCode. Unfortunately, this has some performance
+overhead and additional installation complexity, so we chose to integrate the remaining option:
+[Hylo's language server](https://github.com/hylo-lang/hylo-language-server).
 
 ## Creating a Language Server
 To get the accelerated benefit of building a language server, Microsoft standardized the Language Server Protocol (LSP),
-which allows you to write all your language-specific logic once in a language server, and configure thin clients in
+allowing us to write all language-specific logic in the server, and configure thin clients in
 different editors for setting up the communication. Language servers run in separate processes and communicate with the
 editor via JSON messages through stdio, pipes, or in whatever other crazy way you want (in which case you will likely
 need to implement custom support on the editor side).
+
+import {Image} from "astro:assets";
+import lspArchitecture from './lsp-architecture.png';
+
+<Image src={lspArchitecture} width="800" alt="Architecture of the Language Server Protocol"/>
 
 Because of this decoupling, you can implement your server in virtually any [civilized programming
 language](https://microsoft.github.io/language-server-protocol/implementors/sdks/) using a library that lets you handle
@@ -45,12 +57,12 @@ or reporting diagnostics.
 ## Publishing Your Language Server
 You can skip this step if you are just getting started, but the most convenient way to distribute your language server
 is through setting up a release process on GitHub. This process, at minimum should consist of the following steps:
-- build your language server (for each supported platforms if needed, e.g. Windows/Linux/macOS, x64/arm64)
-- run your tests so you don't accidentally publish a broken version
-- create a GitHub Release with the built binaries as assets, with predictable names (e.g. `hylo-language-server-v1.2.3-linux-x64.zip`)
+- Build your language server (for each supported platform if needed, e.g. Windows/Linux/macOS, x64/arm64)
+- Run your tests so you don't accidentally publish a broken version
+- Create a GitHub Release with the built binaries as (zipped) assets, with predictable names (e.g. `hylo-language-server-v1.2.3-linux-x64.zip`)
 
 You can configure GitHub Actions to run the above steps whenever you push a new tag. See Hylo's
-[release workflow](https://github.com/hylo-lang/hylo-language-server/blob/68657d5e7109f7c78d992a518655132343a7a52e/.github/workflows/publish-release-version.yml).
+[release workflow](https://github.com/hylo-lang/hylo-language-server/blob/68657d5e7109f7c78d992a518655132343a7a52e/.github/workflows/publish-release-version.yml) as an example.
 
 <Aside type="tip">
     If your language server relies on some assets other than the binary itself (e.g. the standard library sources), it's
@@ -62,15 +74,120 @@ You can configure GitHub Actions to run the above steps whenever you push a new 
 </Aside>
 
 ## Language Server Integration
-what technologies have existed for integrating LSP for neovim, and what are considered the winners today and why?
+Now that our binary is accessible via GitHub Releases, we need to teach Neovim how to find and launch it.
+
+There have been several implementations of language clients for Neovim ([LanguageClient-neovim](https://github.com/autozimu/LanguageClient-neovim),
+[coc.nvim](https://github.com/neoclide/coc.nvim), [vim-lsc](https://github.com/natebosch/vim-lsc), [ALE](https://github.com/dense-analysis/ale), just to mention a few).
+To addres the demand, Neovim 0.5 introduced a built-in LSP client, which exposed low-level primitives, and largely
+streamlined the integration process: when introducing a new language, we only need to take care of downloading and
+starting the language server executable.
+
+The Neovim core team maintains the [nvim-lspconfig](https://github.com/neovim/nvim-lspconfig/) repository, which is
+responsible for starting the language server. We can fork this repository and add a new configuration for our language
+by looking at the existing configurations and the [contributing guide](https://github.com/neovim/nvim-lspconfig/?tab=contributing-ov-file).
+Hylo's configuration is as simple as [this](https://github.com/neovim/nvim-lspconfig/blob/master/lsp/hylo_ls.lua):
+
+```lua title=lsp/hylo_ls.lua
+---@type vim.lsp.Config
+return {
+  cmd = { 'hylo-language-server', '--stdio' },
+  filetypes = { 'hylo' },
+  root_markers = { '.git' },
+  settings = {},
+}
+```
+
+This should already be enough to get started, but our users would need to manually download the language server binaries
+and make them available on the PATH. Luckily, Neovim has a great package manager for language servers, debug adapters
+and code formatters called **Mason**. To add our language server to Mason, we need to fork the
+[mason-registry](https://github.com/mason-org/mason-registry/) and add a package according to their
+[contributing guide](https://github.com/mason-org/mason-registry/blob/main/CONTRIBUTING.md). It can be as simple as
+downloading a NodeJS package, but you can also specify different archives for different platforms, containing pre-built
+binaries like Hylo's [package.yaml](https://github.com/mason-org/mason-registry/blob/main/packages/hylo-language-server/package.yaml).
+If you have a more complex installation process, you can also write [installation scripts](https://github.com/mason-org/mason-registry/blob/main/CONTRIBUTING.md#github-build-from-source)
+per platform.
+
+For testing our forks of nvim-lspconfig and mason-registry, we can set up local development by referring to our local
+copies of these repositories in our Neovim configuration.
+
+In our Mason setup:
+```lua title=init.lua ins={19-23, 30, 40-42, 48} "/path/to/mason-registry/" "/path/to/nvim-lspconfig/"
+-- Bootstrap lazy.nvim
+local lazypath = vim.fn.stdpath("data") .. "/lazy/lazy.nvim"
+if not (vim.uv or vim.loop).fs_stat(lazypath) then
+    local lazyrepo = "https://github.com/folke/lazy.nvim.git"
+    local out = vim.fn.system({ "git", "clone", "--filter=blob:none", "--branch=stable", lazyrepo, lazypath })
+    if vim.v.shell_error ~= 0 then
+        vim.api.nvim_echo({
+            { "Failed to clone lazy.nvim:\n", "ErrorMsg" },
+            { out,                            "WarningMsg" },
+            { "\nPress any key to exit..." },
+        }, true, {})
+        vim.fn.getchar()
+        os.exit(1)
+    end
+end
+vim.opt.rtp:prepend(lazypath)
+
+-- Add filetype detection for Hylo
+vim.filetype.add({
+    extension = {
+        hylo = "hylo",
+    },
+})
+
+-- Setup plugins
+require("lazy").setup({
+    {
+        "neovim/nvim-lspconfig",
+        -- Use a local override during development:
+        dir = "/path/to/nvim-lspconfig/",
+
+        dependencies = {
+            "williamboman/mason.nvim",
+            "williamboman/mason-lspconfig.nvim",
+        },
+        config = function()
+            -- 1. Setup Mason
+            require("mason").setup {
+                -- Use a local registry override during development:
+                registries = {
+                    "file:/path/to/mason-registry/"
+                }
+            }
+
+            require("mason-lspconfig").setup({
+                ensure_installed = {
+                    "lua_ls",
+                    "hylo_ls"
+                },
+                automatic_enable = true
+            })
+        end
+    }
+})
+```
+
+After changing version of dependencies, you may need to run this command to update them:
+```neovim
+:Lazy sync
+```
+
+import LazySyncImage from './lazysync.png';
+
+<Image src={LazySyncImage} width="800" alt="Lazy sync installing latest versions of dependencies"/>
+
+You should be able to see your language server being shown in the Mason window:
+```neovim
+:Mason
+```
+
+import MasonImage from './mason.png';
+
+<Image src={MasonImage} width="800" alt="Mason popup showing that hylo-language-server and lua-language-server are installed."/>
 
 
-You will need to fork 2 repositories to add your language to Mason:
-[mason-registry](https://github.com/mason-org/mason-registry/) and
-
-: This package contains the
-  information about how to download and install your language server. It can be as simple as downloading a NodeJS
-  package, but you can also specify different archives for different platforms, containing pre-built binaries. If you
-  have a more complex installation process, you can also write install scripts per platform. Check out
-  [CONTRIBUTING.md](https://github.com/mason-org/mason-registry/blob/main/CONTRIBUTING.md) and existing packages.
-
+todo
+- mention fallback to grammar
+- mention local development of ls without mason registry
+- real fun begins with developing other lsp features
