@@ -1,0 +1,102 @@
+---
+// Snow effect component using p5.js
+---
+
+<div id="snow-container"></div>
+
+<script>
+  import p5 from 'p5';
+
+  // Create the snow sketch
+  const sketch = (p: any) => {
+    let snowflakes: Snowflake[] = [];
+
+    class Snowflake {
+      x: number;
+      y: number;
+      size: number;
+      speed: number;
+      angle: number;
+      angleSpeed: number;
+      amplitude: number;
+
+      constructor() {
+        this.x = p.random(p.windowWidth);
+        this.y = p.random(-100, -10);
+        this.size = p.random(2, 5);
+        this.speed = p.random(1, 3);
+        this.angle = p.random(p.TWO_PI);
+        this.angleSpeed = p.random(0.01, 0.03);
+        this.amplitude = p.random(20, 50);
+      }
+
+      update() {
+        this.y += this.speed;
+        this.angle += this.angleSpeed;
+        this.x += Math.sin(this.angle) * 0.5;
+
+        // Reset snowflake when it goes off screen
+        if (this.y > p.windowHeight) {
+          this.y = p.random(-100, -10);
+          this.x = p.random(p.windowWidth);
+        }
+        if (this.x > p.windowWidth) {
+          this.x = 0;
+        }
+        if (this.x < 0) {
+          this.x = p.windowWidth;
+        }
+      }
+
+      display() {
+        p.fill(255, 255, 255, 200);
+        p.noStroke();
+        p.circle(this.x, this.y, this.size);
+      }
+    }
+
+    p.setup = () => {
+      const canvas = p.createCanvas(p.windowWidth, p.windowHeight);
+      canvas.parent('snow-container');
+      
+      // Create initial snowflakes
+      for (let i = 0; i < 100; i++) {
+        snowflakes.push(new Snowflake());
+      }
+    };
+
+    p.draw = () => {
+      p.clear();
+      
+      for (let flake of snowflakes) {
+        flake.update();
+        flake.display();
+      }
+    };
+
+    p.windowResized = () => {
+      p.resizeCanvas(p.windowWidth, p.windowHeight);
+    };
+  };
+
+  // Initialize p5 when the page loads
+  if (typeof window !== 'undefined') {
+    new p5(sketch);
+  }
+</script>
+
+<style>
+  #snow-container {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 9999;
+  }
+
+  #snow-container canvas {
+    display: block;
+  }
+</style>

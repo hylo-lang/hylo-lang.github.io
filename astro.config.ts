@@ -17,7 +17,8 @@ export default defineConfig({
             favicon: 'hylo-favicon.png',
             logo: {
                 replacesTitle: true,
-                dark: './src/assets/hylo-green-smaller.png',
+                // dark: './src/assets/hylo-green-smaller.png',
+                dark: './src/assets/hylo-green-xmas.png',
                 light: './src/assets/hylo-black.png',
             },
             social: [
