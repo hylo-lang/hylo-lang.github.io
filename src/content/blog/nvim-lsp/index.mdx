@@ -192,8 +192,28 @@ import MasonImage from './mason.png';
 
 <Image src={MasonImage} width="800" alt="Mason popup showing that hylo-language-server and lua-language-server are installed."/>
 
+## Builtin File Type Detection
+Remember that we had to add this snippet in our `init.lua`?
+
+```lua
+vim.filetype.add({
+    extension = {
+        hylo = "hylo", -- matches `filetypes` in lsp/hylo_ls.lua
+    },
+})
+```
+
+This is not needed for other languages because Neovim has builtin file type detection for them in its core runtime. To add support for our language we first need to fork Vim (since Neovim tracks Vim's supported file types), then fork Neovim and link the PR for our Vim PR to the Neovim PR.
+
+- In the Vim PR:
+    - Add an entry for your language in [`runtime/autoload/dist/ft.vim`](https://github.com/vim/vim/blob/master/runtime/autoload/dist/ft.vim#L2122)
+    - Add a test case for your language in [`src/testdir/test_filetype.vim`](https://github.com/vim/vim/blob/master/src/testdir/test_filetype.vim#L384)
+
+
+Once both PRs are merged, our language is ready to be used with the latest development build of Neovim.
+
 
 ## Conclusion and next steps
-We have set up Neovim support for our language. If everything goes well and your language gets accepted into nvm-lspconfig and mason-registry, your users will just need to add the language as any other language server through Mason. Otherwise, you can ask your users to add your mason-registry fork as a registry source.
+We have set up Neovim support for our language. If everything goes well and your language gets accepted into nvm-lspconfig and mason-registry, your users will just need to add the language as any other language server through Mason. Otherwise, you can ask your users to add your mason-registry fork as a registry source, and enable the language server manually from their Neovim configuration.
 
-Eventually, we will need to write a tree-sitter grammar, so that more Neovim functionality can be unlocked, and to ensure proper highlighting even before our language server has started up (or perish the thought, after it crashed). Until then, get coding, and have some fun!
+Eventually, we will need to write a tree-sitter grammar, so that more Neovim functionality can be unlocked, and to ensure proper highlighting even before our language server has started up (or god forbid, after it crashed). Until then, get coding, and have some fun!
