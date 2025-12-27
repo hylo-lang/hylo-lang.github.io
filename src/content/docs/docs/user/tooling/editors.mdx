@@ -1,5 +1,5 @@
 ---
-title: IDE Extensions
+title: Editor Support
 ---
 
 A language is much more enjoyable with some great editor support. At the moment, we have syntax highlighting for VSCode, Emacs and Neovim, and LSP integration in VSCode and Neovim. You can use
@@ -39,7 +39,7 @@ if not (vim.uv or vim.loop).fs_stat(lazypath) then
 end
 vim.opt.rtp:prepend(lazypath)
 
--- Add file type detection for Hylo
+-- Add file type detection for Hylo (for Neovim versions <= 0.11.5)
 vim.filetype.add({
     extension = {
         hylo = "hylo",

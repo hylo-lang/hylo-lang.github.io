@@ -4,59 +4,54 @@ description: Learn how to use Neovim's Mason package manager and built-in LSP cl
 date: 2025-12-14
 author: Ambrus Tóth
 ---
-import {Aside} from '@astrojs/starlight/components';
 
-When we are building a new programming language, one of the most rewarding steps is to add support for our favorite
-editor (Neovim). This can be implemented as just syntax highlighting (requiring a grammar definition),
-or a language server implementation that can be later extended to provide several capabilities, including
-semantic syntax highlighting, code completion, refactoring tools and more.
+import { Aside } from "@astrojs/starlight/components";
 
-## Syntax Highlighting
-Neovim has 2 well-established modern ways of adding syntax highlighting for languages (as of 2025): by writing a
-[tree-sitter](https://tree-sitter.github.io/tree-sitter/index.html) grammar, or by leveraging our compiler through the
-language server protocol. Making a tree-sitter grammar unlocks super fast, incremental parsing, and a rich set of Neovim
-functionality involving the syntax tree and [text objects](https://ofirgall.github.io/learn-nvim/chapters/05-text-objects.html#treesitter-text-objects).
-On the other hand, using the language server protocol allows us to use our existing compiler frontend, thus guaranteeing
-100% highlighting accuracy.
+Whenever we are building a new programming language, one of the most rewarding steps is to add support for our favorite editor (Neovim). This can be implemented as just syntax highlighting (requiring a grammar definition), or using a language server, by implementing the semantic token listing capability.
 
-When I started using Neovim, Hylo already had a [syntax specification](https://hylo-lang.org/docs/reference/specification/), a native parser in the compiler, and a TextMate
-grammar for our [VSCode extension](https://github.com/hylo-lang/vscode-hylo). As it usually goes with
-redundant information, these 3 grammars went out of sync over time, partly because different people were maintaining them
-without clear links connecting them, and partly because we always have more fun/pressing things to work on
-than synchronizing grammars.
+This article will walk you through how I added first-class Neovim support for [Hylo](https://hylo-lang.org), a new systems programming language focusing on value semantics and generic programming to achieve high-performance, safe systems programming. My goal was to reach a state where our user can simply use the Mason package manager and have syntax highlighting and language server work out of the box. If you follow along, you can achieve the same for your language.
 
-In the long run, we could phrase the language specification in a formal grammar language, deriving other grammars
-from it, or add [property based tests](https://www.youtube.com/watch?v=zvRAyq5wj38) that run the grammars through different
-(randomly generated) sample programs, checking that they all parse consistently. This has its own challenges, and it's likely a fun rabbit hole that we shall
-resist going down *for now ;)*
+The Roadmap:
 
-There are some interesting projects, namely [scorpeon.vim](https://github.com/uga-rosa/scorpeon.vim) and
-[nvim-textmate](https://github.com/icedman/nvim-textmate) that aim to bring TextMate grammar support to Neovim through
-NodeJS interop, which would allow us to reuse our grammar from VSCode. Unfortunately, this has some performance
-overhead and additional installation complexity, so we chose to integrate the remaining option:
-[Hylo's language server](https://github.com/hylo-lang/hylo-language-server).
+- [Approaches to Syntax Highlighting](#approaches-to-syntax-highlighting)
+- [A brief primer on the language server protocol](#a-brief-primer-on-the-language-server-protocol)
+- [Publishing Your Language Server](#publishing-your-language-server)
+- [Integrating the Language Server](#integrating-the-language-server)
+- [Upstreaming the LSP Configuration](#upstreaming-the-lsp-configuration)
+- [Automating Language Server Installation through Mason](#automating-language-server-installation-through-mason)
+- [Upstreaming File Type Detection](#upstreaming-file-type-detection)
 
-## Creating a Language Server
-To get the accelerated benefit of building a language server, Microsoft standardized the Language Server Protocol (LSP),
-allowing us to write all language-specific logic in the server, and configure thin clients in
-different editors for setting up the communication. Language servers run in separate processes and communicate with the
-editor via JSON messages through stdio, pipes, or in whatever other crazy way we want (in which case we would likely
-need to implement custom support on the editor side).
+## Approaches to Syntax Highlighting
 
-import {Image} from "astro:assets";
-import lspArchitecture from './lsp-architecture.png';
+Neovim has 2 main well-established modern ways of adding syntax highlighting for languages (as of 2025): by writing a [tree-sitter](https://tree-sitter.github.io/tree-sitter/index.html) grammar, and by leveraging our compiler through the language server protocol. Making a tree-sitter grammar unlocks super fast, in-process, incremental parsing, and a rich set of Neovim functionality involving the syntax tree and [text objects](https://ofirgall.github.io/learn-nvim/chapters/05-text-objects.html#treesitter-text-objects). On the other hand, using the language server protocol allows us to use our existing compiler frontend, thus guaranteeing 100% highlighting accuracy if we just implement the `textDocument/semanticTokens` capability.
 
-<Image src={lspArchitecture} width="800" alt="Architecture of the Language Server Protocol"/>
+When I started using Neovim, Hylo already had a [syntax specification](https://hylo-lang.org/docs/reference/specification/), a native parser in the compiler, and a TextMate grammar for our [VSCode extension](https://github.com/hylo-lang/vscode-hylo). As it usually goes with redundant information, these 3 grammars went out of sync over time, partly because different people were maintaining them
+without clear links connecting them, and partly because we always have more fun/pressing things to work on than synchronizing grammars.
 
-Because of this decoupling, we can implement our server in virtually any [civilized programming
-language](https://microsoft.github.io/language-server-protocol/implementors/sdks/) using a library that lets us handle
-the client's requests and send back responses. It's the best if we can use the same language as our compiler, as we
-can reuse parts of the compiler codebase as a library for different queries, like getting the list of symbols,
-or reporting diagnostics from the frontend.
+In the long run, we could phrase the language specification in a formal grammar language, deriving other grammars from it, or add [property based tests](https://www.youtube.com/watch?v=zvRAyq5wj38) that run the grammars through different (randomly generated) sample programs, checking that they all parse consistently. This has its own challenges, and it's likely a fun rabbit hole that we shall resist going down _for now ;)_
+
+There are some interesting projects, namely [scorpeon.vim](https://github.com/uga-rosa/scorpeon.vim) and [nvim-textmate](https://github.com/icedman/nvim-textmate) that aim to bring TextMate grammar support to Neovim through NodeJS interop, which would allow us to reuse our grammar from VSCode. Unfortunately, these have some latency overhead, additional installation complexity due to the NodeJS requirement, and they are advertized as archived/experimental. Therefore, we chose to integrate the best remaining option: [Hylo's language server](https://github.com/hylo-lang/hylo-language-server). This may not be as fast (especially for large documents) as tree-sitter's incremental parsing, but it reduces our maintenance cost, which is great while the language is still evolving rapidly.
+
+## A brief primer on the language server protocol
+
+To get the accelerated benefit of building a language server, Microsoft standardized the Language Server Protocol (LSP), allowing us to write all language-specific logic in the server, and configure thin clients in different editors for setting up the communication. Language servers run in separate processes and communicate with the editor (the client) via [JSON-RPC](https://www.jsonrpc.org/) messages. This communication is transport-agnostic, meaning it can happen through stdio, named pipes, TCP sockets or in whatever other crazy way we want (in which case we would likely need to implement custom support on the editor side).
+
+import { Image } from "astro:assets";
+import lspArchitecture from "./lsp-architecture.png";
+
+<Image
+  src={lspArchitecture}
+  width="700"
+  alt="Architecture of the Language Server Protocol. On the left side, there is a list of language server executables for Rust (rust-analyzer.exe), C++ (clangd.exe), Hylo (hylo-language-server.exe), and Swift (SourceKit-LSP.exe). These are connected to Neovim on the right side with lines marked 'LSP'. Behind Neovim, there are several other editors in grayed out boxes (shown as alternatives)."
+/>
+
+Because of this decoupling, we can implement our server in virtually any civilized programming language using a [library](https://microsoft.github.io/language-server-protocol/implementors/sdks/) that lets us handle requests and send back responses. It's the best if we can use the same language as our compiler, because we can reuse parts of the compiler codebase as a library for different queries, like getting the list of symbols, or reporting diagnostics from the frontend.
 
 ## Publishing Your Language Server
+
 You can skip this step if you are just getting started, but the most convenient way to distribute our language server
 is through setting up a release process on GitHub. This process, at minimum should consist of the following steps:
+
 - Build our language server (for each supported platform if needed, e.g. Windows/Linux/macOS, x64/arm64)
 - Run our tests so we don't accidentally publish a broken version
 - Create a GitHub Release with the built binaries as (zipped) assets, with predictable names (e.g. `hylo-language-server-v1.2.3-linux-x64.zip`)
@@ -65,20 +60,62 @@ We can configure GitHub Actions to run the above steps whenever we push a new ta
 [release workflow](https://github.com/hylo-lang/hylo-language-server/blob/68657d5e7109f7c78d992a518655132343a7a52e/.github/workflows/publish-release-version.yml) as an example.
 
 <Aside type="tip">
-    If our language server relies on some assets other than the binary itself (e.g. the standard library sources), it's
-    the most straightforward to bundle them all into a single release archive, and resolve them automatically with a
-    relative path from the binary location when needed. This will simplify the download and extraction logic for all LSP
-    clients we want to add and maintain support for.
-    Nonetheless, we can always make things more complicated if our assets are very large, and we wanted to avoid
-    bundling them into every platform's release archive.
+  If our language server relies on some assets other than the binary itself
+  (e.g. the standard library sources), it's the most straightforward to bundle
+  them all into a single release archive, and resolve them automatically with a
+  relative path from the binary location when needed. This will simplify the
+  download and extraction logic for all LSP clients we want to add and maintain
+  support for. Nonetheless, we can always make things more complicated if our
+  assets are very large, and we wanted to avoid bundling them into every
+  platform's release archive.
 </Aside>
 
-## Language Server Integration
+## Integrating the Language Server
+
 Now that our binary is accessible via GitHub Releases, we need to teach Neovim how to find and launch it.
 
-There have been several implementations of language clients for Neovim ([LanguageClient-neovim](https://github.com/autozimu/LanguageClient-neovim), [coc.nvim](https://github.com/neoclide/coc.nvim), [vim-lsc](https://github.com/natebosch/vim-lsc), [ALE](https://github.com/dense-analysis/ale), just to mention a few). To address the demand, [Neovim 0.5](https://neovim.io/roadmap/#:~:text=Updated%20defaults-,0.5%20%2B%200.5.1,-Expanded%20Lua%20API) introduced a built-in LSP client, which exposed low-level primitives, and largely streamlined the integration process: when introducing a new language, we only need to take care of downloading and starting the language server executable.
+There had been several implementations of language clients for Neovim ([LanguageClient-neovim](https://github.com/autozimu/LanguageClient-neovim), [coc.nvim](https://github.com/neoclide/coc.nvim), [vim-lsc](https://github.com/natebosch/vim-lsc), [ALE](https://github.com/dense-analysis/ale), just to mention a few). To address the demand, [Neovim 0.5](https://neovim.io/roadmap/#:~:text=Updated%20defaults-,0.5%20%2B%200.5.1,-Expanded%20Lua%20API) introduced a built-in LSP client, which exposed low-level primitives, and largely streamlined the integration process: when introducing a new language, we only need to take care of downloading and starting the language server executable.
 
-The Neovim core team maintains the [nvim-lspconfig](https://github.com/neovim/nvim-lspconfig/) repository, which is responsible for configurations about starting the language server. We can fork this repository and add a new configuration for our language by looking at the existing configurations and the [contributing guide](https://github.com/neovim/nvim-lspconfig/?tab=contributing-ov-file). Hylo's configuration is as simple as [this](https://github.com/neovim/nvim-lspconfig/blob/master/lsp/hylo_ls.lua):
+The easiest way to get a new language's LSP working is to register a new [LSP configuration](https://neovim.io/doc/user/lsp.html) in Neovim manually.
+
+```lua
+vim.lsp.config['hylo_ls'] = {
+    -- Command and arguments to start the server. (Server must be in PATH.)
+    cmd = { 'hylo-language-server', '--stdio' },
+    -- Filetypes to automatically attach to.
+    filetypes = { 'hylo' },
+    -- Sets the "workspace" to the directory where any of these files is found.
+    -- Files that share a root directory will reuse the LSP server connection.
+    -- Nested lists indicate equal priority, see |vim.lsp.Config|.
+    root_markers = { '.git' },
+    -- Specific settings to send to the server. The schema is server-defined.
+    -- Example: https://raw.githubusercontent.com/LuaLS/vscode-lua/master/setting/schema.json
+    settings = {}
+}
+
+vim.lsp.enable('hylo_ls')
+
+-- Add filetype detection for our language
+vim.filetype.add({
+    extension = {
+        -- extension to filetype mapping
+        hylo = "hylo", -- matches `filetypes` in lsp config
+    },
+})
+```
+
+This should already be enough to get started. In fact, this is the ideal setup for developing your language server, you just need to make sure to add your built binary to the PATH before starting Neovim. You can verify that the language server is running by editing a `.hylo` file and checking the output of `:LspInfo`
+
+import LspInfoImage from "./lspinfo.png";
+
+<Image
+  src={LspInfoImage}
+  width="700"
+  alt="LSP Info showing that hylo_ls is active for 1 buffer."
+/>
+
+### Upstreaming the LSP Configuration
+The method above is great while developing the server, but we don't want to burden most of our users to know about the CLI flags and root markers. For "sufficiently popular" languages, Neovim maintains the [nvim-lspconfig](https://github.com/neovim/nvim-lspconfig/) repository, which is responsible for storing these default configurations for each language server. We can fork this repository and add a new configuration for our language by looking at the existing configurations and the [contributing guide](https://github.com/neovim/nvim-lspconfig/?tab=contributing-ov-file). Hylo's configuration is as simple as [this](https://github.com/neovim/nvim-lspconfig/blob/master/lsp/hylo_ls.lua):
 
 ```lua title=lsp/hylo_ls.lua
 ---@type vim.lsp.Config
@@ -90,7 +127,8 @@ return {
 }
 ```
 
-If you have the language server available on your PATH, you can test this with the following Neovim configuration:
+You can test this with the following Neovim configuration, pointing `nvim-lspconfig` to your local fork of the repository:
+
 ```lua title=init.lua ins={19-23, 26-35} "/path/to/nvim-lspconfig/"
 -- Bootstrap lazy.nvim
 local lazypath = vim.fn.stdpath("data") .. "/lazy/lazy.nvim"
@@ -119,7 +157,7 @@ vim.filetype.add({
 require("lazy").setup({
     {
         "neovim/nvim-lspconfig",
-        -- Use a local override during development:
+        -- Use a local override while developing the fork:
         dir = "/path/to/nvim-lspconfig/",
 
         config = function()
@@ -130,21 +168,53 @@ require("lazy").setup({
 })
 ```
 
-This should already be enough to get started. In fact, this is the ideal setup for developing your language server, you just need to make sure to add your built binary to the PATH before starting Neovim. You can verify that the language server is running by editing a `.hylo` file and checking the output of `:LspInfo`
+## Automating Language Server Installation through Mason
 
-![LSP Info showing that hylo_ls is active for 1 buffer](./lspinfo.png)
+We have already simplified configuring the LSP, but downloading the server and making it available on the PATH is still more complicated for our end users than it needs to be. Luckily, Neovim has a great package manager for language servers, debug adapters and code formatters called **Mason**.
 
-## Installing the language server through Mason
-While the above setup is great for development, it is more complicated for our end users than it needs to be. Luckily, Neovim has a great package manager for language servers, debug adapters and code formatters called **Mason**. To add our language server to Mason, we need to fork the [mason-registry](https://github.com/mason-org/mason-registry/) and add a package according to their [contributing guide](https://github.com/mason-org/mason-registry/blob/main/CONTRIBUTING.md). It can be as simple as downloading a NodeJS package, but you can also specify different archives for different platforms, containing pre-built binaries like in [Hylo's package.yaml](https://github.com/mason-org/mason-registry/blob/main/packages/hylo-language-server/package.yaml). If you have a more complex installation process, you can also write [installation scripts](https://github.com/mason-org/mason-registry/blob/main/CONTRIBUTING.md#github-build-from-source) per platform.
+To add our language server to Mason, we need to fork the [mason-registry](https://github.com/mason-org/mason-registry/), and add a package according to their [contributing guide](https://github.com/mason-org/mason-registry/blob/main/CONTRIBUTING.md). It can be as simple as downloading a NodeJS package, but you can also specify different archives for different platforms, containing pre-built binaries like in [Hylo's package.yaml](https://github.com/mason-org/mason-registry/blob/main/packages/hylo-language-server/package.yaml):
 
-During the development of our Mason registry fork, we can add the alternative local registry as follows:
+```yaml title=package.yaml
+name: hylo-language-server
+description: LSP implementation for the Hylo programming language.
+homepage: https://github.com/hylo-lang/hylo-language-server
+licenses:
+  - MIT
+languages:
+  - Hylo
+categories:
+  - LSP
+
+source:
+  id: pkg:github/hylo-lang/hylo-language-server@v0.0.10
+  asset:
+    # Define assets for each supported platform (Linux/macOS/Windows, x64/arm64)
+    - target: linux_x64
+      file: hylo-language-server-linux-x64.zip
+      bin: hylo-language-server
+    - target: win_x64
+      file: hylo-language-server-windows-x64.zip
+      bin: hylo-language-server.exe
+      ...
+bin:
+  # Map the binary name to the asset's binary name
+  hylo-language-server: "{{source.asset.bin}}"
+
+neovim:
+  # Link to the lspconfig name we defined earlier
+  lspconfig: hylo_ls
+```
+
+If you have a more complex installation process, you can also write [installation scripts](https://github.com/mason-org/mason-registry/blob/main/CONTRIBUTING.md#github-build-from-source) per platform.
+
+While developing our Mason registry fork, we can add the alternative local registry as follows:
 
 ```lua title=init.lua ins={8-11} del={13} ins={15-30} "/path/to/mason-registry/" "/path/to/nvim-lspconfig/"
 ...
 require("lazy").setup({
     {
         "neovim/nvim-lspconfig",
-        -- Use a local override during development:
+        -- Use a local override while developing the fork:
         dir = "/path/to/nvim-lspconfig/",
 
         dependencies = {
@@ -156,7 +226,7 @@ require("lazy").setup({
 
             -- Set up Mason
             require("mason").setup {
-                -- Use a local registry override during development:
+                -- Use a local registry override while developing the fork:
                 registries = {
                     "file:/path/to/mason-registry/"
                 }
@@ -175,24 +245,35 @@ require("lazy").setup({
 ```
 
 After changing version of dependencies, we may need to run this command to update them:
+
 ```neovim
 :Lazy sync
 ```
 
-import LazySyncImage from './lazysync.png';
+import LazySyncImage from "./lazysync.png";
 
-<Image src={LazySyncImage} width="800" alt="Lazy sync installing latest versions of dependencies"/>
+<Image
+  src={LazySyncImage}
+  width="700"
+  alt="Lazy sync installing latest versions of dependencies, showing that dependencies are already up to date."
+/>
 
 We should be able to see our language server being shown in the Mason window:
+
 ```neovim
 :Mason
 ```
 
-import MasonImage from './mason.png';
+import MasonImage from "./mason.png";
 
-<Image src={MasonImage} width="800" alt="Mason popup showing that hylo-language-server and lua-language-server are installed."/>
+<Image
+  src={MasonImage}
+  width="700"
+  alt="Mason popup showing that hylo-language-server and lua-language-server are installed."
+/>
 
-## Builtin File Type Detection
+## Upstreaming File Type Detection
+
 Remember that we had to add this snippet in our `init.lua`?
 
 ```lua
@@ -203,17 +284,62 @@ vim.filetype.add({
 })
 ```
 
-This is not needed for other languages because Neovim has builtin file type detection for them in its core runtime. To add support for our language we first need to fork Vim (since Neovim tracks Vim's supported file types), then fork Neovim and link the PR for our Vim PR to the Neovim PR.
+This is not needed for existing major languages because Neovim has builtin file type detection for them in its core runtime. To add support for our language we need to fork Vim. Once merged into Vim, our changes  will eventually get propagated to Neovim, but we can speed this up by submitting a PR to Neovim as well.
 
-- In the Vim PR:
-    - Add an entry for your language in [`runtime/autoload/dist/ft.vim`](https://github.com/vim/vim/blob/master/runtime/autoload/dist/ft.vim#L2122)
-    - Add a test case for your language in [`src/testdir/test_filetype.vim`](https://github.com/vim/vim/blob/master/src/testdir/test_filetype.vim#L384)
+- **In the Vim PR:**
+  - Add an entry for your language in [`runtime/autoload/dist/ft.vim`](https://github.com/vim/vim/blob/master/runtime/autoload/dist/ft.vim#L2122)
+    ```vim ins={4-5}
+    ...
+    # Hurl
+    "hurl": "hurl",
+    # Hylo
+    "hylo": "hylo",
+    ...
+    ```
+  - Add a test case for your language in [`src/testdir/test_filetype.vim`](https://github.com/vim/vim/blob/master/src/testdir/test_filetype.vim#L384)
+    ```vim ins={4}
+    ...
+    hurl: ['file.hurl'],
+    hy: ['file.hy', '.hy-history'],
+    hylo: ['file.hylo'],
+    ...
+    ```
+- **In the Neovim PR:**
+  - Add an entry for your language in [`runtime/lua/vim/filetype.lua`](https://github.com/neovim/neovim/blob/master/runtime/lua/vim/filetype.lua)
+    ```lua ins={3}
+    ...
+    hy = 'hy',
+    hylo = 'hylo',
+    iba = 'ibasic',
+    ...
+    ```
+  - Add a test case for your language in [`test/old/testdir/test_filetype.vim`](https://github.com/neovim/neovim/blob/master/test/old/testdir/test_filetype.vim#L383)
+    ```vim ins={3}
+    ...
+    \ 'hy': ['file.hy', '.hy-history'],
+    \ 'hylo': ['file.hylo'],
+    \ 'hyprlang': ['hyprlock.conf', 'hyprland.conf', 'hypridle.conf', 'hyprpaper.conf', '/hypr/foo.conf'],
+    ...
+    ```
+  - Add a reference to the merged Vim PR in the Neovim PR description for context.
 
-
-Once both PRs are merged, our language is ready to be used with the latest development build of Neovim.
-
+Once both PRs are merged, our language is ready to be used with the latest dev build of Neovim. It may take a while until all your users upgrade their Vim version, so it's best to keep the instructions for adding file type detection in the Neovim configuration until then.
 
 ## Conclusion and next steps
-We have set up Neovim support for our language. If everything goes well and your language gets accepted into nvm-lspconfig and mason-registry, your users will just need to add the language as any other language server through Mason. Otherwise, you can ask your users to add your mason-registry fork as a registry source, and enable the language server manually from their Neovim configuration.
 
-Eventually, we will need to write a tree-sitter grammar, so that more Neovim functionality can be unlocked, and to ensure proper highlighting even before our language server has started up (or god forbid, after it crashed). Until then, get coding, and have some fun!
+If everything goes well, your users will just need to add the language as any other language server through Mason, and everything will work out of the box. Otherwise, you can use a subset of the above steps, and leave the rest to your users as manual configuration steps.
+
+I managed to get all this working for the Hylo language thanks to the kind support of the Neovim and Mason maintainers. You can check out how simple the installation instructions became in the [Neovim](/docs/user/tooling/editors/#neovim) section of our docs.
+
+Eventually, we will need to write a tree-sitter grammar, so that more Neovim functionality can be unlocked, and to ensure _some_ highlighting while our language server is starting up (or god forbid, after it crashed). We should also look into native Vim syntax highlighting support, as well as implementing some editor-specific actions such as commenting out lines and smart indentation on newline. But until then, let's get coding, and have some fun!
+
+
+_The related PRs_:
+ - [nvim-lspconfig - feat: hylo_ls](https://github.com/neovim/nvim-lspconfig/pull/4237)
+ - [mason-registry - Add support for Hylo LSP](https://github.com/mason-org/mason-registry/pull/12749)
+ - [vim - runtime(filetype): Add file type for the Hylo language](https://github.com/vim/vim/pull/18994)
+ - [neovim - feat: Add hylo file type](https://github.com/neovim/neovim/pull/37074)
+
+<Aside>
+    The related discussion for this article is at https://github.com/orgs/hylo-lang/discussions/1817. Feel free to comment and ask questions there!
+</Aside>
