@@ -67,7 +67,7 @@ import {Aside} from '@astrojs/starlight/components';
 
 ## Operands
 
-Instructions in Val IR may accept operands embodying values to be operated upon. There exists 5 types of operands:
+Instructions in Hylo IR may accept operands embodying values to be operated upon. There exists 5 types of operands:
 
 * **Type references**: A type reference denotes a lowered type definition.
 * **Basic block references**: A basic block reference denotes a basic block.
@@ -95,7 +95,7 @@ Given two uses `u1` and `u2`, `u2` is sequenced after `u1` (or, equivalently, u1
 
 The semantics of Hylo IR is defined in terms of an abstract machine. A language implementation shall interpret or compile native programs that follow the same behavior.
 
-The Val abstract machine consists of a collection of *threads* and a global memory space. A thread consists of a *register map* that associates local register names to objects or locations in the machine's global memory, a *control stack* that contains instructions, and a *call stack* that contains register map&#x73;*.*
+The Hylo abstract machine consists of a collection of *threads* and a global memory space. A thread consists of a *register map* that associates local register names to objects or locations in the machine's global memory, a *control stack* that contains instructions, and a *call stack* that contains register map&#x73;*.*
 
 <Aside type="note">
     A thread is similar to a [SECD machine](https://en.wikipedia.org/wiki/SECD_machine) without a register stack. Just like in [ANF](https://en.wikipedia.org/wiki/A-normal_form), instruction operands are either constants or names denoting the value of a local register.
@@ -110,13 +110,13 @@ Program execution starts by adding a thread to the abstract machine, which gets 
 
 ## Instructions
 
-An instruction is a basic unit of computation in Val IR that modifies the state of the executing machine. An instruction may accept zero or more arguments and return zero or more values.
+An instruction is a basic unit of computation in Hylo IR that modifies the state of the executing machine. An instruction may accept zero or more arguments and return zero or more values.
 
 ### Terminator instructions
 
 An instruction is called a terminator instruction if it causes control flow to jump to another basic block or exit the current function.
 
-The terminator instructions of Val IR are:
+The terminator instructions of Hylo IR are:
 
 * `branch`
 * `cond_branch`
