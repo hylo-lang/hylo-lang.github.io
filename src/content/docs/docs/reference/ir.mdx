@@ -110,7 +110,7 @@ Program execution starts by adding a thread to the abstract machine, which gets 
 
 ## Instruction reference
 
-An instruction is a basic unit of computation in Hylo IR that modifies the state of the executing machine. An instruction may accept zero or more arguments and return zero or one value. An instruction has an associated type corresponding to instruction's result.
+An instruction is a basic unit of computation in Hylo IR that modifies the state of the executing machine. An instruction may accept zero or more arguments and return zero or one value. An instruction has an associated type corresponding to the instruction's result.
 
 There are multiple categories of instructions:
 - Terminator instructions
@@ -138,10 +138,10 @@ This instruction is only about control flow. Return values are stored in the ret
 - Every path through a function must terminate with a `return` or `unreachable` instruction.
 
 ##### Semantics
-When the `return` instruction is executed, the control flow returns back to the calling's function context.
+When the `return` instruction is executed, the control flow returns back to the caller.
 
 ##### See also
-This is similar to [LLVM's `ret` instruction](https://llvm.org/docs/LangRef.html#ret-instruction), but it does not deal with the returned value. In Hylo IR, handling the return value happens prior to `return` instruction.
+This instruction is similar to [LLVM's `ret`](https://llvm.org/docs/LangRef.html#ret-instruction), but it does not deal with the returned value. In Hylo IR, handling the return value happens prior to `return` instruction.
 
 #### TODO
 * `branch`
@@ -187,7 +187,7 @@ If the size to be allocated is zero bytes, the returned address may not be uniqu
 The memory is automatically released when the function returns to the caller.
 
 ##### See also
-This is similar to [LLVM's `alloca` instruction](https://llvm.org/docs/LangRef.html#alloca-instruction), but it does not provide all the options.
+This instruction is similar to [LLVM's `alloca`](https://llvm.org/docs/LangRef.html#alloca-instruction), but it does not provide all the options.
 
 
 #### `load` instruction
@@ -217,7 +217,7 @@ The dereferenced value of `source`.
 The location of memory pointed to is loaded, and the resulting value is returned.
 
 ##### See also
-This is similar to [LLVM's `load` instruction](https://llvm.org/docs/LangRef.html#load-instruction), but it does not provide all the options.
+This instruction is similar to [LLVM's `load`](https://llvm.org/docs/LangRef.html#load-instruction), but it does not provide all the options.
 
 #### `store` instruction
 
@@ -244,14 +244,14 @@ The memory pointed to by `target` is updated to contain `value`.
 
 
 ##### See also
-This is similar to [LLVM's `store` instruction](https://llvm.org/docs/LangRef.html#store-instruction), but it does not provide all the options.
+This instruction is similar to [LLVM's `store`](https://llvm.org/docs/LangRef.html#store-instruction), but it does not provide all the options.
 
 
 #### `subfield` instruction
 
 ##### Syntax
 ```
-<result> = subfield <base> at <path> resulting <type>
+<result> = subfield <base> at <path> as <type>
 ```
 
 Examples:
@@ -284,7 +284,7 @@ The address of the subfield of `base` indicated by `path`.
 Given the pointer to `base`, this instruction computes the address needed to access the subfield of `base` obtained through `path`.
 
 ##### See also
-This is similar to [LLVM's `getelementptr` instruction](https://llvm.org/docs/LangRef.html#getelementptr-instruction), but it does not provide all the options.
+This instruction is similar to [LLVM's `getelementptr`](https://llvm.org/docs/LangRef.html#getelementptr-instruction), but it does not provide all the options.
 
 ### Value state instructions
 * `access` -- Creates an access on a storage.
