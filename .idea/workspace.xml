@@ -4,26 +4,16 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="2b144974-247b-4cbd-9d46-ed5853f18f56" name="Changes" comment="add work">
-      <change afterPath="$PROJECT_DIR$/src/assets/hylo-green-xmas.png" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/astro.config.ts" beforeDir="false" afterPath="$PROJECT_DIR$/astro.config.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/package.json" beforeDir="false" afterPath="$PROJECT_DIR$/package.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/pnpm-lock.yaml" beforeDir="false" afterPath="$PROJECT_DIR$/pnpm-lock.yaml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/layouts/Header.astro" beforeDir="false" afterPath="$PROJECT_DIR$/src/layouts/Header.astro" afterDir="false" />
-    </list>
+    <list default="true" id="4f869430-16b1-4fc3-8b45-fa450f678f7e" name="Changes" comment="cname without www" />
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
     <option name="LAST_RESOLUTION" value="IGNORE" />
   </component>
-  <component name="Git.Rebase.Settings">
-    <option name="NEW_BASE" value="origin/main" />
-  </component>
   <component name="Git.Settings">
     <option name="RECENT_BRANCH_BY_REPOSITORY">
       <map>
-        <entry key="$PROJECT_DIR$" value="nvim-lsp" />
+        <entry key="$PROJECT_DIR$" value="original" />
       </map>
     </option>
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
@@ -47,37 +37,32 @@
   <component name="ProjectColorInfo">{
   &quot;associatedIndex&quot;: 0
 }</component>
-  <component name="ProjectId" id="35MzG2P9XPUHogG6HXv9YSbP2J8" />
+  <component name="ProjectId" id="35LsHOyvhfrzNcommEXbwZ1Wse5" />
   <component name="ProjectViewState">
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
   </component>
-  <component name="PropertiesComponent"><![CDATA[{
-  "keyToString": {
-    "ModuleVcsDetector.initialDetectionPerformed": "true",
-    "RunOnceActivity.ShowReadmeOnStart": "true",
-    "RunOnceActivity.TerminalTabsStorage.copyFrom.TerminalArrangementManager": "true",
-    "RunOnceActivity.git.unshallow": "true",
-    "git-widget-placeholder": "xmas",
-    "ignore.virus.scanning.warn.message": "true",
-    "last_opened_file_path": "C:/Users/ambru/hylo-lang.github.io/src/assets",
-    "node.js.detected.package.eslint": "true",
-    "node.js.detected.package.tslint": "true",
-    "node.js.selected.package.eslint": "(autodetect)",
-    "node.js.selected.package.tslint": "(autodetect)",
-    "nodejs_package_manager_path": "pnpm",
-    "settings.editor.selected.configurable": "preferences.lookFeel",
-    "ts.external.directory.path": "C:\\Users\\ambru\\AppData\\Local\\Programs\\IntelliJ IDEA Ultimate\\plugins\\javascript-plugin\\jsLanguageServicesImpl\\external",
-    "vue.rearranger.settings.migration": "true"
+  <component name="PropertiesComponent">{
+  &quot;keyToString&quot;: {
+    &quot;ModuleVcsDetector.initialDetectionPerformed&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.TerminalTabsStorage.copyFrom.TerminalArrangementManager&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.git.unshallow&quot;: &quot;true&quot;,
+    &quot;git-widget-placeholder&quot;: &quot;main&quot;,
+    &quot;ignore.virus.scanning.warn.message&quot;: &quot;true&quot;,
+    &quot;last_opened_file_path&quot;: &quot;C:/Users/ambru/hylo-lang.github.io&quot;,
+    &quot;node.js.detected.package.eslint&quot;: &quot;true&quot;,
+    &quot;node.js.detected.package.tslint&quot;: &quot;true&quot;,
+    &quot;node.js.selected.package.eslint&quot;: &quot;(autodetect)&quot;,
+    &quot;node.js.selected.package.tslint&quot;: &quot;(autodetect)&quot;,
+    &quot;nodejs_package_manager_path&quot;: &quot;npm&quot;,
+    &quot;ts.external.directory.path&quot;: &quot;C:\\Users\\ambru\\AppData\\Local\\Programs\\IntelliJ IDEA Ultimate\\plugins\\javascript-plugin\\jsLanguageServicesImpl\\external&quot;,
+    &quot;vue.rearranger.settings.migration&quot;: &quot;true&quot;
   }
-}]]></component>
+}</component>
   <component name="RecentsManager">
     <key name="CopyFile.RECENT_KEYS">
-      <recent name="C:\Users\ambru\hylo-lang.github.io\src\assets" />
-      <recent name="C:\Users\ambru\hylo-lang.github.io\src\content\docs\docs\contributing" />
-    </key>
-    <key name="MoveFile.RECENT_KEYS">
-      <recent name="C:\Users\ambru\hylo-lang.github.io\src\content\blog\nvim-lsp" />
+      <recent name="C:\Users\ambru\hylo-lang.github.io" />
     </key>
   </component>
   <component name="SharedIndexes">
@@ -93,102 +78,54 @@
   </component>
   <component name="TaskManager">
     <task active="true" id="Default" summary="Default task">
-      <changelist id="2b144974-247b-4cbd-9d46-ed5853f18f56" name="Changes" comment="" />
-      <created>1762934628678</created>
+      <changelist id="4f869430-16b1-4fc3-8b45-fa450f678f7e" name="Changes" comment="" />
+      <created>1762900597649</created>
       <option name="number" value="Default" />
       <option name="presentableId" value="Default" />
-      <updated>1762934628678</updated>
-      <workItem from="1762934629817" duration="936000" />
-      <workItem from="1763583820180" duration="3743000" />
-      <workItem from="1764333594412" duration="11000" />
-      <workItem from="1764489498692" duration="4773000" />
-      <workItem from="1764627384242" duration="3147000" />
-      <workItem from="1765739224499" duration="13354000" />
-      <workItem from="1765830199714" duration="2328000" />
-      <workItem from="1766000138306" duration="30244000" />
-      <workItem from="1766497762033" duration="3347000" />
+      <updated>1762900597649</updated>
+      <workItem from="1762900599054" duration="3145000" />
     </task>
-    <task id="LOCAL-00001" summary="Change GitHub link">
+    <task id="LOCAL-00001" summary="New website">
       <option name="closed" value="true" />
-      <created>1762934697417</created>
+      <created>1762902124384</created>
       <option name="number" value="00001" />
       <option name="presentableId" value="LOCAL-00001" />
       <option name="project" value="LOCAL" />
-      <updated>1762934697417</updated>
+      <updated>1762902124384</updated>
     </task>
-    <task id="LOCAL-00002" summary="Fix subscripts example">
+    <task id="LOCAL-00002" summary="Add CNAME">
       <option name="closed" value="true" />
-      <created>1764496914273</created>
+      <created>1762902509845</created>
       <option name="number" value="00002" />
       <option name="presentableId" value="LOCAL-00002" />
       <option name="project" value="LOCAL" />
-      <updated>1764496914273</updated>
+      <updated>1762902509845</updated>
     </task>
-    <task id="LOCAL-00003" summary="Add coding conventions">
+    <task id="LOCAL-00003" summary="Explicit urls">
       <option name="closed" value="true" />
-      <created>1764627939400</created>
+      <created>1762903000998</created>
       <option name="number" value="00003" />
       <option name="presentableId" value="LOCAL-00003" />
       <option name="project" value="LOCAL" />
-      <updated>1764627939400</updated>
+      <updated>1762903000998</updated>
     </task>
-    <task id="LOCAL-00004" summary="Add formatting coding conventions">
+    <task id="LOCAL-00004" summary="Remove Cloudflare dependencies">
       <option name="closed" value="true" />
-      <created>1764628744915</created>
+      <created>1762903315066</created>
       <option name="number" value="00004" />
       <option name="presentableId" value="LOCAL-00004" />
       <option name="project" value="LOCAL" />
-      <updated>1764628744915</updated>
+      <updated>1762903315066</updated>
     </task>
-    <task id="LOCAL-00005" summary="Start writing articles">
+    <task id="LOCAL-00005" summary="cname without www">
       <option name="closed" value="true" />
-      <created>1765751727676</created>
+      <created>1762903601612</created>
       <option name="number" value="00005" />
       <option name="presentableId" value="LOCAL-00005" />
       <option name="project" value="LOCAL" />
-      <updated>1765751727676</updated>
+      <updated>1762903601612</updated>
     </task>
-    <task id="LOCAL-00006" summary="add integration details">
-      <option name="closed" value="true" />
-      <created>1766133819731</created>
-      <option name="number" value="00006" />
-      <option name="presentableId" value="LOCAL-00006" />
-      <option name="project" value="LOCAL" />
-      <updated>1766133819731</updated>
-    </task>
-    <task id="LOCAL-00007" summary="Finish article">
-      <option name="closed" value="true" />
-      <created>1766242055553</created>
-      <option name="number" value="00007" />
-      <option name="presentableId" value="LOCAL-00007" />
-      <option name="project" value="LOCAL" />
-      <updated>1766242055553</updated>
-    </task>
-    <task id="LOCAL-00008" summary="Update docs for editor support">
-      <option name="closed" value="true" />
-      <created>1766244025269</created>
-      <option name="number" value="00008" />
-      <option name="presentableId" value="LOCAL-00008" />
-      <option name="project" value="LOCAL" />
-      <updated>1766244025269</updated>
-    </task>
-    <task id="LOCAL-00009" summary="Remove website-syntax-highlighting for now.">
-      <option name="closed" value="true" />
-      <created>1766244175043</created>
-      <option name="number" value="00009" />
-      <option name="presentableId" value="LOCAL-00009" />
-      <option name="project" value="LOCAL" />
-      <updated>1766244175043</updated>
-    </task>
-    <task id="LOCAL-00010" summary="add work">
-      <option name="closed" value="true" />
-      <created>1766516111921</created>
-      <option name="number" value="00010" />
-      <option name="presentableId" value="LOCAL-00010" />
-      <option name="project" value="LOCAL" />
-      <updated>1766516111921</updated>
-    </task>
-    <option name="localTasksCounter" value="11" />
+    <option name="localTasksCounter" value="6" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -205,7 +142,7 @@
                   <entry key="branch">
                     <value>
                       <list>
-                        <option value="nvim-lsp" />
+                        <option value="original" />
                       </list>
                     </value>
                   </entry>
@@ -218,20 +155,11 @@
     </option>
   </component>
   <component name="VcsManagerConfiguration">
-    <MESSAGE value="Change GitHub link" />
-    <MESSAGE value="Fix subscripts example" />
-    <MESSAGE value="Add coding conventions" />
-    <MESSAGE value="Add formatting coding conventions" />
-    <MESSAGE value="Start writing articles" />
-    <MESSAGE value="add integration details" />
-    <MESSAGE value="Finish article" />
-    <MESSAGE value="Update docs for editor support" />
-    <MESSAGE value="Remove website-syntax-highlighting for now." />
-    <MESSAGE value="add work" />
-    <option name="LAST_COMMIT_MESSAGE" value="add work" />
-  </component>
-  <component name="XSLT-Support.FileAssociations.UIState">
-    <expand />
-    <select />
+    <MESSAGE value="New website" />
+    <MESSAGE value="Add CNAME" />
+    <MESSAGE value="Explicit urls" />
+    <MESSAGE value="Remove Cloudflare dependencies" />
+    <MESSAGE value="cname without www" />
+    <option name="LAST_COMMIT_MESSAGE" value="cname without www" />
   </component>
 </project>
