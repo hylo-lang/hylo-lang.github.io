@@ -113,8 +113,11 @@ Program execution starts by adding a thread to the abstract machine, which gets 
 An instruction is a basic unit of computation in Hylo IR that modifies the state of the executing machine. An instruction may accept zero or more arguments and return zero or one value. An instruction has an associated type corresponding to the instruction's result.
 
 There are multiple categories of instructions:
-- Terminator instructions
-- TODO
+- [terminator instructions](#terminator-instructions)
+- [memory access and addressing instructions](#memory-access-and-addressing-instructions)
+- [value state instructions](#value-state-instructions)
+- [control flow instructions](#control-flow-instructions)
+- [instructions that are desugared](#instructions-that-are-desugared)
 
 
 ### Terminator instructions
@@ -156,7 +159,6 @@ This instruction is similar to [LLVM's `ret`](https://llvm.org/docs/LangRef.html
 
 ##### Syntax
 ```
-<result> = alloca <storage-type>, <alignment>
 <result> = alloca <storage-type>, #align(of: <t>)
 ```
 
@@ -166,8 +168,6 @@ Allocates memory on the stack frame of the currently executing function; this me
 ##### Arguments
 `storage-type` is a Hylo type and represents the storage type that needs to be allocated on the stack. It may be any type with a statically known size (including `{}`).
 
-`alignment` is an integer specifying the alignment in bytes.
-
 `t` is a type for which we want to copy the alignment from.
 
 ##### Result
@@ -176,7 +176,7 @@ An address that can store `storage-type` values.
 
 ##### Well-formedness
 - All `alloca`s need to be emitted in the entry block of the function.
-- The alignment `alignment` or `#align(of: <t>)` must be compatible with the minimal alignment requirements for type `storage-type`.
+- The alignment of `t` must be compatible with the minimal alignment requirements for type `storage-type`.
 - The result of the `alloca` instruction must be in an uninitialized state when the current function returns to the caller.
 
 ##### Semantics
@@ -210,7 +210,9 @@ The dereferenced value of `source`.
 ##### Well-formedness
 - `source` needs to be an `access` instruction.
 - The operation requires exclusive access to `source`.
-- `source` must be initialized; after this instruction, `source` becomes uninitialized.
+- `source` must be initialized
+- If `source` is not a machine type, after this instruction, `source` becomes uninitialized.
+- If `source` is a machine type, after this instruction, `source` remains initialized.
 - The size of the value being loaded must be known at compile-time.
 
 ##### Semantics
@@ -234,7 +236,8 @@ Writes a value to memory.
 ##### Well-formedness
 - `target` needs to be an `access` instruction.
 - The operation requires exclusive access to `target`.
-- `target` must be uninitialized; after this instruction, `target` becomes initialized.
+- If `source` is not a machine type, `target` must be uninitialized.
+- After this instruction, `target` becomes initialized.
 - `value` cannot be used after the operation.
 - The type of `target` is an address of the type of `value`
 
