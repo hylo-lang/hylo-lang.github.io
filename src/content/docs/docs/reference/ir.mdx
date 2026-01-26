@@ -159,7 +159,7 @@ This instruction is similar to [LLVM's `ret`](https://llvm.org/docs/LangRef.html
 
 ##### Syntax
 ```
-<result> = alloca <storage-type>, #align(of: <t>)
+<result> = alloca <storage-type>, #align(of: <alignment-source>)
 ```
 
 ##### Overview
@@ -259,9 +259,9 @@ This instruction is similar to [LLVM's `store`](https://llvm.org/docs/LangRef.ht
 
 Examples:
 ```
-%i11: &ptr = subfield %i3 at [0, 0] resulting ptr
-%i12: &Int = subfield %i3 at [0, 1] resulting Int
-%i13: &ptr = subfield %b0#1 at [1] resulting ptr
+%i11: &ptr = subfield %i3 at [0, 0] as ptr
+%i12: &Int = subfield %i3 at [0, 1] as Int
+%i13: &ptr = subfield %b0#1 at [1] as ptr
 ```
 
 ##### Overview
