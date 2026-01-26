@@ -270,7 +270,7 @@ Computes the address of storage for a field or sub-field of a record. The addres
 ##### Arguments
 `base` is an address of storage for the record from which we want to extract the field or sub-field.
 
-`path` is a non-empty list of compile-time indices. The first index is always `0`. Subsequent indices select fields of record types only (no pointer dereference).
+`path` is a non-empty list of compile-time indices. If `base` is a pointer and we are performing a pointer dereference, the first index is always `0`; if we are performing an array indexing, the first index can be greater than zero. Subsequent indices select fields of record types only (no pointer dereference).
 
 The `type` argument is used to avoid calculating the resulting type, when the instruction is referenced. It must match with the type of the field or subfield obtained from `base` by applying the indices in `path`, but without being an address.
 
