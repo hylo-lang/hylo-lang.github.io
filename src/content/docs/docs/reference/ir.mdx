@@ -6,7 +6,7 @@ title: Intermediate Representation (IR)
 
 The process of transforming high-level source code to its equivalent intermediate representation is called *lowering*.
 
-Lowering is takes place over multiple translation phases, each of which resulting in IR code at a different *stage*:
+Lowering takes place over multiple translation phases, each of which resulting in IR code at a different *stage*:
 
 1. High-level source code is translated to *raw IR*.
 2. Raw IR is translated to *legal IR*.
@@ -83,7 +83,7 @@ Each basic block argument and instruction result is assigned to a unique local r
 
 ### Uses
 
-An instruction `i` is said to be a *user* of an operand `o` if `o` is argument of `i`. Each occurence of an operand in one of its users is called a *use*.
+An instruction `i` is said to be a *user* of an operand `o` if `o` is argument of `i`. Each occurrence of an operand in one of its users is called a *use*.
 
 Given two uses `u1` and `u2`, `u2` is sequenced after `u1` (or, equivalently, u1 is sequenced before u2) if and only if:
 
@@ -108,17 +108,197 @@ When a basic block is loaded into a thread, its instructions are pushed onto the
 Program execution starts by adding a thread to the abstract machine, which gets designated as the *main thread*. The register map and call stack of the main thread are initialized empty. The control stack is initialized by loading the entry block of the main function of the program's entry module.
 
 
-## Instructions
+## Instruction reference
 
-An instruction is a basic unit of computation in Hylo IR that modifies the state of the executing machine. An instruction may accept zero or more arguments and return zero or more values.
+An instruction is a basic unit of computation in Hylo IR that modifies the state of the executing machine. An instruction may accept zero or more arguments and return zero or one value. An instruction has an associated type corresponding to the instruction's result.
+
+There are multiple categories of instructions:
+- [terminator instructions](#terminator-instructions)
+- [memory access and addressing instructions](#memory-access-and-addressing-instructions)
+- [value state instructions](#value-state-instructions)
+- [control flow instructions](#control-flow-instructions)
+- [instructions that are desugared](#instructions-that-are-desugared)
+
 
 ### Terminator instructions
 
 An instruction is called a terminator instruction if it causes control flow to jump to another basic block or exit the current function.
 
-The terminator instructions of Hylo IR are:
+#### `return` instruction
 
+##### Syntax
+```
+return
+```
+
+##### Overview
+Returns control flow to the caller.
+
+This instruction is only about control flow. Return values are stored in the return registers before control flow leaves the function.
+
+##### Well-formedness
+- There must be no other instructions after a `return` instruction in a basic block.
+- Every path through a function must terminate with a `return` or `unreachable` instruction.
+
+##### Semantics
+When the `return` instruction is executed, the control flow returns back to the caller.
+
+##### See also
+This instruction is similar to [LLVM's `ret`](https://llvm.org/docs/LangRef.html#ret-instruction), but it does not deal with the returned value. In Hylo IR, handling the return value happens prior to `return` instruction.
+
+#### TODO
 * `branch`
 * `cond_branch`
-* `call_fallible`
-* `terminate`
+* `switch`
+* `union_switch`
+* `unreachable`
+
+### Memory access and addressing instructions
+
+#### `alloca` instruction
+
+##### Syntax
+```
+<result> = alloca <storage-type>, #align(of: <alignment-source>)
+```
+
+##### Overview
+Allocates memory on the stack frame of the currently executing function; this memory is automatically released when the function returns to the caller.
+
+##### Arguments
+`storage-type` is a Hylo type and represents the storage type that needs to be allocated on the stack. It may be any type with a statically known size (including `{}`).
+
+`t` is a type for which we want to copy the alignment from.
+
+##### Result
+
+An address that can store `storage-type` values.
+
+##### Well-formedness
+- All `alloca`s need to be emitted in the entry block of the function.
+- The alignment of `t` must be compatible with the minimal alignment requirements for type `storage-type`.
+- The result of the `alloca` instruction must be in an uninitialized state when the current function returns to the caller.
+
+##### Semantics
+Memory is allocated and an address to it is returned. The allocated memory is uninitialized. If there is not enough space to grow the stack, the operation is undefined.
+
+If the size to be allocated is zero bytes, the returned address may not be unique. Otherwise, the address is unique across all other non-zero allocations in the function.
+
+The memory is automatically released when the function returns to the caller.
+
+##### See also
+This instruction is similar to [LLVM's `alloca`](https://llvm.org/docs/LangRef.html#alloca-instruction), but it does not provide all the options.
+
+
+#### `load` instruction
+
+##### Syntax
+```
+<result> = load <source>
+```
+
+##### Overview
+Loads a value from memory to register.
+
+##### Arguments
+`source` represents the memory address from which to load.
+
+##### Result
+
+The dereferenced value of `source`.
+
+##### Well-formedness
+- `source` needs to be an `access` instruction.
+- The operation requires exclusive access to `source`.
+- `source` must be initialized
+- If `source` is not a machine type, after this instruction, `source` becomes uninitialized.
+- If `source` is a machine type, after this instruction, `source` remains initialized.
+- The size of the value being loaded must be known at compile-time.
+
+##### Semantics
+The location of memory pointed to is loaded, and the resulting value is returned.
+
+##### See also
+This instruction is similar to [LLVM's `load`](https://llvm.org/docs/LangRef.html#load-instruction), but it does not provide all the options.
+
+#### `store` instruction
+
+##### Syntax
+```
+store <value> to <target>
+```
+##### Overview
+Writes a value to memory.
+
+##### Arguments
+`value` represents the value that needs to be stored into memory. `target` represents the memory address in which we need to store the value.
+
+##### Well-formedness
+- `target` needs to be an `access` instruction.
+- The operation requires exclusive access to `target`.
+- If `source` is not a machine type, `target` must be uninitialized.
+- After this instruction, `target` becomes initialized.
+- `value` cannot be used after the operation.
+- The type of `target` is an address of the type of `value`
+
+
+##### Semantics
+The memory pointed to by `target` is updated to contain `value`.
+
+
+##### See also
+This instruction is similar to [LLVM's `store`](https://llvm.org/docs/LangRef.html#store-instruction), but it does not provide all the options.
+
+
+#### `subfield` instruction
+
+##### Syntax
+```
+<result> = subfield <base> at <path> as <type>
+```
+
+Examples:
+```
+%i11: &ptr = subfield %i3 at [0, 0] as ptr
+%i12: &Int = subfield %i3 at [0, 1] as Int
+%i13: &ptr = subfield %b0#1 at [1] as ptr
+```
+
+##### Overview
+Computes the address of storage for a field or sub-field of a record. The address calculation is done without accessing memory.
+
+##### Arguments
+`base` is an address of storage for the record from which we want to extract the field or sub-field.
+
+`path` is a non-empty list of compile-time indices. If `base` is a pointer and we are performing a pointer dereference, the first index is always `0`; if we are performing an array indexing, the first index can be greater than zero. Subsequent indices select fields of record types only (no pointer dereference).
+
+The `type` argument is used to avoid calculating the resulting type, when the instruction is referenced. It must match with the type of the field or subfield obtained from `base` by applying the indices in `path`, but without being an address.
+
+##### Result
+
+The address of the subfield of `base` indicated by `path`.
+
+##### Well-formedness
+- `base` is an address.
+- `path` indicates a well-formed subfield within `base`.
+- `type` matches the type of the subfield obtained through `path` from `base`, but without being an address.
+
+##### Semantics
+Given the pointer to `base`, this instruction computes the address needed to access the subfield of `base` obtained through `path`.
+
+##### See also
+This instruction is similar to [LLVM's `getelementptr`](https://llvm.org/docs/LangRef.html#getelementptr-instruction), but it does not provide all the options.
+
+### Value state instructions
+* `access` -- Creates an access on a storage.
+* `end access` -- .
+* `AssumeState` -- Unsafely assumes the initialization state of memory storage.
+
+### Control flow instructions
+* `Apply` -- Invokes an IR function
+* `ApplyBuiltin` -- Invokes a function of the `Builtin` module.
+
+### Instructions that are desugared
+* `Move` -- Relocates a value to different storages.
+* `Getter` -- Returns the getter of a property in an opaque record.
+* `SyntheticConformance` -- Returns the synthesized the conformance of a type to a core trait.
