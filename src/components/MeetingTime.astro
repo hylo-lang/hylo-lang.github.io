@@ -1,104 +1,267 @@
 ---
 import NormalButton from './NormalButton.astro';
 import { meetingLink } from '../links.ts';
-import { Video, Calendar } from '@lucide/astro';
-
-export interface Props {
-  startTime: string; // "HH:MM" 24-hour
-  endTime: string;   // "HH:MM" 24-hour
-  timezone: string;  // IANA, e.g. "America/Los_Angeles"
-  fallbackText?: string;
-}
-
-const { startTime, endTime, timezone, fallbackText = 'Meeting time' } = Astro.props;
+import { Video, Calendar, ChevronDown } from '@lucide/astro';
+import { HYLO_MEETING } from './meetingTime.ts';
 ---
 
-<div
-  class="flex gap-4 flex-wrap"
-  id="meeting-time-root"
-  data-start-time={startTime}
-  data-end-time={endTime}
-  data-timezone={timezone}
-  data-fallback-text={fallbackText}
->
+<div class="flex gap-4 flex-wrap items-center" id="meeting-time-root">
   <NormalButton href={meetingLink}>
     <Video/>
     <span id="meeting-time" class="font-medium leading-snug inline-block">
-      {fallbackText}
+      {HYLO_MEETING.fallbackText}
     </span>
   </NormalButton>
 
-  <span id="meeting-calendar" hidden>
-    <NormalButton href="#">
+  <div id="meeting-calendar" class="cal-menu" data-open="false" hidden>
+    <button
+      type="button"
+      data-cal-trigger
+      class="inline-flex items-center no-underline gap-2 px-7 py-3.5 rounded-lg font-semibold transition-all duration-300 hover:-translate-y-0.5 cursor-pointer bg-transparent border-0"
+      aria-haspopup="menu"
+      aria-expanded="false"
+      aria-controls="meeting-cal-list"
+    >
       <Calendar/>
       <span>Add to Calendar</span>
-    </NormalButton>
-  </span>
+      <ChevronDown class="cal-menu__chev"/>
+    </button>
+    <div id="meeting-cal-list" data-cal-list class="cal-menu__list" role="menu">
+      <a
+        data-cal-target="google"
+        class="cal-menu__item"
+        href="#"
+        target="_blank"
+        rel="noopener"
+        role="menuitem"
+      >Google Calendar</a>
+      <a
+        data-cal-target="ics"
+        class="cal-menu__item"
+        href="#"
+        download="hylo-developer-meeting.ics"
+        role="menuitem"
+      >
+        Download .ics file
+        <span class="cal-menu__sub">Apple Calendar, Outlook, …</span>
+      </a>
+    </div>
+  </div>
 </div>
+
+<style>
+  /* Open/closed state lives in `data-open`, owned by JS. CSS only reflects it. */
+  .cal-menu:not([hidden]) {
+    position: relative;
+    display: inline-flex;
+  }
+
+  .cal-menu__chev {
+    width: 1em;
+    height: 1em;
+    transition: transform 200ms ease;
+  }
+  .cal-menu[data-open="true"] .cal-menu__chev {
+    transform: rotate(180deg);
+  }
+
+  .cal-menu__list {
+    display: none;
+    position: absolute;
+    top: 100%;
+    inset-inline-start: 0;
+    min-width: 16rem;
+    background: var(--sl-color-bg-nav);
+    border: 1px solid var(--sl-color-gray-5);
+    border-radius: 0.5rem;
+    box-shadow: var(--sl-shadow-md);
+    padding: 0.25rem;
+    z-index: 10;
+    flex-direction: column;
+  }
+  .cal-menu[data-open="true"] .cal-menu__list {
+    display: flex;
+  }
+
+  .cal-menu__item {
+    display: block;
+    padding: 0.625rem 0.75rem;
+    border-radius: 0.375rem;
+    color: inherit;
+    text-decoration: none;
+    white-space: nowrap;
+  }
+  .cal-menu__item:hover,
+  .cal-menu__item:focus-visible {
+    background: var(--sl-color-gray-6, var(--sl-color-gray-5));
+    color: var(--sl-color-white);
+  }
+  .cal-menu__sub {
+    display: block;
+    font-size: 0.85em;
+    opacity: 0.65;
+    margin-top: 0.125rem;
+  }
+</style>
 
 <script>
 import { meetingLink } from '../links.ts';
 import {
+  HYLO_MEETING,
+  buildGoogleCalendarUrl,
+  buildMeetingICS,
   getNextMeetingDate,
-  meetingInstant,
   renderMeetingDescription,
+  type CalendarEvent,
 } from './meetingTime.ts';
 
-function toGCalDate(date: Date): string {
-  return date.toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z';
-}
+/** Plain-text event description (used by `DESCRIPTION:` in ICS and Google `details`). */
+const EVENT_DESCRIPTION =
+  `Hylo developer meetings, recurring on Tuesdays and Thursdays. Join via: ${meetingLink}`;
 
-function buildCalendarUrl(start: Date, end: Date): string {
-  const params = new URLSearchParams({
-    action: 'TEMPLATE',
-    text: 'Hylo Developer Meeting',
-    dates: `${toGCalDate(start)}/${toGCalDate(end)}`,
-    details: 'Join the Hylo developer meeting',
-    location: meetingLink,
-  });
-  return `https://calendar.google.com/calendar/render?${params}`;
-}
+/** HTML event description — enables a clickable link in clients that prefer HTML. */
+const EVENT_DESCRIPTION_HTML =
+  `Hylo developer meetings, recurring on Tuesdays and Thursdays. Join via: <a href="${meetingLink}">${meetingLink}</a>`;
 
+/** Grace period before closing on pointer-leave; bridges trigger→list transit. */
+const HOVER_CLOSE_DELAY_MS = 200;
+
+/** Refresh the visible meeting time and the calendar links for the next occurrence. */
 function update() {
-  const root = document.getElementById('meeting-time-root');
   const label = document.getElementById('meeting-time');
-  const calWrap = document.getElementById('meeting-calendar');
-  const calAnchor = calWrap?.querySelector('a');
-  if (!root || !label || !calWrap || !calAnchor) return;
-
-  const { startTime, endTime, timezone, fallbackText } = root.dataset;
-  if (!startTime || !endTime || !timezone) return;
+  const root = document.getElementById('meeting-calendar');
+  const linkGoogle = root?.querySelector<HTMLAnchorElement>('[data-cal-target="google"]');
+  const linkIcs = root?.querySelector<HTMLAnchorElement>('[data-cal-target="ics"]');
+  if (!label || !root || !linkGoogle || !linkIcs) return;
 
   try {
     const now = new Date();
-    const meetingDate = getNextMeetingDate(now, startTime, timezone);
+    const meetingDate = getNextMeetingDate(
+      now,
+      HYLO_MEETING.startTime,
+      HYLO_MEETING.timezone,
+      HYLO_MEETING.meetingDays,
+    );
+    const userTimeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
 
     const { title, details } = renderMeetingDescription({
       now,
       meetingDate,
-      startTime,
-      endTime,
-      sourceTimezone: timezone,
-      userTimeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
-      title: fallbackText || 'Meeting time',
+      startTime: HYLO_MEETING.startTime,
+      endTime: HYLO_MEETING.endTime,
+      sourceTimezone: HYLO_MEETING.timezone,
+      userTimeZone,
+      title: HYLO_MEETING.fallbackText,
     });
     label.innerHTML =
       `${title}<br><small style="opacity: 0.7; font-size: 0.85em;">${details}</small>`;
 
-    calAnchor.href = buildCalendarUrl(
-      meetingInstant(meetingDate, startTime, timezone),
-      meetingInstant(meetingDate, endTime, timezone),
-    );
-    calWrap.hidden = false;
+    const event: CalendarEvent = {
+      meetingDate,
+      startTime: HYLO_MEETING.startTime,
+      endTime: HYLO_MEETING.endTime,
+      timezone: HYLO_MEETING.timezone,
+      title: HYLO_MEETING.name,
+      description: EVENT_DESCRIPTION,
+      descriptionHtml: EVENT_DESCRIPTION_HTML,
+      location: meetingLink,
+      recurrenceRule: HYLO_MEETING.recurrenceRule,
+    };
+
+    linkGoogle.href = buildGoogleCalendarUrl(event);
+    const ics = buildMeetingICS({ ...event, uid: HYLO_MEETING.uid, dtstamp: now });
+    linkIcs.href = `data:text/calendar;charset=utf-8,${encodeURIComponent(ics)}`;
+
+    root.hidden = false;
   } catch (error) {
     console.error('Meeting time update failed:', error);
   }
 }
 
-if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', update);
-} else {
+/** Wire pointer / click / keyboard interaction to the dropdown's `data-open` state. */
+function setupMenu() {
+  const root = document.getElementById('meeting-calendar');
+  const trigger = root?.querySelector<HTMLButtonElement>('[data-cal-trigger]');
+  const list = root?.querySelector<HTMLElement>('[data-cal-list]');
+  if (!root || !trigger || !list) return;
+
+  /** Pending close timer id, or null if no close is scheduled. */
+  let closeTimer: number | null = null;
+
+  /** Cancel any scheduled close. */
+  const cancelPendingClose = () => {
+    if (closeTimer !== null) {
+      window.clearTimeout(closeTimer);
+      closeTimer = null;
+    }
+  };
+
+  /** Authoritative state mutator: every open/close transition goes through here. */
+  const setOpen = (open: boolean) => {
+    cancelPendingClose();
+    root.dataset.open = String(open);
+    trigger.setAttribute('aria-expanded', String(open));
+  };
+
+  /** Current open/closed state derived from the DOM source of truth. */
+  const isOpen = () => root.dataset.open === 'true';
+
+  /** Defer a close by `HOVER_CLOSE_DELAY_MS` so brief pointer exits don't dismiss the menu. */
+  const scheduleClose = () => {
+    cancelPendingClose();
+    closeTimer = window.setTimeout(() => setOpen(false), HOVER_CLOSE_DELAY_MS);
+  };
+
+  // Hover intent (mouse/pen only; touch is handled via click).
+  root.addEventListener('pointerenter', (e) => {
+    if (e.pointerType === 'touch') return;
+    setOpen(true);
+  });
+  root.addEventListener('pointerleave', (e) => {
+    if (e.pointerType === 'touch') return;
+    scheduleClose();
+  });
+
+  // Click activation (keyboard Enter/Space and touch tap both dispatch click).
+  trigger.addEventListener('click', (e) => {
+    e.preventDefault();
+    setOpen(!isOpen());
+  });
+  list.addEventListener('click', (e) => {
+    if ((e.target as HTMLElement).closest('a')) setOpen(false);
+  });
+
+  // Dismiss on outside pointerdown (fires before click, so feels immediate).
+  document.addEventListener('pointerdown', (e) => {
+    if (!isOpen()) return;
+    if (e.target instanceof Node && !root.contains(e.target)) setOpen(false);
+  });
+
+  // Keyboard / focus management (focusin/focusout bubble, unlike focus/blur).
+  root.addEventListener('focusin', () => setOpen(true));
+  root.addEventListener('focusout', (e) => {
+    const next = e.relatedTarget;
+    if (next instanceof Node && root.contains(next)) return;
+    setOpen(false);
+  });
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && isOpen()) {
+      setOpen(false);
+      trigger.focus();
+    }
+  });
+}
+
+/** One-shot bootstrap: render the meeting label and arm the dropdown controller. */
+function init() {
   update();
+  setupMenu();
+}
+
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', init);
+} else {
+  init();
 }
 document.addEventListener('visibilitychange', () => {
   if (!document.hidden) update();
