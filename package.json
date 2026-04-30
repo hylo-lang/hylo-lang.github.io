@@ -7,7 +7,8 @@
     "start": "astro dev",
     "build": "astro build",
     "preview": "astro preview",
-    "astro": "astro"
+    "astro": "astro",
+    "test": "vitest run"
   },
   "dependencies": {
     "@astrojs/starlight": "^0.36.1",
@@ -21,5 +22,8 @@
     "sharp": "^0.34.2",
     "starlight-theme-rapide": "^0.5.2",
     "tailwindcss": "^4.1.16"
+  },
+  "devDependencies": {
+    "vitest": "^2.1.9"
   }
 }
