@@ -14,7 +14,7 @@
     "@astrojs/starlight": "^0.38.4",
     "@astrojs/starlight-tailwind": "^4.0.2",
     "@expressive-code/core": "^0.41.7",
-    "@lucide/astro": "^0.553.0",
+    "@lucide/astro": "^1.14.0",
     "@tailwindcss/vite": "^4.2.4",
     "astro": "^5.18.1",
     "date-fns": "^4.1.0",
