@@ -12,14 +12,14 @@ export const userGuideSidebar = [
             {label: 'Functions and methods', slug: 'docs/user/language-tour/functions-and-methods'},
             {label: 'Subscripts', slug: 'docs/user/language-tour/subscripts'},
             {label: 'Concurrency', slug: 'docs/user/language-tour/concurrency'},
-            {label: 'Standard Library Docs', link: 'https://hylodoc.web.app/Sources/index.html'},
+            {label: 'Further Reading', link: 'docs/user/language-tour/further-reading'},
         ]
     },
     {
         label: 'Tooling', items: [
             {label: 'Editors', slug: 'docs/user/tooling/editors'},
             {label: 'Documentation Compiler', slug: 'docs/user/tooling/hylodoc'},
-            {label: 'Debugger', slug: 'docs/user/tooling/debugger'},
+            {label: 'Debugging', slug: 'docs/user/tooling/debugger'},
         ]
     }
 ] as const satisfies Sidebar;
