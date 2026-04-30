@@ -12,11 +12,11 @@
   },
   "dependencies": {
     "@astrojs/starlight": "^0.38.4",
-    "@astrojs/starlight-tailwind": "^4.0.2",
+    "@astrojs/starlight-tailwind": "^5.0.0",
     "@expressive-code/core": "^0.41.7",
     "@lucide/astro": "^1.14.0",
     "@tailwindcss/vite": "^4.2.4",
-    "astro": "^5.18.1",
+    "astro": "^6.2.0",
     "date-fns": "^4.1.0",
     "date-fns-tz": "^3.2.0",
     "sharp": "^0.34.5",
