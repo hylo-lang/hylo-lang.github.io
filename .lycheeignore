@@ -1,0 +1,17 @@
+# URLs that lychee should skip. One regex per line.
+
+# Used by the link-check job in .github/workflows/ci.yml.
+
+# These sites protect against bots.
+^https?://join\.slack\.com/
+^https?://dl\.acm\.org/
+^https?://doi\.org/10\.1145/
+^https://repository\.tudelft\.nl/file/.*
+
+
+# Self-references via the production URL (canonical, OG, sitemap) and
+# Starlight's "Edit this page" links: both target the currently-deployed
+# `main`, which doesn't yet contain pages added in the current PR.
+# Internal navigation doesn't contain the domain prefix, so it will be checked.
+^https?://hylo-lang\.org/
+^https?://github\.com/hylo-lang/hylo-lang\.github\.io/tree/main/

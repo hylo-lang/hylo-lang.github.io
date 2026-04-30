@@ -141,7 +141,7 @@ public fun main() {
 }
 ```
 
-In the program above, the value of the subscript is not required to perform the assigment. So rather than applying the `inout` variant, the compiler will choose to apply the `set` variant.
+In the program above, the value of the subscript is not required to perform the assignment. So rather than applying the `inout` variant, the compiler will choose to apply the `set` variant.
 
 #### **`sink` subscripts**
 

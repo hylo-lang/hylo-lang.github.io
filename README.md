@@ -1,10 +1,12 @@
 # Hylo Website
 
-Whelcome to the source for https://hylo-lang.org/
-
-[![Built with Starlight](https://astro.badg.es/v2/built-with-starlight/tiny.svg)](https://starlight.astro.build)
+Welcome to the source for https://hylo-lang.org/!
 
 ## Getting Started
+
+This website is built using the static site generator
+[Astro](https://astro.build/), with the [Starlight](https://starlight.astro.build/) theme.
+
 Requirements:
 - Recent [NodeJS](https://nodejs.org/en/download).
 - pnpm package manager. You can install it via npm:
@@ -24,32 +26,13 @@ just restart the dev server.
 
 **Further tips:** See the `content/docs/docs/contributing/documentation.mdx` for cool mdx features you can use in your docs!
 
-> 🧑‍🚀 **Seasoned astronaut?** Delete this file. Have fun!
-
-## 🚀 Project Structure
-
-Inside your Astro + Starlight project, you'll see the following folders and files:
-
-```
-.
-├── public/
-├── src/
-│   ├── assets/
-│   ├── content/
-│   │   └── docs/
-│   └── content.config.ts
-├── astro.config.ts
-├── package.json
-└── tsconfig.json
-```
-
 Starlight looks for `.md` or `.mdx` files in the `src/content/docs/` directory. Each file is exposed as a route based on its file name.
 
 Images can be added to `src/assets/` and embedded in Markdown with a relative link.
 
 Static assets, like favicons, can be placed in the `public/` directory.
 
-## 🧞 Commands
+## Commands
 
 All commands are run from the root of the project, from a terminal:
 
@@ -62,6 +45,12 @@ All commands are run from the root of the project, from a terminal:
 | `pnpm astro ...`       | Run CLI commands like `astro add`, `astro check` |
 | `pnpm astro -- --help` | Get help using the Astro CLI                     |
 
-## 👀 Want to learn more?
+## Typos
 
-Check out [Starlight’s docs](https://starlight.astro.build/), read [the Astro documentation](https://docs.astro.build), or jump into the [Astro Discord server](https://astro.build/chat).
+We use [typos](https://github.com/crate-ci/typos) to check for typos in the documentation.
+Add exceptions to the [typos configuration](typos.yml).
+
+## Link checks
+
+We use [lychee](https://github.com/lycheeverse/lychee) to check for broken links throughout the generated website.
+Add exceptions to the [lychee configuration](.lycheeignore).
