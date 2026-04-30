@@ -24,7 +24,7 @@ const navLinks = [
         </nav>
     </div>
 
-    <div class="sl-hidden md:sl-flex print:hidden">
+    <div class="sl-flex print:hidden">
         <Search />
     </div>
 
@@ -43,7 +43,6 @@ const navLinks = [
             <span class="bar" aria-hidden="true"></span>
         </summary>
         <div class="panel">
-            <Search />
             <nav aria-label="Primary">
                 {navLinks.map(({ href, label }) => (
                     <a href={href}>{label}</a>
