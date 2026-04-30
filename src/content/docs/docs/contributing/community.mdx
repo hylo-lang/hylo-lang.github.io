@@ -1,12 +1,12 @@
 ---
 title: The Hylo Community
-layout: ../layouts/Page.astro
+description: Ways to be part of Hylo, our values and culture, and the core team.
 ---
 
-import NormalButton from "../components/NormalButton.astro";
-import { discussionsLink, slackLink } from "../links.js";
+import NormalButton from "../../../../components/NormalButton.astro";
+import MeetingTime from "../../../../components/MeetingTime.astro";
+import { discussionsLink, slackLink } from "../../../../links.js";
 import { Icon } from "@astrojs/starlight/components";
-import MeetingTime from "../components/MeetingTime.astro";
 
 <NormalButton href={slackLink} variant="outline">
   <Fragment slot={"icon"}>
@@ -30,7 +30,7 @@ import MeetingTime from "../components/MeetingTime.astro";
 - **Curious Visitors**<br/>
   Explore our [documentation](/docs), join discussions on <a href={discussionsLink}>GitHub</a>/<a href={slackLink}>Slack</a>, and follow our progress on our [blog](/blog).
 - **Contributors**<br/>
-  Help improve Hylo by reporting issues, submitting pull requests, or propose new research topics. Get started with our [contributing guide](/docs/contributing/). You are also welcome to join our regular developer meetings.
+  Help improve Hylo by reporting issues, submitting pull requests, or propose new research topics. Get started with our [contributing guide](/docs/contributing/) or just let us know on Slack (ping `@Ambrus Toth`), and we can arrange an onboarding meeting. You are also welcome to join our regular developer meetings.
 - **Maintainers**<br/>
   When you have a deep understanding of one of Hylo's subsystems, you can become a maintainer to review contributions, and guide or lead development.
 - **Core Team**<br/>
@@ -41,7 +41,7 @@ import MeetingTime from "../components/MeetingTime.astro";
 ## Values and Culture
 
 1. **Curiosity and Research**<br/>
-   We push the frontier on all aspects, including language design and tooling, by being research-driven and studying the industry's existing approaches 
+   We push the frontier on all aspects, including language design and tooling, by being research-driven and studying the industry's existing approaches
    and relevant academic literature, engaging with domain experts of our problems, and experimenting with new ideas.
    We are building the core language on strong theoretical foundations to have a system that is sound and scalable for the long term.
 
@@ -59,9 +59,9 @@ import MeetingTime from "../components/MeetingTime.astro";
 
 ## Meet the Core Team
 
-- **Dimi Racordon:** type system, frontend, theorem prover, language design
+- **Dimi Racordon:** type system, frontend, IR lowering, language design, professor
 - **Dave Abrahams:** interpreter, backend, language design
-- **Lucian Radu Teodorescu:** concurrency, backend, subscripts, language design
-- **Rishabh Dwivedi:** standard library, positionless algorithms, rs-stl, backend, language design
-- **Ambrus Tóth:** website, developer tools, infrastructure, community, language design
+- **Lucian Radu Teodorescu:** concurrency, subscript elaboration, backend, language design
+- **Rishabh Dwivedi:** interpreter, standard library, positionless algorithms, rs-stl, language design
+- **Ambrus Tóth:** developer tools, infrastructure, website, C interop, LLVM lowering, community, language design
 - _More to come ;\)_
