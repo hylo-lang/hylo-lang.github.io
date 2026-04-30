@@ -4,7 +4,7 @@ title: Modules
 
 A Hylo program is composed of **modules**, each of which is composed of one or more files. A module that defines a public `main` function is called an **entry module**, of which there must be exactly one per program.
 
-The [Hello, World!](hello-world.md) program we wrote earlier is made of two modules. The first contains the `hello.hylo` file and is the program's entry module. The second is Hylo's standard library, which is always implicitly imported, and defines commonly-used components like the `Int` and `String` types, and the `print` function used in `hello.hylo`.
+The [Hello, World!](../hello-world) program we wrote earlier is made of two modules. The first contains the `hello.hylo` file and is the program's entry module. The second is Hylo's standard library, which is always implicitly imported, and defines commonly-used components like the `Int` and `String` types, and the `print` function used in `hello.hylo`.
 
 Each module defines an API resilience boundary: only public declarations are visible outside the module, and changes to non-public declarations, or to the bodies of public functions in the module cannot cause code outside the module to fail compilation. A module _may_ also define an ABI resilience boundary, within which code and details such as type layout are never encoded into other compiled modules (e.g. via inlining).
 

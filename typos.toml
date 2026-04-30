@@ -1,0 +1,24 @@
+# Configuration for crate-ci/typos. See https://github.com/crate-ci/typos
+# Used by the `typos` job in .github/workflows/ci.yml.
+
+[files]
+extend-exclude = [
+    "pnpm-lock.yaml",
+    "src/assets/syntax/*.json",
+    "public/*.svg",
+    "src/assets/*.svg",
+    "dist/",
+    ".astro/",
+]
+
+[default.extend-words]
+# Project-specific words that should not be flagged as typos.
+# Each entry maps a word to itself so typos treats it as correct.
+# Keys are matched case-insensitively.
+# `ANF` = A-Normal Form (compiler IR terminology).
+ANF = "ANF"
+
+[default.extend-identifiers]
+# Unicode general category abbreviations used inside `\p{...}` regex classes
+# in the language specification (e.g. `\p{Nd}` = decimal digits).
+Nd = "Nd"

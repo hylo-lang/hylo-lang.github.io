@@ -364,7 +364,7 @@ _Hylo is a language based on the principles of mutable value semantics (MVS) (Ra
     }
     ```
 
-    Qualified name lookup for `foo(a:)` in the lexical scope `s` of the declaration of `A` starts with a qualified stem name lookup for `foo(a:)` in `s`. That search returns a set with three entities named `foo(a:)`, `foo(b:).let`, and `foo(b:).inout`. Since `foo(a:)` is a method name, the two last entities are discarded and the seach concludes with a singleton.
+    Qualified name lookup for `foo(a:)` in the lexical scope `s` of the declaration of `A` starts with a qualified stem name lookup for `foo(a:)` in `s`. That search returns a set with three entities named `foo(a:)`, `foo(b:).let`, and `foo(b:).inout`. Since `foo(a:)` is a method name, the two last entities are discarded and the search concludes with a singleton.
 
 #### In a global or local scope
 
@@ -474,7 +474,7 @@ _Hylo is a language based on the principles of mutable value semantics (MVS) (Ra
 
 1. Object types have alignment requirements which place restrictions on the addresses of the memory locations which an object of that type may occupy. An alignment is a platform-specific integer value representing the number of bytes between successive addresses at which a given object can be allocated. An object type imposes an alignment requirement on every object of that type.
 
-2. Alignments are represented as values of the type `Int`. Valid alignments include only those values of `MemoryLayout<A>.alignnment` for any type `A` plus the value of `Pointer.universal_alignment`. Every alignment value shall be a non-negative integral power of two.
+2. Alignments are represented as values of the type `Int`. Valid alignments include only those values of `MemoryLayout<A>.alignment` for any type `A` plus the value of `Pointer.universal_alignment`. Every alignment value shall be a non-negative integral power of two.
 
 3. Alignments have an order from *weaker* to *stricter* alignments. Stricter alignments have larger alignment values. An address that satisfies an alignment requirement also satisfies any weaker valid alignment requirement.
 
@@ -2552,13 +2552,13 @@ sink e  = a as sink Int
 
     ```ebnf
     lambda-type-expr ::=
-      lambda-environment? '(' lamda-parameter-list? ')' receiver-effect? '->' type-expr
+      lambda-environment? '(' lambda-parameter-list? ')' receiver-effect? '->' type-expr
 
     lambda-environment ::=
       'thin'
       '[' type-expr ']'
 
-    lamda-parameter-list ::=
+    lambda-parameter-list ::=
       lambda-parameter (',' lambda-parameter)*
 
     lambda-parameter ::=
