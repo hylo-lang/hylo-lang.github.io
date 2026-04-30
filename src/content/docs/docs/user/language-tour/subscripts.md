@@ -190,7 +190,7 @@ type Angle {
 }
 
 public fun main() {
-  let angle = Angle(radians: Double.pi)
+  let angle = Angle(radians: Float64.pi())
   print(angle.degrees) // 180.0
 }
 ```
