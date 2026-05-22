@@ -11,12 +11,17 @@ updates:
       actions:
         patterns:
           - "*"
+    cooldown:
+      default-days: 7
 
   # Keep npm dependencies (Astro, Starlight, Tailwind, etc.) up-to-date.
   - package-ecosystem: npm
     directory: /
     schedule:
       interval: monthly
+    cooldown:
+      default-days: 7
+
     groups:
       npm-minor-and-patch:
         update-types:
