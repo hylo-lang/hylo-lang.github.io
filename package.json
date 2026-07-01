@@ -16,7 +16,7 @@
     "@expressive-code/core": "^0.41.7",
     "@lucide/astro": "^1.16.0",
     "@tailwindcss/vite": "^4.3.0",
-    "astro": "^6.3.7",
+    "astro": "^6.4.8",
     "date-fns": "^4.3.0",
     "date-fns-tz": "^3.2.0",
     "sharp": "^0.34.5",
