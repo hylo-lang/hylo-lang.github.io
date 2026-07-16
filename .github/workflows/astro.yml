@@ -21,7 +21,7 @@ jobs:
       - name: Checkout your repository using git
         uses: actions/checkout@v7.0.0
       - name: Install, build, and upload your site
-        uses: withastro/action@v6
+        uses: withastro/action@v6.1.1
         with:
           package-manager: pnpm@latest
           node-version: 24
