@@ -1,0 +1,97 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://hylo-lang.org/schemas/hylo-project.schema.json",
+  "title": "Hylo LSP project manifest",
+  "description": "A build-system-agnostic description of a Hylo module graph. A build system (CMake, Bazel, a future SPM-like tool, or `hc` itself) emits this file as `hylo-project.json` so the Hylo language server can group a workspace's files into modules and wire their imports without knowing anything about the build system. It is the equivalent of rust-analyzer's `rust-project.json`.",
+  "type": "object",
+  "required": [
+    "schemaVersion",
+    "modules"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "$schema": {
+      "description": "Optional pointer to this JSON Schema, so an editor's JSON language server can offer completion and validation.",
+      "type": "string"
+    },
+    "schemaVersion": {
+      "description": "The manifest schema version. Increment on a breaking change to this format so a server can reject a manifest it cannot interpret. Current version: 1.",
+      "type": "integer",
+      "minimum": 1
+    },
+    "stdlibRoot": {
+      "description": "The standard library's root source directory, if the build system knows it. When a module named \"Hylo\" *is* present in `modules`, that module is authoritative and this field is redundant.",
+      "type": "string"
+    },
+    "target": {
+      "description": "The compilation target triple (e.g. \"x86_64-unknown-linux-gnu\"), if specified.",
+      "type": "string"
+    },
+    "modules": {
+      "description": "The modules in the workspace. Each entry is the Hylo slice of one or more build targets.",
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/module"
+      }
+    }
+  },
+  "$defs": {
+    "module": {
+      "description": "One Hylo module: a set of source files compiled and type-checked together, plus the modules it imports. A module whose `name` is \"Hylo\" is the standard library: the server builds it as the base that every other module implicitly depends on.",
+      "type": "object",
+      "required": [
+        "name"
+      ],
+      "additionalProperties": false,
+      "anyOf": [
+        {
+          "required": [
+            "sources"
+          ]
+        },
+        {
+          "required": [
+            "sourceRoot"
+          ]
+        }
+      ],
+      "properties": {
+        "name": {
+          "description": "The module's name, exactly as written in `import` statements. The name \"Hylo\" is reserved for the standard library. Because two targets can define modules of the same name (e.g. two executables' `Main`), `name` alone is not a workspace-unique key; `(originTarget, name)` is.",
+          "type": "string",
+          "minLength": 1
+        },
+        "originTarget": {
+          "description": "The build target that contributed these sources, if any. For diagnostics and traceability only, and to disambiguate two modules that share a `name`.",
+          "type": "string"
+        },
+        "archive": {
+          "description": "Path to a published `.hylomodule` archive of this module's compiled interface, if the build produced one. Optional. When present and fresh, a server *may* load the interface from here instead of recompiling from `sources`/`sourceRoot`; when absent, the server compiles the module from source (the reliable default).",
+          "type": "string"
+        },
+        "imports": {
+          "description": "The names of the modules this one imports (direct edges only). The server walks the transitive closure itself; the standard library need not be listed (it is an implicit dependency of every module).",
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "default": []
+        },
+        "sources": {
+          "description": "Explicit list of this module's `.hylo` source files, as absolute paths. Use for generated sources or files scattered outside a single directory. Combined by union with any files discovered under `sourceRoot`. At least one of `sources` or `sourceRoot` must be present.",
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "sourceRoot": {
+          "description": "A single directory whose `.hylo` files (searched recursively) all belong to this module. Relative paths are resolved against the directory containing this manifest; absolute paths are used as-is. This is the common form — the standard library, for example, is declared as `{ \"name\": \"Hylo\", \"sourceRoot\": \"Sources\" }`. Combined by union with any explicit `sources`. At least one of `sources` or `sourceRoot` must be present.",
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    }
+  }
+}
