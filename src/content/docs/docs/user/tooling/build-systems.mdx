@@ -1,0 +1,63 @@
+---
+title: Build Systems
+---
+
+Hylo currently supports incremental compilation at a module level granularity. We can either use the Hylo CLI (`hc`) to
+compile simple programs, or use CMake to orchestrate the whole build pipeline. Although we only implemented support for
+CMake, it should be possible to [integrate with other build systems](#adding-support-to-other-build-systems) (contributions are welcome!).
+
+If you just want to get started quickly, you can compile a single-module executable:
+```bash
+hc main.hylo fibonacci.hylo
+```
+
+## CMake
+The experimental CMake support is developed at https://github.com/tothambrus11/hylo-cmake-support/. You can use it as a
+starter project template.
+
+There are a handful of limitations of CMake that currently prevent us from adding Hylo as a custom language to CMake
+while maintaining build correctness and efficiency, which are documented in the
+[CMake Upstream Plan](https://github.com/tothambrus11/hylo-cmake-support/blob/master/notes/UPSTREAM-PLAN.md). In the
+meantime, we rely on custom commands, which get the job done.
+
+## Adding support to other build systems
+
+Example: building an executable composed of two modules: `App` importing `Foo`:
+```bash
+# Compiling Foo:
+hc --module-name Foo
+    --emit object
+    -o Foo.o
+    --emit-module-to build/Foo.hylomodule
+    --emit-module-interface-hash-to build/Foo.hash
+    Sources/Foo
+
+# Compiling App, importing Foo:
+hc --module-name App
+    --import Foo
+    --module-search-path build
+    --emit object
+    -o App.o
+    Sources/App
+
+# Compile the parts of the standard library that contain linkable symbols:
+clang -c "$(hc --print-stdlib-root)/shims.c" -o build/stdlib_shims.o
+
+# Link everything:
+cd build
+clang App.o Foo.o stdlib_shims.o -o app
+```
+The module interface hash file of `Foo` is written to as specified by `--emit-module-interface-hash-to`. The dependant
+module `App` only needs to be recompiled if the interface hash of `Foo` is changed or if any of the source files in
+`App` are changed.
+
+### CLI flags:
+
+- `--module-name <name>`: name of the module being compiled (defaults to the source file's name if exactly one is given, or Main).
+- `--import <module>`: make a module visible to the one being compiled. Each is loaded from `<module>.hylomodule` from the module search path.
+- `--module-search-path <path>`: where to look for imported archives. This is now distinct from `-L`, which is only for native libraries.
+- `--emit-module-to <file>`: write the compiled module's archive so others can import it.
+- `--emit-module-interface-hash-to <file>`: write a hash a build system can use as a rebuild key for dependents. The file is only rewritten when the hash changes, so tools looking at modififcation time work efficiently.
+- `--print-stdlib-root`: print the standard library root and exit.
+
+See others using `hc --help`.

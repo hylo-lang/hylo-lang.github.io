@@ -1,0 +1,40 @@
+---
+title: Continuous Integration
+---
+
+## Setting Up the Hylo Toolchain
+
+### Prerequisites
+The Hylo toolchain requires `clang` to be installed and available on `PATH`.
+
+On Linux, you need to install zstd: `sudo apt-get install libzstd-dev`
+On MacOS, you need to install zstd from Homebrew: `brew install zstd`.
+
+The above steps are not needed if you use GitHub runners, as they already have these installed by default.
+We are planning to improve the packaging of the compiler to simplify this process.
+
+### Manual Installation
+If you have the prerequisites, you can download and extract the Hylo compiler from a release: https://github.com/hylo-lang/hylo-new/releases.
+
+### GitHub Actions
+
+The [setup-hylo](https://github.com/hylo-lang/setup-hylo) action makes it straightforward to install a cached version of the compiler:
+
+```yml
+- name: Set Up Hylo
+  uses: hylo-lang/setup-hylo@v1.0.0
+  with:
+    version: v0.0.8
+
+# `hc` is now available on PATH:
+- run: hc --version
+```
+
+### GitLab CI/CD
+Contributions are welcome!
+
+### Forgejo Actions (CodeBerg)
+Contributions are welcome!
+
+### SourceHut
+Contributions are welcome!
