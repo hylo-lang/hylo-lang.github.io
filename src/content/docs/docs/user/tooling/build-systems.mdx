@@ -43,7 +43,7 @@ hc --module-name App
 # Compile the parts of the standard library that contain linkable symbols:
 clang -c "$(hc --print-stdlib-root)/shims.c" -o build/stdlib_shims.o
 
-# Link everything together:
+# Link everything:
 cd build
 clang App.o Foo.o stdlib_shims.o -o app
 ```
