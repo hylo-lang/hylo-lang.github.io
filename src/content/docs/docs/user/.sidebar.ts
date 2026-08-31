@@ -18,6 +18,8 @@ export const userGuideSidebar = [
     {
         label: 'Tooling', items: [
             {label: 'Editors', slug: 'docs/user/tooling/editors'},
+            {label: 'Build Systems', slug: 'docs/user/tooling/build-systems'},
+            {label: 'CI', slug: 'docs/user/tooling/ci'},
             {label: 'Documentation Compiler', slug: 'docs/user/tooling/hylodoc'},
             {label: 'Debugging', slug: 'docs/user/tooling/debugger'},
         ]
