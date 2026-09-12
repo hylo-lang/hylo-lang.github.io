@@ -4,7 +4,7 @@ title: Functions and methods
 
 Functions are blocks of reusable code that performs a single action, or group of related actions. They are an essential tool for managing the complexity of a program as it grows.
 
-_Note: Though Hylo should not be considered a functional programming language, functions are first-class citizens, and functional programming style is well-supported. In fact, Hylo's mutable value semantics can be freely mixed with purely functional code without eroding that code's local reasoning properties_
+_Note: Though Hylo should not be considered a functional programming language, functions are first-class citizens, and functional programming style is well-supported. In fact, Hylo's mutable value semantics can be freely mixed with purely functional code without eroding that code's local reasoning properties._
 
 ### Free functions
 
