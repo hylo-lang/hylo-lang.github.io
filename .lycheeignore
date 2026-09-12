@@ -2,11 +2,18 @@
 
 # Used by the link-check job in .github/workflows/ci.yml.
 
-# These sites protect against bots.
+# These sites protect against bots. Each was confirmed to answer 403 to an
+# ordinary request while being reachable in a browser.
 ^https?://join\.slack\.com/
 ^https?://dl\.acm\.org/
 ^https?://doi\.org/10\.1145/
 ^https://repository\.tudelft\.nl/file/.*
+
+# Links into the Slack workspace itself (message permalinks, channel archives).
+# Unlike the invite link above these are not merely bot-protected: workspace
+# content is only readable by signed-in members, so an anonymous request is
+# redirected to a login page that answers 403. Nothing to fix at our end.
+^https?://[^/]+\.slack\.com/archives/
 
 
 # Self-references via the production URL (canonical, OG, sitemap) and

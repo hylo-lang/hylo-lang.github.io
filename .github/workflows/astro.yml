@@ -5,6 +5,20 @@ on:
   # Using a different branch name? Replace `main` with your branch’s name
   push:
     branches: [ main ]
+  # A new compiler release changes what the install and CI pages say, and those
+  # pages are generated from the release at build time — so a release has to
+  # rebuild the site. `hylo-new`'s release workflow sends this:
+  #
+  #   gh api repos/hylo-lang/hylo-lang.github.io/dispatches \
+  #     -f event_type=hylo-release
+  #
+  # using a token with `contents: write` on this repository. Send it only once
+  # every archive has finished uploading: `write-release-tag.ts` rejects a release
+  # that is missing any of them and fails the job rather than publishing links to
+  # archives that do not exist. Without any dispatch the site keeps showing the
+  # release it was last built with, which is stale but correct.
+  repository_dispatch:
+    types: [ hylo-release ]
   # Allows you to run this workflow manually from the Actions tab on GitHub.
   workflow_dispatch:
 
@@ -20,16 +34,25 @@ jobs:
     steps:
       - name: Checkout your repository using git
         uses: actions/checkout@v7.0.1
+      # `withastro/action` sets up Node itself, but only after this step, and the
+      # runner's default Node may be too old to run a TypeScript file directly.
+      - name: Setup Node.js
+        uses: actions/setup-node@v7.0.0
+        with:
+          node-version: 24
+      - name: Record the release to build against
+        run: node scripts/write-release-tag.ts
+        env:
+          # Raises GitHub's unauthenticated API limit, which is shared across
+          # Actions egress IPs.
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Install, build, and upload your site
         uses: withastro/action@v6.1.2
         with:
           package-manager: pnpm@latest
           node-version: 24
           # path: . # The root location of your Astro project inside the repository. (optional)
-          # package-manager: pnpm@latest # The Node package manager that should be used to install dependencies and build your site. Automatically detected based on your lockfile. (optional)
           # build-cmd: pnpm run build # The command to run to build your site. Runs the package build script/task by default. (optional)
-          # env:
-        # PUBLIC_POKEAPI: 'https://pokeapi.co/api/v2' # Use single quotation marks for the variable value. (optional)
 
   deploy:
     needs: build

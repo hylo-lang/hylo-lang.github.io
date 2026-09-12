@@ -17,6 +17,7 @@ export const userGuideSidebar = [
     },
     {
         label: 'Tooling', items: [
+            {label: 'Installing the Compiler', slug: 'docs/user/installation'},
             {label: 'Editors', slug: 'docs/user/tooling/editors'},
             {label: 'Build Systems', slug: 'docs/user/tooling/build-systems'},
             {label: 'CI', slug: 'docs/user/tooling/ci'},

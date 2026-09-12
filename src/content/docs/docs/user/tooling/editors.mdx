@@ -2,21 +2,30 @@
 title: Editor Support
 ---
 
-A language is much more enjoyable with some great editor support. At the moment, we have syntax highlighting for VSCode, Emacs and Neovim, and LSP integration in VSCode and Neovim. You can use
-[Hylo's TextMate grammar](https://github.com/hylo-lang/vscode-hylo/blob/main/syntaxes/hylo.tmLanguage.json) and Hylo's [language server](https://github.com/hylo-lang/hylo-language-server) to add support for other editors.
+A language is much more enjoyable with great editor support. Although far from perfect, Hylo already has a language
+server, and support for various editors:
+- [VSCode](#visual-studio-code)
+- [Neovim](#neovim)
+- [Jetbrains IDEs](#jetbrains-ides-intellij-clion-etc)
+- [Emacs](#emacs-hylo-mode)
 
-import {slackLink} from "../../../../../links.js";
-import {Aside} from "@astrojs/starlight/components";
+<Aside title="Extending support">
+    You can use Hylo's
+    [TextMate grammar](https://github.com/hylo-lang/vscode-hylo/blob/main/syntaxes/hylo.tmLanguage.json) and
+    [language server](https://github.com/hylo-lang/hylo-language-server) to add support for more editors. We would like
+    to also maintain a tree-sitter grammar for incremental parsing.
 
-<Aside title="Help wanted!">
-    The language server is very much still work in progress. Contact us on <a href={slackLink}>Slack</a> if you want to join its development or help with integrating it to various editors!
+    If you've created an extension, please let us know so that we can promote it here, and possibly move it to the
+    [Hylo GitHub organization](https://github.com/hylo-lang/)!
 </Aside>
 
+import {Aside} from "@astrojs/starlight/components";
+
 ## Visual Studio Code
-Search for the extension named "Hylo" in the VSCode marketplace:
+Search for the extension named "Hylo" in the marketplace (in [VS](https://marketplace.visualstudio.com/items?itemName=hylo-lang.hylo) or [Open VSX](https://open-vsx.org/extension/hylo-lang/hylo)):
 ![Hylo extension in VSCode](./assets/vscode.png)
 
-This extension also adds code execution support, so if you want to set that up, check out [its documentation](https://github.com/hylo-lang/vscode-hylo/). Note that the code execution feature currently only supports the old compiler, so you may want to disable the LSP which uses the new frontend.
+The language server is automatically downloaded when you open a Hylo file.
 
 ## Neovim
 Neovim has Hylo support via LSP. You can set it up using Mason and nvim-lspconfig. Here is a full minimal `init.lua` example with Hylo LSP support. This will automatically download and enable the Hylo language server from the Mason registry.
@@ -70,9 +79,9 @@ require("lazy").setup({
 
 See this article for more details on the development of the Neovim integration: [Add Neovim Support for Your Language](/blog/nvim-lsp).
 
+## JetBrains IDEs (IntelliJ, CLion, etc.)
+There is experimental support for JetBrains IDEs implemented in [jetbrains-hylo](https://github.com/hylo-lang/jetbrains-hylo).
+There are a lot of rough edges that we need to fix still, as the JetBrains LSP support is not perfect out of the box.
+
 ## Emacs: Hylo mode
-We have an Emacs mode for Hylo in [this repository](https://github.com/hylo-lang/hylo-mode), which provides basic syntax highlighting. It is a fork of Swift's Emacs mode, so expect (and report) some inconsistencies. LSP support is not yet integrated.
-
-## Zed, IntelliJ, and Others...
-You can use the [Hylo's TextMate grammar](https://github.com/hylo-lang/vscode-hylo/blob/main/syntaxes/hylo.tmLanguage.json) of Hylo to easily add syntax highlighting support to other editors. If you have created an extension, please let us know so that we can promote it here, and possibly move it to the [Hylo GitHub organization](https://github.com/hylo-lang/)!
-
+We have an Emacs mode for Hylo in [this repository](https://github.com/hylo-lang/hylo-mode), which provides basic syntax highlighting. It is a fork of Swift's Emacs mode, so there may still be some inconsistencies. LSP support is not yet integrated.

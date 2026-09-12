@@ -56,6 +56,12 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      # Also gives the link checker the real download URLs to verify.
+      - name: Record the release to build against
+        run: node scripts/write-release-tag.ts
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
       - name: Build
         run: pnpm run build
 
