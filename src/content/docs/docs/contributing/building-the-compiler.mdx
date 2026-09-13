@@ -12,34 +12,35 @@ import {
 The <a href={compilerRepoLink}>Hylo compiler</a> is written in Swift, links against LLVM 23, and can be built using the
 Swift Package Manager.
 
+Environment setup can be challenging, so here is some emotional support:
+
+import HyloDuck from './hylo-duck.png'
+import { Image } from 'astro:assets';
+
+<Image
+    src={HyloDuck}
+    width="200"
+    alt="A yellow clay duck with a Hylo hoodie."/>
+
+If something doesn't work, feel free to ask on <a href={slackLink}>Slack</a> or report an issue!
 
 ## Environment Setup
-You can either [set up the environment manually](), or use a devcontainer (recommended).
+You can either [set up the environment manually](#option-2-manual-installation), or use a devcontainer (recommended).
 
 ### Option 1: Devcontainer
 
-A [development container](https://containers.dev/) is a Docker image described by
-the repository itself. Ours is built from
-[hylo-dev-toolchain](https://github.com/hylo-lang/hylo-dev-toolchain), and ships Swift, LLVM with
-assertions enabled, pkg-config, and the environment variables that connect them.
-Nothing needs installing on your machine beyond Docker.
-
-First set up a container runtime for your operating system, then open the container
-in your editor.
-
+A [development container](https://containers.dev/) allows us to use a pre-built Docker image,
+[hylo-dev-toolchain](https://github.com/hylo-lang/hylo-dev-toolchain) as our development environment. To use it, we need a container
+Runtime such as Docker. Using VSCode has the best devcontainer integration, but others may also
+work.
 
 #### Set up Docker
 
 <Tabs syncKey="os">
    <TabItem label="Linux">
-       Install [Docker Engine](https://docs.docker.com/engine/install/ubuntu/), then follow
-       its [post-installation steps](https://docs.docker.com/engine/install/linux-postinstall/) so you can run
-       Docker without `sudo`: TODO verify
-
-       ```bash frame=none
-       sudo usermod -aG docker $USER
-       newgrp docker
-       ```
+       Install [Docker Desktop](https://docs.docker.com/desktop/setup/install/linux/), or
+       [Docker Engine](https://docs.docker.com/engine/install/ubuntu/) along with its
+       [post-installation steps](https://docs.docker.com/engine/install/linux-postinstall/).
    </TabItem>
    <TabItem label="macOS">
        Install [Docker Desktop](https://docs.docker.com/desktop/setup/install/mac-install/).
@@ -61,21 +62,28 @@ in your editor.
            2. **Install Docker Desktop** and enable its WSL 2 backend, as described in
               [Docker's WSL documentation](https://docs.docker.com/desktop/features/wsl/).
            3. **Enable WSL Integration in Docker**
-              Open Docker Desktop, and go to Settings (gear icon) → Resources → WSL Integration, and enable WSL
+              Open Docker Desktop, and go to _Settings (gear icon) > Resources > WSL Integration_, and enable WSL
               integration for the distro you have installed.
 
            4. [Set up the Git Credential Manager in WSL](https://learn.microsoft.com/en-us/windows/wsl/tutorials/wsl-git)
-
-           5. **Clone the repository inside WSL**. Avoid cloning on a Windows drive to avoid a huge slow-down and
-              newline-related problems):
-              ```bash frame=none
-              git clone https://github.com/hylo-lang/hylo-new
-              git submodule update --init
-              ```
        </Steps>
    </TabItem>
 </Tabs>
 
+### Cloning the repository
+<Tabs syncKey="os">
+    <TabItem label="Linux"/>
+    <TabItem label="macOS"/>
+    <TabItem label="Windows">
+        **Clone the repository inside WSL**. Avoid cloning on a Windows drive to avoid a huge slow-down and
+        newline-related problems.
+    </TabItem>
+</Tabs>
+```bash frame=none
+git clone https://github.com/hylo-lang/hylo-new
+cd hylo-new
+git submodule update --init
+```
 
 #### Open the container in VSCode
 
@@ -95,7 +103,7 @@ in your editor.
        ```
 </Steps>
 
-Congrats, now you are ready to go!
+Congrats, now you are ready to go! Skip to [Build and test](#build-and-test).
 
 #### Bonus: Opening the container from the command line
 
@@ -108,14 +116,14 @@ npm install -g @devcontainers/cli
 devcontainer up --workspace-folder .
 devcontainer exec --workspace-folder . swift build
 devcontainer exec --workspace-folder . swift test
-devcontainer down --workspace-folder .` # warning: removes the container
+devcontainer down --workspace-folder . # warning: removes the container
 ```
 
 #### Bonus: Building against the Debug LLVM
 
-Two LLVM configurations are published, both with assertions enabled: `MinSizeRel`
-and `Debug`. The container uses `MinSizeRel` by default. To get a `Debug` build,
-set the following environment variable before building your devcontainer:
+By default, the container uses `MinSizeRel` LLVM. If you need to debug some LLVM internals,
+you can make the container use the `Debug` image version by setting the environment variable
+`HYLO_LLVM_BUILD_TYPE` to `Debug`:
 
 ```bash frame=none
 export HYLO_LLVM_BUILD_TYPE=Debug
@@ -123,73 +131,70 @@ export HYLO_LLVM_BUILD_TYPE=Debug
 
 ### Option 2: Manual Installation
 
-<Steps>
-    1. **Install Swift 6.3.2 or newer.**
+import WindowsDevMode from './windows-dev-mode.png';
 
-       <Tabs syncKey="os">
-           <TabItem label="Linux">
-               Use [swiftly](https://github.com/swiftlang/swiftly), Swift's
+<Tabs syncKey="os">
+    <TabItem label="Linux">
+        <Steps>
+            1. **Install Swift 6.3.2 or newer**, using [swiftly](https://github.com/swiftlang/swiftly), Swift's
                toolchain installer.
-           </TabItem>
-           <TabItem label="macOS">
-               Install from [swift.org](https://www.swift.org/install/macos/), or
-               install Xcode.
-           </TabItem>
-           <TabItem label="Windows">
-               Install from
-               [swift.org](https://www.swift.org/install/windows/).
-           </TabItem>
-       </Tabs>
 
-    3. **Install pkg-config**, which Swift Package Manager uses to find LLVM.
+            2. **Install pkg-config**, which Swift Package Manager uses to find LLVM.
 
-       <Tabs syncKey="os">
-           <TabItem label="Linux">
                ```bash frame=none
                sudo apt install pkg-config
                ```
-           </TabItem>
-           <TabItem label="macOS">
+
+            3. **Download Hylo's latest LLVM build** from
+               [the llvm-build releases page](https://github.com/hylo-lang/llvm-build/releases) and extract it
+               somewhere permanent.
+
+               We build LLVM for x64 and arm64, requiring glibc 2.39+ (Ubuntu 24.04+). If your platform is not among
+               these, you will need to acquire an LLVM 23 distribution that works for you, and generate `llvm.pc` using
+               our [scripts](https://github.com/hylo-lang/llvm-build#using-an-existing-llvm-build-with-swift).
+
+            4. **Tell pkg-config where to locate LLVM.**
+               The archive contains a `pkgconfig` subdirectory holding `llvm.pc`, which must be exposed on
+               `PKG_CONFIG_PATH`:
+
+               ```bash frame=none
+               export PKG_CONFIG_PATH="<LLVM>/pkgconfig:$PKG_CONFIG_PATH"
+               ```
+
+               Confirm it resolves:
+
+               ```bash frame=none
+               pkg-config --modversion llvm
+               ```
+        </Steps>
+    </TabItem>
+    <TabItem label="macOS">
+        <Steps>
+            1. **Install Swift 6.3.2 or newer**, from [swift.org](https://www.swift.org/install/macos/), or by
+               installing Xcode.
+
+            2. **Install pkg-config**, which Swift Package Manager uses to find LLVM.
+
                ```bash frame=none
                brew install pkgconf
                ```
-           </TabItem>
-           <TabItem label="Windows">
-               ```bash frame=none
-               choco install pkgconfiglite
-               ```
-               Or download from [SourceForge](https://sourceforge.net/projects/pkgconfiglite/).
-           </TabItem>
-       </Tabs>
 
-    4. **Download Hylo's latest LLVM build** from
-       [the llvm-build releases page](https://github.com/hylo-lang/llvm-build/releases) and extract it somewhere permanent.
+            3. **Download Hylo's latest LLVM build** from
+               [the llvm-build releases page](https://github.com/hylo-lang/llvm-build/releases) and extract it
+               somewhere permanent.
 
-       Currently, we build LLVM for the following platforms:
+               We build LLVM for Apple silicon and Intel, requiring macOS 26+. If your platform is not among these,
+               you will need to acquire an LLVM 23 distribution that works for you, and generate `llvm.pc` using our
+               [scripts](https://github.com/hylo-lang/llvm-build#using-an-existing-llvm-build-with-swift).
 
-        | Platform | Architectures | Minimum version |
-        | --- | --- | --- |
-        | Linux | x64, arm64 | glibc 2.39+ (Ubuntu 24.04+) |
-        | macOS | Apple silicon, Intel | macOS 26+ |
-        | Windows | x64, arm64 | Windows 11 |
+            4. **Tell pkg-config where to locate LLVM.**
+               The archive contains a `pkgconfig` subdirectory holding `llvm.pc`, which must be exposed on
+               `PKG_CONFIG_PATH`:
 
-       If your platform is not among these, you will need to acquire an LLVM 23 distribution that works for you, and
-       generate llvm.pc using our [scripts](https://github.com/hylo-lang/llvm-build#using-an-existing-llvm-build-with-swift).
-
-    4. **Tell pkg-config where to locate LLVM.**
-       The archive contains a `pkgconfig`
-       subdirectory holding `llvm.pc`, which must be exposed on `PKG_CONFIG_PATH`:
-
-       <Tabs syncKey="os">
-           <TabItem label="Linux">
                ```bash frame=none
                export PKG_CONFIG_PATH="<LLVM>/pkgconfig:$PKG_CONFIG_PATH"
                ```
-           </TabItem>
-           <TabItem label="macOS">
-               ```bash frame=none
-               export PKG_CONFIG_PATH="<LLVM>/pkgconfig:$PKG_CONFIG_PATH"
-               ```
+
                <Aside type="tip" title="Xcode needs the .pc file installed">
                    Xcode ignores `PKG_CONFIG_PATH`, so if you build through Xcode rather than the
                    command line, install the file into a directory Xcode already searches. The
@@ -200,37 +205,67 @@ export HYLO_LLVM_BUILD_TYPE=Debug
                    ./install-pc.sh llvm.pc /usr/local/lib/pkgconfig/
                    ```
                </Aside>
-           </TabItem>
 
-           <TabItem label="Windows">
-               In PowerShell:
+               Confirm it resolves:
+
+               ```bash frame=none
+               pkg-config --modversion llvm
+               ```
+        </Steps>
+    </TabItem>
+    <TabItem label="Windows">
+        <Steps>
+            1. **Install Swift 6.3.2 or newer**, from [swift.org](https://www.swift.org/install/windows/).
+
+            2. **Enable developer mode** in _Settings > System > For developers > Developer Mode_:
+               <Image
+                    src={WindowsDevMode}
+                    alt="Settings > System > For developers > Developer Mode"/>
+
+            3. **Install pkg-config**, which Swift Package Manager uses to find LLVM.
+
+               ```powershell frame=none
+               choco install pkgconfiglite
+               ```
+
+               Or download it from [SourceForge](https://sourceforge.net/projects/pkgconfiglite/).
+
+            4. **Download Hylo's latest LLVM build** from
+               [the llvm-build releases page](https://github.com/hylo-lang/llvm-build/releases) and extract it
+               somewhere permanent.
+
+               We build LLVM for x64 and arm64, requiring Windows 11. If your platform is not among these, you will
+               need to acquire an LLVM 23 distribution that works for you, and generate `llvm.pc` using our
+               [scripts](https://github.com/hylo-lang/llvm-build#using-an-existing-llvm-build-with-swift).
+
+            5. **Tell pkg-config where to locate LLVM.**
+               The archive contains a `pkgconfig` subdirectory holding `llvm.pc`, which must be exposed on
+               `PKG_CONFIG_PATH`. In PowerShell:
 
                ```powershell wrap frame=none
                $env:PKG_CONFIG_PATH = "<LLVM>\pkgconfig;$env:PKG_CONFIG_PATH"
-               ```
 
-               To persist it across terminals:
-
-               ```powershell wrap frame=none
+               # Persist across sessions:
                [Environment]::SetEnvironmentVariable("PKG_CONFIG_PATH", $env:PKG_CONFIG_PATH, "User")
                ```
-           </TabItem>
 
-       </Tabs>
+               Confirm it resolves:
 
-       Confirm it resolves:
-
-       ```bash frame=none
-       pkg-config --modversion llvm
-       ```
-</Steps>
+               ```powershell frame=none
+               pkg-config --modversion llvm
+               ```
+        </Steps>
+    </TabItem>
+</Tabs>
 
 
 ## Build and test
 
 ```bash frame=none
-swift build
-swift test
+swift build  # build in debug mode, without tests
+swift test  # build and run tests in debug mode
+swift test -c release  # buld and run tests in release mode
+swift test --parallel  # build and run tests in parallel
 ```
 
 ## Compiler Tests
@@ -239,21 +274,21 @@ A large part of our test suite is generated from hylo programs at
 [`Tests/CompilerTests/{positive,negative}/*.hylo`](https://github.com/hylo-lang/hylo-new/tree/main/Tests/CompilerTests).
 See instructions in the [Compiler Testing Guide](https://github.com/hylo-lang/hylo-new/blob/main/Tests/CompilerTests/README.md).
 
-## Building for ross-compilation
+## Building for cross-compilation
 
-By default, a custom-built `hc` can only generate code for the machine it is running on
-To build a cross-capable version, supply the `SWIFTY_LLVM_CROSS_COMPILATION_ENABLED` flag (already set in official releases):
+By default, a custom-built `hc` can only generate code for the machine it is running on. To build a cross-capable
+version, supply the `SWIFTY_LLVM_CROSS_COMPILATION_ENABLED` flag (already set in official releases):
 
 ```bash wrap frame=none
 swift build -c release -Xswiftc -DSWIFTY_LLVM_CROSS_COMPILATION_ENABLED
 ```
 
-## Reach out for help
-
-If something didn't work, ask on <a href={slackLink}>Slack</a> or report an issue. If you are ready, welcome onboard!
+If everything works, welcome on board!
 <CardGrid>
     <LinkCard title="Contributing Guide"
               href="/docs/contributing/"/>
+    <LinkCard title="Good first issues"
+              href="https://github.com/hylo-lang/hylo-new/issues?q=is%3Aissue%20state%3Aopen%20label%3A%22good%20first%20issue%22"/>
     <LinkCard title="Coding Conventions"
               href="/docs/contributing/coding-conventions/"/>
     <LinkCard title="Compiler Architecture"

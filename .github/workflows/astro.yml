@@ -19,6 +19,7 @@ on:
   # release it was last built with, which is stale but correct.
   repository_dispatch:
     types: [ hylo-release ]
+
   # Allows you to run this workflow manually from the Actions tab on GitHub.
   workflow_dispatch:
 
@@ -27,6 +28,10 @@ permissions:
   contents: read
   pages: write
   id-token: write
+
+concurrency:
+  group: "pages"
+  cancel-in-progress: false # Page deployments should be atomic.
 
 jobs:
   build:

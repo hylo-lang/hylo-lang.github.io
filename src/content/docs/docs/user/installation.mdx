@@ -54,66 +54,69 @@ On a platform not listed here, you need to
         Install [Visual Studio](https://visualstudio.microsoft.com/) with the
         *"Desktop development with C++"* workload including clang, or
         a [clang release](https://github.com/llvm/llvm-project/releases).
+
+        Make sure `clang` is on `Path`. When using VS, you can find it here: `C:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\VC\\Tools\\Llvm\\x64\\bin\\`
     </TabItem>
 </Tabs>
 
 ## Install the Hylo compiler
 
-### Linux
 
-Download and extract the portable archive:
-<Tabs syncKey="arch">
-    <TabItem label="x64">
-        <Code lang="bash" meta="wrap" code={downloadCommand(tag, 'linux', 'x64')}/>
+<Tabs syncKey="os">
+    <TabItem label="Linux">
+        Download and extract the portable archive:
+        <Tabs syncKey="arch">
+            <TabItem label="x64">
+                <Code lang="bash" meta="wrap" code={downloadCommand(tag, 'linux', 'x64')}/>
+            </TabItem>
+            <TabItem label="arm64">
+                <Code lang="bash" meta="wrap" code={downloadCommand(tag, 'linux', 'arm64')}/>
+            </TabItem>
+        </Tabs>
+
+        Then add it to your `PATH` by appending this to your terminal profile, e.g. `~/.bashrc`:
+
+        ```bash frame=none
+        export PATH="$HOME/.local/hylo:$PATH"
+        ```
     </TabItem>
-    <TabItem label="arm64">
-        <Code lang="bash" meta="wrap" code={downloadCommand(tag, 'linux', 'arm64')}/>
+    <TabItem label="macOS">
+        Download and extract the portable archive:
+
+        <Tabs syncKey="arch">
+            <TabItem label="Apple silicon">
+                <Code lang="bash" meta="wrap" code={downloadCommand(tag, 'macos', 'arm64')}/>
+            </TabItem>
+            <TabItem label="Intel">
+                <Code lang="bash" meta="wrap" code={downloadCommand(tag, 'macos', 'x64')}/>
+            </TabItem>
+        </Tabs>
+
+        Then add it to your `PATH` by appending this to your terminal profile, e.g. `~/.zshrc`:
+
+        ```bash frame=none
+        export PATH="$HOME/.local/hylo:$PATH"
+        ```
+    </TabItem>
+    <TabItem label="Windows">
+        Download and extract the portable archive:
+
+        <Tabs syncKey="arch">
+            <TabItem label="x64">
+                <Code lang="powershell" meta="wrap" code={downloadCommand(tag, 'windows', 'x64')}/>
+            </TabItem>
+            <TabItem label="arm64">
+                <Code lang="powershell" meta="wrap" code={downloadCommand(tag, 'windows', 'arm64')}/>
+            </TabItem>
+        </Tabs>
+        Then add that folder to your `Path`:
+
+        ```powershell wrap
+        [Environment]::SetEnvironmentVariable(
+          "Path", "$env:LOCALAPPDATA\Hylo;" + [Environment]::GetEnvironmentVariable("Path", "User"), "User")
+        ```
     </TabItem>
 </Tabs>
-
-Then add it to your `PATH` by appending this to your terminal profile, e.g. `~/.bashrc`:
-
-```bash frame=none
-export PATH="$HOME/.local/hylo:$PATH"
-```
-
-### macOS
-
-<Tabs syncKey="arch">
-    <TabItem label="Apple silicon">
-        <Code lang="bash" meta="wrap" code={downloadCommand(tag, 'macos', 'arm64')}/>
-    </TabItem>
-    <TabItem label="Intel">
-        <Code lang="bash" meta="wrap" code={downloadCommand(tag, 'macos', 'x64')}/>
-    </TabItem>
-</Tabs>
-
-Then add it to your `PATH` by appending this to your terminal profile, e.g. `~/.zshrc`:
-
-```bash frame=none
-export PATH="$HOME/.local/hylo:$PATH"
-```
-
-### Windows
-
-Download and extract the archive:
-
-<Tabs syncKey="arch">
-    <TabItem label="x64">
-        <Code lang="powershell" meta="wrap" code={downloadCommand(tag, 'windows', 'x64')}/>
-    </TabItem>
-    <TabItem label="arm64">
-        <Code lang="powershell" meta="wrap" code={downloadCommand(tag, 'windows', 'arm64')}/>
-    </TabItem>
-</Tabs>
-
-Then add that folder to your `Path`:
-
-```powershell wrap
-[Environment]::SetEnvironmentVariable(
-  "Path", "$env:LOCALAPPDATA\Hylo;" + [Environment]::GetEnvironmentVariable("Path", "User"), "User")
-```
-
 ## Verify your installation
 
 ```bash
