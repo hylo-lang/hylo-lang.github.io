@@ -4,8 +4,6 @@ import starlight from '@astrojs/starlight';
 import starlightThemeRapide from 'starlight-theme-rapide'
 import tailwindcss from '@tailwindcss/vite';
 import {sidebar} from "./src/content/docs/.sidebar.ts";
-import * as fs from "node:fs";
-import {pluginErrorPreview} from "./src/components/error-preview-plugin.ts";
 import {compilerRepoLink, slackLink} from "./src/links.ts";
 
 // https://astro.build/config
@@ -38,17 +36,6 @@ export default defineConfig({
             },
             customCss: ['./src/styles/global.css'],
             plugins: [starlightThemeRapide()],
-            expressiveCode: {
-                shiki: {
-                    langs: [
-                        JSON.parse(fs.readFileSync('./src/assets/syntax/hylo.tmLanguage.json', 'utf-8')),
-                        JSON.parse(fs.readFileSync('./src/assets/syntax/ebnf.tmLanguage.json', 'utf-8')),
-                    ]
-                },
-                plugins: [
-                    pluginErrorPreview()
-                ]
-            }
         }),
 
     ],

@@ -8,7 +8,7 @@ This website is built using the static site generator
 [Astro](https://astro.build/), with the [Starlight](https://starlight.astro.build/) theme.
 
 Requirements:
-- Recent [NodeJS](https://nodejs.org/en/download).
+- Recent [NodeJS](https://nodejs.org/en/download) 24+.
 - pnpm package manager. You can install it via npm:
   ```bash
   npm install -g pnpm
@@ -44,6 +44,12 @@ All commands are run from the root of the project, from a terminal:
 | `pnpm preview`         | Preview your build locally, before deploying     |
 | `pnpm astro ...`       | Run CLI commands like `astro add`, `astro check` |
 | `pnpm astro -- --help` | Get help using the Astro CLI                     |
+
+## Deployment
+
+The site is a fully static build, deployed to **GitHub Pages** by
+[`.github/workflows/astro.yml`](.github/workflows/astro.yml) on every push to `main`, and
+on new releases of `hylo-new`.
 
 ## Typos
 

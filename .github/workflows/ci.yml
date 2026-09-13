@@ -56,6 +56,11 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      - name: Record the release to build against
+        run: node scripts/write-release-tag.ts
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
       - name: Build
         run: pnpm run build
 

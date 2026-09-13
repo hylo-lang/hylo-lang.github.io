@@ -5,6 +5,11 @@ on:
   # Using a different branch name? Replace `main` with your branch’s name
   push:
     branches: [ main ]
+
+  # Polls for a new compiler release, which the pages are generated from.
+  schedule:
+    - cron: '42 * * * *'
+
   # Allows you to run this workflow manually from the Actions tab on GitHub.
   workflow_dispatch:
 
@@ -15,25 +20,63 @@ permissions:
   id-token: write
 
 jobs:
+  # Scheduled runs exist only to pick up a new compiler release, so they stop here
+  # unless there is one.
+  check:
+    name: Decide whether to rebuild
+    runs-on: ubuntu-latest
+    outputs:
+      rebuild: ${{ steps.compare.outputs.rebuild }}
+    steps:
+      - name: Compare the latest release against the deployed site
+        id: compare
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          rebuild=true
+          if [ "$GITHUB_EVENT_NAME" = schedule ]; then
+            latest=$(gh api repos/hylo-lang/hylo-new/releases/latest --jq .tag_name)
+            # Empty when the deployment predates `src/pages/release-tag.txt.ts`,
+            # which rebuilds once and publishes it.
+            live=$(curl -fsSL https://hylo-lang.org/release-tag.txt || true)
+            echo "Latest release $latest; site built against ${live:-an unknown release}."
+            [ "$latest" = "$live" ] && rebuild=false
+          fi
+          echo "rebuild=$rebuild" >> "$GITHUB_OUTPUT"
+
   build:
+    needs: check
+    if: needs.check.outputs.rebuild == 'true'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout your repository using git
         uses: actions/checkout@v7.0.1
+      # `withastro/action` sets up Node itself, but only after this step, and the
+      # runner's default Node may be too old to run a TypeScript file directly.
+      - name: Setup Node.js
+        uses: actions/setup-node@v7.0.0
+        with:
+          node-version: 24
+      - name: Record the release to build against
+        run: node scripts/write-release-tag.ts
+        env:
+          # Raises GitHub's unauthenticated API limit, which is shared across
+          # Actions egress IPs.
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Install, build, and upload your site
         uses: withastro/action@v6.1.2
         with:
           package-manager: pnpm@latest
           node-version: 24
           # path: . # The root location of your Astro project inside the repository. (optional)
-          # package-manager: pnpm@latest # The Node package manager that should be used to install dependencies and build your site. Automatically detected based on your lockfile. (optional)
           # build-cmd: pnpm run build # The command to run to build your site. Runs the package build script/task by default. (optional)
-          # env:
-        # PUBLIC_POKEAPI: 'https://pokeapi.co/api/v2' # Use single quotation marks for the variable value. (optional)
 
   deploy:
     needs: build
     runs-on: ubuntu-latest
+    concurrency:
+      group: "pages"
+      cancel-in-progress: false # Page deployments should be atomic.
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}

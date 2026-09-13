@@ -2,6 +2,8 @@
 dist/
 # generated types
 .astro/
+# lychee's link-check cache
+.lycheecache
 
 # dependencies
 node_modules/

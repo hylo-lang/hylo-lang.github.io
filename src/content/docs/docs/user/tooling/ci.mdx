@@ -2,33 +2,45 @@
 title: Continuous Integration
 ---
 
-## Setting Up the Hylo Toolchain
+This page covers installing the Hylo toolchain on CI runners. For setting it up on
+your own machine, see the [installation guide](/docs/user/installation/).
 
-### Prerequisites
-The Hylo toolchain requires `clang` to be installed and available on `PATH`.
+import {Code} from '@astrojs/starlight/components';
+import {tag} from '../../../../../release.ts';
 
-On Linux, you need to install zstd: `sudo apt-get install libzstd-dev`
-On MacOS, you need to install zstd from Homebrew: `brew install zstd`.
+{/*
+  Defined in an `export` block rather than inline in the `code` attribute below:
+  MDX
+  strips leading indentation from a multi-line template literal inside a JSX
+  attribute, which would flatten the YAML. An `export` block is passed through
+  verbatim.
+*/}
 
-The above steps are not needed if you use GitHub runners, as they already have these installed by default.
-We are planning to improve the packaging of the compiler to simplify this process.
-
-### Manual Installation
-If you have the prerequisites, you can download and extract the Hylo compiler from a release: https://github.com/hylo-lang/hylo-new/releases.
-
-### GitHub Actions
-
-The [setup-hylo](https://github.com/hylo-lang/setup-hylo) action makes it straightforward to install a cached version of the compiler:
-
-```yml
-- name: Set Up Hylo
+export const setupHyloWorkflow = `- name: Set Up Hylo
   uses: hylo-lang/setup-hylo@v1.0.0
   with:
-    version: v0.0.8
+    version: ${tag}
 
-# `hc` is now available on PATH:
-- run: hc --version
-```
+# \`hc\` is now available on PATH:
+- run: hc --version`;
+
+## GitHub Actions
+
+The [setup-hylo](https://github.com/hylo-lang/setup-hylo) action makes it
+straightforward to install a cached version of the compiler. Pin an explicit
+version so your builds stay reproducible:
+
+<Code lang="yml" code={setupHyloWorkflow} />
+
+It works on Linux, macOS and Windows runners, on x64 and arm64. Releases are built
+on macOS 26, so use `macos-26` or newer for macOS jobs.
+
+## Other CI systems
+
+On runners without a dedicated action, download and extract a release archive as
+described in the [installation guide](/docs/user/installation/). GitHub's runners
+already have `clang` available; elsewhere you may need to install it, since `hc`
+uses it to link executables.
 
 ### GitLab CI/CD
 Contributions are welcome!

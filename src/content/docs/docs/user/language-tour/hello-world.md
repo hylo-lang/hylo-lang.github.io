@@ -16,7 +16,6 @@ _The standard library provides an API to interact with the program's environment
 
 To run this program, open it online in [Compiler Explorer](https://godbolt.org/z/Mv9a77a4c).
 
-If you happen to have the compiler [built locally](/docs/contributing/building-the-compiler/), you can also follow these steps:
-* Copy that `main` function into a file called `Hello.hylo`.
-* Run the command `hc Hello.hylo -o hello`.
-* Run the command `./hello` to run the executable.
+Once you have [installed the compiler](/docs/user/installation/), you can also follow these steps:
+* Copy that `main` function into a file called `hello.hylo`.
+* Run `hc hello.hylo && ./hello`.

@@ -1,0 +1,129 @@
+---
+title: Installing the Hylo compiler
+description: Install the Hylo compiler and set up your editor.
+---
+
+We ship <a href={compilerReleasesLink}>pre-built portable binary archives</a> as part of our release
+process.
+
+
+import {Code, TabItem, Tabs} from '@astrojs/starlight/components';
+import {compilerReleasesLink} from '../../../../links.ts';
+import {downloadCommand, tag, version} from '../../../../release.ts';
+
+{
+/* ## Try it without installation
+
+The fastest way to try Hylo is [Compiler Explorer](https://godbolt.org/z/Mv9a77a4c), which needs no setup at all.
+Note that currently this hosts our old compiler, but we are going to upgrade this soon.
+*/
+}
+
+## Supported platforms
+
+The prebuilt archives target:
+
+| Platform | Architectures | Minimum version |
+| --- | --- | --- |
+| Linux | x64, arm64 | glibc 2.39+ (Ubuntu 24.04+) |
+| macOS | Apple silicon, Intel | macOS 26+ |
+| Windows | x64, arm64 | Windows 11 |
+
+On a platform not listed here, you need to
+[build from source](/docs/contributing/building-the-compiler/) instead.
+
+## Prerequisites
+
+<Tabs syncKey="os">
+    <TabItem label="Linux">
+        Hylo requires **`clang`** on `PATH` for linking, and for compiling the standard library shims.
+
+        ```bash frame=none
+        sudo apt install clang tar zstd
+        ```
+    </TabItem>
+    <TabItem label="macOS">
+        Hylo requires `clang` and `xcrun` on `PATH` for linking, and for compiling the standard library shims.
+
+        ```bash frame=none
+        xcode-select --install
+        ```
+    </TabItem>
+    <TabItem label="Windows">
+        Hylo requires `clang` on `Path` for linking, and for compiling the standard library shims.
+
+        Install [Visual Studio](https://visualstudio.microsoft.com/) with the
+        *"Desktop development with C++"* workload including clang, or
+        a [clang release](https://github.com/llvm/llvm-project/releases).
+
+        Make sure `clang` is on `Path`. When using VS, you can find it here: `C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\Llvm\x64\bin\`
+    </TabItem>
+</Tabs>
+
+## Install the Hylo compiler
+
+
+<Tabs syncKey="os">
+    <TabItem label="Linux">
+        Download and extract the portable archive:
+        <Tabs syncKey="arch">
+            <TabItem label="x64">
+                <Code lang="bash" meta="wrap" code={downloadCommand(tag, 'linux', 'x64')}/>
+            </TabItem>
+            <TabItem label="arm64">
+                <Code lang="bash" meta="wrap" code={downloadCommand(tag, 'linux', 'arm64')}/>
+            </TabItem>
+        </Tabs>
+
+        Then add it to your `PATH` by appending this to your terminal profile, e.g. `~/.bashrc`:
+
+        ```bash frame=none
+        export PATH="$HOME/.local/hylo:$PATH"
+        ```
+    </TabItem>
+    <TabItem label="macOS">
+        Download and extract the portable archive:
+
+        <Tabs syncKey="arch">
+            <TabItem label="Apple silicon">
+                <Code lang="bash" meta="wrap" code={downloadCommand(tag, 'macos', 'arm64')}/>
+            </TabItem>
+            <TabItem label="Intel">
+                <Code lang="bash" meta="wrap" code={downloadCommand(tag, 'macos', 'x64')}/>
+            </TabItem>
+        </Tabs>
+
+        Then add it to your `PATH` by appending this to your terminal profile, e.g. `~/.zshrc`:
+
+        ```bash frame=none
+        export PATH="$HOME/.local/hylo:$PATH"
+        ```
+    </TabItem>
+    <TabItem label="Windows">
+        Download and extract the portable archive:
+
+        <Tabs syncKey="arch">
+            <TabItem label="x64">
+                <Code lang="powershell" meta="wrap" code={downloadCommand(tag, 'windows', 'x64')}/>
+            </TabItem>
+            <TabItem label="arm64">
+                <Code lang="powershell" meta="wrap" code={downloadCommand(tag, 'windows', 'arm64')}/>
+            </TabItem>
+        </Tabs>
+        Then add that folder to your `Path`:
+
+        ```powershell wrap frame=none
+        [Environment]::SetEnvironmentVariable(
+          "Path", "$env:LOCALAPPDATA\Hylo;" + [Environment]::GetEnvironmentVariable("Path", "User"), "User")
+        ```
+    </TabItem>
+</Tabs>
+## Verify your installation
+
+```bash
+hc --version
+```
+
+It should print {version}.
+
+Next step: [set up your editor!](/docs/user/tooling/editors/)
