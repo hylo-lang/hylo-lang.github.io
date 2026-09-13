@@ -2,8 +2,7 @@ allowBuilds:
   esbuild: true
   sharp: true
 
-minimumReleaseAgeExclude:
-  - date-fns@4.3.0
+minimumReleaseAge: 4320 # 3 days
 
 onlyBuiltDependencies:
   - esbuild
