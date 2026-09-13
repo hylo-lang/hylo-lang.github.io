@@ -5,7 +5,10 @@ import {
   downloadCommand,
   expectedAssets,
   parseLatestTag,
+  POSIX_INSTALL_DIR,
+  releaseProblem,
   tag,
+  WINDOWS_INSTALL_DIR,
 } from './release.ts';
 
 /** A complete asset list for `tag`, as the releases API would report it. */
@@ -24,7 +27,8 @@ describe('downloadCommand', () => {
   it('downloads and unpacks the archive on a POSIX platform', () => {
     expect(downloadCommand('v1.2.3', 'linux', 'arm64')).toBe(
       'curl -LO https://github.com/hylo-lang/hylo-new/releases/download/v1.2.3/hylo-v1.2.3-linux-arm64.tar.zst\n' +
-        'mkdir -p ~/.local/hylo && tar --zstd -xf hylo-v1.2.3-linux-arm64.tar.zst -C ~/.local/hylo',
+        'mkdir -p "$HOME/.local/hylo" && ' +
+        'tar --zstd -xf hylo-v1.2.3-linux-arm64.tar.zst -C "$HOME/.local/hylo"',
     );
   });
 
@@ -33,6 +37,19 @@ describe('downloadCommand', () => {
     // `curl` is a PowerShell alias for Invoke-WebRequest, which takes no -LO.
     expect(command).toContain('curl.exe -LO ');
     expect(command).toContain('"$env:LOCALAPPDATA\\Hylo"');
+  });
+});
+
+describe('releaseProblem', () => {
+  it('names which half of the check failed', () => {
+    expect(releaseProblem({ tag_name: 'v0.0.9', assets: complete('v0.0.9') })).toBeNull();
+    // `v-old-*` is the old compiler's scheme: nothing about its archives to report.
+    expect(releaseProblem({ tag_name: 'v-old-0.0.42', assets: [] }))
+      .toContain('not a tag of the form');
+    expect(releaseProblem({ tag_name: 'v0.0.9', assets: 'six' }))
+      .toBe('v0.0.9 carries no list of assets.');
+    expect(releaseProblem({ tag_name: 'v0.0.9', assets: [] }))
+      .toContain('hylo-v0.0.9-windows-arm64.tar.zst');
   });
 });
 
@@ -91,5 +108,17 @@ describe('the release pages', () => {
   it.each(PAGES)('contains no hand-written release version (%s)', async (page) => {
     const source = await readFile(new URL(`../${page}`, import.meta.url), 'utf8');
     expect(source.match(/(?<![\w@.])v\d+\.\d+\.\d+/g)).toBeNull();
+  });
+
+  /**
+   * The `PATH` instructions name the install directory in prose, so they have to be
+   * edited alongside `downloadCommand`'s extraction target — otherwise they send the
+   * reader to an empty directory.
+   */
+  it('tells the reader to add the directory the archive unpacks into to PATH', async () => {
+    const page = 'src/content/docs/docs/user/installation.mdx';
+    const source = await readFile(new URL(`../${page}`, import.meta.url), 'utf8');
+    expect(source).toContain(POSIX_INSTALL_DIR);
+    expect(source).toContain(WINDOWS_INSTALL_DIR);
   });
 });

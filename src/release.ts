@@ -5,6 +5,7 @@
  * script validates a release against it and the install snippets are built from
  * it, so the file the docs offer cannot drift from the file we checked for.
  */
+import { compilerReleasesLink } from './links.ts';
 import { tag } from './release-tag.ts';
 
 /** Operating systems we publish a toolchain archive for. */
@@ -18,7 +19,11 @@ export type Architecture = (typeof ARCHITECTURES)[number];
 /** Release tags are `vMAJOR.MINOR.PATCH`, optionally with a pre-release suffix. */
 const TAG_PATTERN = /^v\d+\.\d+\.\d+(?:[-+][0-9A-Za-z.-]+)?$/;
 
-const DOWNLOAD_BASE = 'https://github.com/hylo-lang/hylo-new/releases/download';
+const DOWNLOAD_BASE = `${compilerReleasesLink}/download`;
+
+/** Where the installation instructions suggest to unpack the archive. */
+export const POSIX_INSTALL_DIR = '$HOME/.local/hylo';
+export const WINDOWS_INSTALL_DIR = '$env:LOCALAPPDATA\\Hylo';
 
 export { tag };
 
@@ -60,14 +65,14 @@ export function downloadCommand(
   if (platform === 'windows') {
     return [
       `curl.exe -LO ${url}`,
-      'mkdir "$env:LOCALAPPDATA\\Hylo"',
-      `tar --zstd -xf ${archive} -C "$env:LOCALAPPDATA\\Hylo"`,
+      `mkdir "${WINDOWS_INSTALL_DIR}"`,
+      `tar --zstd -xf ${archive} -C "${WINDOWS_INSTALL_DIR}"`,
     ].join('\n');
   }
 
   return [
     `curl -LO ${url}`,
-    `mkdir -p ~/.local/hylo && tar --zstd -xf ${archive} -C ~/.local/hylo`,
+    `mkdir -p "${POSIX_INSTALL_DIR}" && tar --zstd -xf ${archive} -C "${POSIX_INSTALL_DIR}"`,
   ].join('\n');
 }
 
@@ -77,21 +82,30 @@ export function expectedAssets(tag: string): string[] {
 }
 
 /**
- * The release tag in a `releases/latest` payload, or `null` if it isn't usable.
+ * Why a `releases/latest` payload is not a release we can build against, or `null`
+ * if it is one.
  *
  * The asset check is the important half: `v0.0.9` was briefly published with zero
  * assets, and the install instructions would have pointed at files that did not
  * exist. A release that is still uploading counts as not yet available.
  */
+export function releaseProblem(payload: unknown): string | null {
+  const { tag_name: tag, assets } = (payload ?? {}) as {
+    tag_name?: unknown;
+    assets?: unknown;
+  };
+  if (typeof tag !== 'string' || !TAG_PATTERN.test(tag)) {
+    return `${JSON.stringify(tag)} is not a tag of the form vMAJOR.MINOR.PATCH.`;
+  }
+  if (!Array.isArray(assets)) return `${tag} carries no list of assets.`;
+
+  const published = new Set(assets.map((a) => (a as { name?: unknown })?.name));
+  const missing = expectedAssets(tag).filter((name) => !published.has(name));
+  if (missing.length) return `${tag} is missing:\n  ${missing.join('\n  ')}`;
+  return null;
+}
+
+/** The release tag in a `releases/latest` payload, or `null` if it isn't usable. */
 export function parseLatestTag(payload: unknown): string | null {
-  if (typeof payload !== 'object' || payload === null) return null;
-
-  const { tag_name: tag, assets } = payload as { tag_name?: unknown; assets?: unknown };
-  if (typeof tag !== 'string' || !TAG_PATTERN.test(tag)) return null;
-  if (!Array.isArray(assets)) return null;
-
-  const published = new Set(
-    assets.map((a) => (a as { name?: unknown })?.name).filter((n) => typeof n === 'string'),
-  );
-  return expectedAssets(tag).every((name) => published.has(name)) ? tag : null;
+  return releaseProblem(payload) ? null : (payload as { tag_name: string }).tag_name;
 }

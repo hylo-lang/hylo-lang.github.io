@@ -3,12 +3,13 @@ title: Installing the Hylo compiler
 description: Install the Hylo compiler and set up your editor.
 ---
 
-We ship [pre-built portable binary archives](https://github.com/hylo-lang/hylo-new/releases) as part of our release
+We ship <a href={compilerReleasesLink}>pre-built portable binary archives</a> as part of our release
 process.
 
 
 import {Code, TabItem, Tabs} from '@astrojs/starlight/components';
-import {downloadCommand, tag} from '../../../../release.ts';
+import {compilerReleasesLink} from '../../../../links.ts';
+import {downloadCommand, tag, version} from '../../../../release.ts';
 
 {
 /* ## Try it without installation
@@ -38,7 +39,7 @@ On a platform not listed here, you need to
         Hylo requires **`clang`** on `PATH` for linking, and for compiling the standard library shims.
 
         ```bash frame=none
-        sudo apt-get install clang
+        sudo apt install clang tar zstd
         ```
     </TabItem>
     <TabItem label="macOS">
@@ -55,7 +56,7 @@ On a platform not listed here, you need to
         *"Desktop development with C++"* workload including clang, or
         a [clang release](https://github.com/llvm/llvm-project/releases).
 
-        Make sure `clang` is on `Path`. When using VS, you can find it here: `C:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\VC\\Tools\\Llvm\\x64\\bin\\`
+        Make sure `clang` is on `Path`. When using VS, you can find it here: `C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\Llvm\x64\bin\`
     </TabItem>
 </Tabs>
 
@@ -111,7 +112,7 @@ On a platform not listed here, you need to
         </Tabs>
         Then add that folder to your `Path`:
 
-        ```powershell wrap
+        ```powershell wrap frame=none
         [Environment]::SetEnvironmentVariable(
           "Path", "$env:LOCALAPPDATA\Hylo;" + [Environment]::GetEnvironmentVariable("Path", "User"), "User")
         ```
@@ -122,8 +123,6 @@ On a platform not listed here, you need to
 ```bash
 hc --version
 ```
-
-import {version} from '../../../../release.ts';
 
 It should print {version}.
 

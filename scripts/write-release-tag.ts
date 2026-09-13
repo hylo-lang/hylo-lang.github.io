@@ -1,13 +1,14 @@
 /**
  * Records the latest Hylo release in `src/release-tag.ts`, for the site to build
- * against. Run by CI before every build; see `.github/workflows/ci.yml`.
+ * against. Run before every build by `.github/workflows/ci.yml` and
+ * `.github/workflows/astro.yml`.
  *
  * Exits non-zero without writing if the release cannot be resolved. The committed
  * placeholder would otherwise ship download links to archives that do not exist,
  * so a failure here has to fail the build.
  */
 import { writeFileSync } from 'node:fs';
-import { expectedAssets, parseLatestTag } from '../src/release.ts';
+import { parseLatestTag, releaseProblem } from '../src/release.ts';
 
 const API_URL = 'https://api.github.com/repos/hylo-lang/hylo-new/releases/latest';
 const TARGET = new URL('../src/release-tag.ts', import.meta.url);
@@ -22,13 +23,10 @@ if (!response.ok) {
   process.exit(1);
 }
 
-const payload = await response.json();
+const payload: unknown = await response.json();
 const tag = parseLatestTag(payload);
 if (!tag) {
-  const published = new Set((payload?.assets ?? []).map((a: { name?: string }) => a.name));
-  const missing = expectedAssets(payload?.tag_name ?? '').filter((n) => !published.has(n));
-  console.error(`Unusable release ${JSON.stringify(payload?.tag_name)}.`);
-  if (missing.length) console.error(`Missing assets:\n  ${missing.join('\n  ')}`);
+  console.error(`Unusable release: ${releaseProblem(payload)}`);
   process.exit(1);
 }
 

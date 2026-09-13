@@ -70,7 +70,7 @@ work.
    </TabItem>
 </Tabs>
 
-### Cloning the repository
+#### Cloning the repository
 <Tabs syncKey="os">
     <TabItem label="Linux"/>
     <TabItem label="macOS"/>
@@ -103,7 +103,7 @@ git submodule update --init
        ```
 </Steps>
 
-Congrats, now you are ready to go! Skip to [Build and test](#build-and-test).
+Congrats, you are now ready to go! Skip to [Build and test](#build-and-test).
 
 #### Bonus: Opening the container from the command line
 
@@ -240,9 +240,9 @@ import WindowsDevMode from './windows-dev-mode.png';
 
             5. **Tell pkg-config where to locate LLVM.**
                The archive contains a `pkgconfig` subdirectory holding `llvm.pc`, which must be exposed on
-               `PKG_CONFIG_PATH`. In PowerShell:
+               `PKG_CONFIG_PATH`:
 
-               ```powershell wrap frame=none
+               ```powershell wrap title="PowerShell"
                $env:PKG_CONFIG_PATH = "<LLVM>\pkgconfig;$env:PKG_CONFIG_PATH"
 
                # Persist across sessions:
@@ -264,7 +264,7 @@ import WindowsDevMode from './windows-dev-mode.png';
 ```bash frame=none
 swift build  # build in debug mode, without tests
 swift test  # build and run tests in debug mode
-swift test -c release  # buld and run tests in release mode
+swift test -c release  # build and run tests in release mode
 swift test --parallel  # build and run tests in parallel
 ```
 

@@ -5,20 +5,10 @@ on:
   # Using a different branch name? Replace `main` with your branch’s name
   push:
     branches: [ main ]
-  # A new compiler release changes what the install and CI pages say, and those
-  # pages are generated from the release at build time — so a release has to
-  # rebuild the site. `hylo-new`'s release workflow sends this:
-  #
-  #   gh api repos/hylo-lang/hylo-lang.github.io/dispatches \
-  #     -f event_type=hylo-release
-  #
-  # using a token with `contents: write` on this repository. Send it only once
-  # every archive has finished uploading: `write-release-tag.ts` rejects a release
-  # that is missing any of them and fails the job rather than publishing links to
-  # archives that do not exist. Without any dispatch the site keeps showing the
-  # release it was last built with, which is stale but correct.
-  repository_dispatch:
-    types: [ hylo-release ]
+
+  # Polls for a new compiler release, which the pages are generated from.
+  schedule:
+    - cron: '42 * * * *'
 
   # Allows you to run this workflow manually from the Actions tab on GitHub.
   workflow_dispatch:
@@ -29,12 +19,34 @@ permissions:
   pages: write
   id-token: write
 
-concurrency:
-  group: "pages"
-  cancel-in-progress: false # Page deployments should be atomic.
-
 jobs:
+  # Scheduled runs exist only to pick up a new compiler release, so they stop here
+  # unless there is one.
+  check:
+    name: Decide whether to rebuild
+    runs-on: ubuntu-latest
+    outputs:
+      rebuild: ${{ steps.compare.outputs.rebuild }}
+    steps:
+      - name: Compare the latest release against the deployed site
+        id: compare
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          rebuild=true
+          if [ "$GITHUB_EVENT_NAME" = schedule ]; then
+            latest=$(gh api repos/hylo-lang/hylo-new/releases/latest --jq .tag_name)
+            # Empty when the deployment predates `src/pages/release-tag.txt.ts`,
+            # which rebuilds once and publishes it.
+            live=$(curl -fsSL https://hylo-lang.org/release-tag.txt || true)
+            echo "Latest release $latest; site built against ${live:-an unknown release}."
+            [ "$latest" = "$live" ] && rebuild=false
+          fi
+          echo "rebuild=$rebuild" >> "$GITHUB_OUTPUT"
+
   build:
+    needs: check
+    if: needs.check.outputs.rebuild == 'true'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout your repository using git
@@ -62,6 +74,9 @@ jobs:
   deploy:
     needs: build
     runs-on: ubuntu-latest
+    concurrency:
+      group: "pages"
+      cancel-in-progress: false # Page deployments should be atomic.
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
