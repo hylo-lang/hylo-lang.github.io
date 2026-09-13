@@ -11,16 +11,16 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@astrojs/starlight": "^0.38.5",
+    "@astrojs/starlight": "^0.42.0",
     "@astrojs/starlight-tailwind": "^5.0.0",
-    "@expressive-code/core": "^0.41.7",
+    "@expressive-code/core": "^0.44.2",
     "@lucide/astro": "^1.16.0",
     "@tailwindcss/vite": "^4.3.0",
-    "astro": "^6.3.7",
+    "astro": "^7.3.2",
     "date-fns": "^4.3.0",
     "date-fns-tz": "^3.2.0",
     "sharp": "^0.34.5",
-    "starlight-theme-rapide": "^0.5.2",
+    "starlight-theme-rapide": "^0.6.0",
     "tailwindcss": "^4.3.0"
   },
   "devDependencies": {

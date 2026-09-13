@@ -20,10 +20,11 @@ const talks = (await getCollection('talks')).sort((a, b) => {
             <tr>
                 <td>
                     <Icon name="youtube" class="inline mr-1 translate-y-0.5"/>
+                    &nbsp;
                     {talk.data.isKeynote &&
-                            <Badge text="Keynote" variant="note"/>}
+                            <><Badge text="Keynote" variant="note"/>{" "}</>}
                     {talk.data.isLightningTalk &&
-                    <span title="Lightning Talk">⚡</span>}
+                    <><span title="Lightning Talk">⚡</span>{" "}</>}
                     <a href={talk.data.url}>{talk.data.title}</a>
                 </td>
                 <td>{talk.data.authors.join(', ')}</td>
