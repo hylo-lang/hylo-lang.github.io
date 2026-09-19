@@ -49,7 +49,7 @@ public fun main() {
 }
 ```
 
-Some operations are said to be _consuming_, because they force-end the lifetime of a binding. In other words, they _must_ be the last use of the consumed binding. For example, assigning into a `var` binding consumes the source of the assignment. Similarly, tuple initialization consumes the source values.
+Some operations are said to be _consuming_, because they force-end the lifetime of a binding. In other words, they _must_ be the last use of the consumed binding. For example, assigning into a `var` binding consumes the source of the assignment. Similarly, forming new wholes --such as when initializing a tuple-- consumes the source values.
 
 ```hylo
 public fun main() {
