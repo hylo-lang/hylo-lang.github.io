@@ -79,7 +79,7 @@ jobs:
         uses: actions/checkout@v7.0.1
 
       - name: Run typos
-        uses: crate-ci/typos@v1.50.1
+        uses: crate-ci/typos@v1.50.2
 
   links:
     name: Link check (lychee)
