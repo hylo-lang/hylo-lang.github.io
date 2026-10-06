@@ -180,8 +180,8 @@ import WindowsDevMode from './windows-dev-mode.png';
 
             3. **Download Hylo's latest LLVM build** from
                [the llvm-build releases page](https://github.com/hylo-lang/llvm-build/releases) and extract it
-               somewhere permanent.  For unless you are debugging the LLVM code generation part of Hylo you
-               probably want the `MinSize` variant as the `Debug` variant will slow down testing considerably.
+               somewhere permanent. Unless you are debugging the LLVM code generation part of Hylo, you
+               probably want the `MinSize` variant, as the `Debug` variant slows down testing considerably.
 
                We build LLVM for x64 and arm64, requiring glibc 2.39+ (Ubuntu 24.04+). If your platform is not among
                these, you will need to acquire an LLVM 23 distribution that works for you, and generate `llvm.pc` using
