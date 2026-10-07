@@ -1,0 +1,74 @@
+{
+  "$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
+  "name": "wasm-asm",
+  "displayName": "WebAssembly assembly (LLVM)",
+  "scopeName": "source.wasm-asm",
+  "fileTypes": ["s"],
+  "comment": "The textual WebAssembly LLVM prints for wasm32 targets (`hc --emit asm`): GNU-style directives and labels around WebAssembly instructions. This is not the WAT text format, for which Shiki's `wasm` grammar is.",
+  "patterns": [
+    { "include": "#comments" },
+    { "include": "#label" },
+    { "include": "#directive" },
+    { "include": "#instruction" },
+    { "include": "#operands" }
+  ],
+  "repository": {
+    "comments": {
+      "patterns": [
+        { "name": "comment.line.number-sign.wasm-asm", "match": "#.*$" },
+        { "name": "comment.line.double-semicolon.wasm-asm", "match": ";;.*$" }
+      ]
+    },
+    "label": {
+      "comment": "A label: local ones (`.LBB0_2:`) mark blocks, others name functions and data.",
+      "patterns": [
+        {
+          "match": "^\\s*(\\.L[\\w.$]*)(:)",
+          "captures": {
+            "1": { "name": "entity.name.label.wasm-asm" },
+            "2": { "name": "punctuation.separator.label.wasm-asm" }
+          }
+        },
+        {
+          "match": "^\\s*([A-Za-z_$][\\w.$@]*)(:)",
+          "captures": {
+            "1": { "name": "entity.name.function.wasm-asm" },
+            "2": { "name": "punctuation.separator.label.wasm-asm" }
+          }
+        }
+      ]
+    },
+    "directive": {
+      "begin": "^\\s*(\\.[A-Za-z_][\\w.]*)",
+      "beginCaptures": { "1": { "name": "keyword.control.directive.wasm-asm" } },
+      "end": "$",
+      "patterns": [{ "include": "#operands" }]
+    },
+    "instruction": {
+      "comment": "`i32.const`, `local.get`, `call`, `end_function`, ...",
+      "begin": "^\\s*([a-z][a-z0-9_]*(?:\\.[a-z0-9_]+)*)\\b",
+      "beginCaptures": { "1": { "name": "keyword.other.instruction.wasm-asm" } },
+      "end": "$",
+      "patterns": [{ "include": "#operands" }]
+    },
+    "operands": {
+      "patterns": [
+        { "include": "#comments" },
+        { "match": "\"(?:[^\"\\\\]|\\\\.)*\"", "name": "string.quoted.double.wasm-asm" },
+        { "match": "@[A-Za-z_]\\w*", "name": "storage.modifier.attribute.wasm-asm" },
+        {
+          "match": "\\b(i32|i64|f32|f64|v128|funcref|externref|exnref)\\b",
+          "name": "storage.type.wasm-asm"
+        },
+        { "match": "->", "name": "keyword.operator.wasm-asm" },
+        { "match": "\\.L[\\w.$]*", "name": "entity.name.label.wasm-asm" },
+        {
+          "match": "-?\\b(?:0x[0-9A-Fa-f]+|\\d+(?:\\.\\d+)?(?:[eE][+-]?\\d+)?)\\b",
+          "name": "constant.numeric.wasm-asm"
+        },
+        { "match": "\\b[A-Za-z_$][\\w.$]*\\b", "name": "variable.other.symbol.wasm-asm" },
+        { "match": "[(),:]", "name": "punctuation.separator.wasm-asm" }
+      ]
+    }
+  }
+}

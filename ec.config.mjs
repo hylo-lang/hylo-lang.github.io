@@ -13,6 +13,8 @@ export default defineEcConfig({
     langs: [
       JSON.parse(fs.readFileSync('./src/assets/syntax/hylo.tmLanguage.json', 'utf-8')),
       JSON.parse(fs.readFileSync('./src/assets/syntax/ebnf.tmLanguage.json', 'utf-8')),
+      JSON.parse(fs.readFileSync('./src/assets/syntax/hylo-ir.tmLanguage.json', 'utf-8')),
+      JSON.parse(fs.readFileSync('./src/assets/syntax/wasm-asm.tmLanguage.json', 'utf-8')),
     ],
   },
   plugins: [pluginErrorPreview()],
