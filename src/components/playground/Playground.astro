@@ -1,0 +1,107 @@
+---
+/**
+ * A runnable, editable Hylo snippet.
+ *
+ * Wraps a code fence, which renders as any other code block (titles, highlighted lines and the
+ * like all work), and adds a button running it in the reader's browser with the compiler compiled
+ * to WebAssembly, one editing it, and a link opening it in the full-screen playground.
+ *
+ *     import Playground from '../../components/playground/Playground.astro';
+ *
+ *     <Playground outputs="result ir" focus="main" expect="exit 42">
+ *     ```hylo {3}
+ *     public fun main() -> Int32 {
+ *       var x = 40
+ *       &x = x + 2
+ *       return if x == 42 { 42 } else { 1 }
+ *     }
+ *     ```
+ *     </Playground>
+ *
+ * The compiler is only downloaded when a reader runs a snippet, and is shared by every snippet on
+ * the page.
+ */
+import { OUTPUTS, OUTPUT_TITLES, type Output, type Phase } from './protocol';
+import './playground.css';
+
+interface Props {
+  /**
+   * What to show once the code has run, as a list or a space-separated string, in the order of
+   * the tabs: `result` (the default: the exit status, what the program printed, and any
+   * diagnostics), `diagnostics`, `ir`, `raw-ir`, `llvm` and `assembly`.
+   */
+  outputs?: Output[] | string;
+  /** Functions to show in Hylo IR, by name, rather than all of them. */
+  focus?: string[] | string;
+  /** LLVM's optimization level, 0 to 3; 0 by default. */
+  optimization?: 0 | 1 | 2 | 3;
+  /** Whether the program depends on the standard library; true by default. */
+  standardLibrary?: boolean;
+  /**
+   * The phase after which to stop, for a snippet that is not a program: `typing` checks the code
+   * without running it, `lowering` also shows its IR.
+   */
+  stopAfter?: Phase;
+  /** Whether the reader may edit the code; true by default. */
+  editable?: boolean;
+  /**
+   * What the snippet does, for the test checking every snippet still does it: `exit N`, `trap`,
+   * `error` (it does not compile), or `ok` (it compiles, and runs if it is a program).
+   */
+  expect?: string;
+}
+
+const {
+  outputs = ['result'],
+  focus = [],
+  optimization = 0,
+  standardLibrary = true,
+  stopAfter,
+  editable = true,
+  expect,
+} = Astro.props;
+
+const list = (x: string[] | string): string[] =>
+  (typeof x === 'string' ? x.split(/[\s,]+/) : x).filter((s) => s !== '');
+const shown = list(outputs) as Output[];
+for (const o of shown) {
+  if (!OUTPUTS.includes(o)) throw new Error(`<Playground>: unknown output '${o}'`);
+}
+---
+
+<hylo-playground
+  data-outputs={shown.join(',')}
+  data-focus={list(focus).join(',') || undefined}
+  data-optimization={optimization}
+  data-standard-library={String(standardLibrary)}
+  data-stop-after={stopAfter}
+  data-expect={expect}
+  class="not-content"
+>
+  <div data-part="source"><slot /></div>
+  <div data-part="editor" class="pg-editor" hidden></div>
+  <div class="pg-toolbar" role="toolbar" aria-label="Snippet">
+    <button type="button" data-part="run" class="pg-button pg-primary">
+      {stopAfter ? 'Check' : 'Run'}
+    </button>
+    {editable && <button type="button" data-part="edit" class="pg-button">Edit</button>}
+    <button type="button" data-part="reset" class="pg-button" hidden>Reset</button>
+    <a data-part="open" class="pg-link" href={`${import.meta.env.BASE_URL.replace(/\/?$/, '/')}playground/`}>
+      Open in the playground
+    </a>
+  </div>
+  <div data-part="output" class="pg-output" hidden>
+    {shown.length > 1 && (
+      <div class="pg-tabs" role="tablist">
+        {shown.map((o) => (
+          <button type="button" role="tab" data-output={o}>{OUTPUT_TITLES[o]}</button>
+        ))}
+      </div>
+    )}
+    <div data-part="view" class="pg-view" role="region" aria-live="polite"></div>
+  </div>
+</hylo-playground>
+
+<script>
+  import './playground-element';
+</script>

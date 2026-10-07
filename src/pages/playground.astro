@@ -1,0 +1,197 @@
+---
+/**
+ * The full-screen playground: the whole window for the editor and what the compiler made of the
+ * code. A page of its own rather than a Starlight one, which would bring the site's header and
+ * sidebars; it uses the same colours, theme and fonts all the same.
+ */
+import { Image } from 'astro:assets';
+import darkLogo from '../assets/hylo-green-smaller.png';
+import lightLogo from '../assets/hylo-black.png';
+import { OUTPUTS, OUTPUT_TITLES } from '../components/playground/protocol';
+import 'starlight-theme-rapide/styles/theme';
+import '../components/playground/playground.css';
+
+const base = import.meta.env.BASE_URL.replace(/\/?$/, '/');
+---
+
+<!doctype html>
+<html lang="en" dir="ltr" data-theme="dark">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Playground | Hylo</title>
+    <meta
+      name="description"
+      content="Compile and run Hylo in your browser, and see what the compiler makes of it."
+    />
+    <link rel="icon" href={`${base}hylo-favicon.png`} />
+    <!-- The reader's light or dark choice from the rest of the site, before the first paint, as
+         Starlight's own ThemeProvider reads it. -->
+    <script is:inline>
+      (() => {
+        let stored = null;
+        try {
+          stored = localStorage.getItem('starlight-theme');
+        } catch {}
+        const theme =
+          stored || (matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
+        document.documentElement.dataset.theme = theme === 'light' ? 'light' : 'dark';
+      })();
+    </script>
+  </head>
+  <body>
+    <header class="bar">
+      <a class="home" href={base} aria-label="Hylo home">
+        <Image src={darkLogo} alt="" class="logo logo-dark" height={28} />
+        <Image src={lightLogo} alt="" class="logo logo-light" height={28} />
+      </a>
+      <h1>Playground</h1>
+      <select id="pg-examples" class="control" aria-label="Load an example">
+        <option value="">Examples…</option>
+      </select>
+      <select id="pg-optimization" class="control" aria-label="Optimization level">
+        <option value="0">-O0</option>
+        <option value="1">-O1</option>
+        <option value="2">-O2</option>
+        <option value="3">-O3</option>
+      </select>
+      <span class="spacer"></span>
+      <a class="docs" href={`${base}docs/`}>Docs</a>
+      <button id="pg-share" type="button" class="pg-button">Share</button>
+      <button id="pg-run" type="button" class="pg-button pg-primary" title="Ctrl/⌘ + Enter">
+        Run
+      </button>
+    </header>
+    <main>
+      <section class="pane source" aria-label="Source">
+        <div id="pg-editor" class="editor"></div>
+      </section>
+      <section class="pane outputs" aria-label="Output">
+        <div class="pg-tabs" role="tablist">
+          {
+            OUTPUTS.map((o) => (
+              <button type="button" role="tab" data-output={o} aria-selected={String(o === 'result')}>
+                {OUTPUT_TITLES[o]}
+                {o === 'diagnostics' && <span id="pg-error-count" class="count" />}
+              </button>
+            ))
+          }
+        </div>
+        <div id="pg-view" class="pg-view" role="region" aria-live="polite"></div>
+        <p id="pg-timing" class="timing"></p>
+      </section>
+    </main>
+    <script>
+      import '../components/playground/full-screen';
+    </script>
+  </body>
+</html>
+
+<style>
+  :root {
+    --font: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  }
+  html,
+  body {
+    height: 100%;
+    margin: 0;
+  }
+  body {
+    display: flex;
+    flex-direction: column;
+    background: var(--sl-color-black);
+    color: var(--sl-color-white);
+    font: 15px/1.5 var(--font);
+  }
+  .bar {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.5rem 1rem;
+    border-bottom: 1px solid var(--sl-color-gray-5);
+    background: var(--sl-color-gray-7, var(--sl-color-black));
+  }
+  .home {
+    display: flex;
+  }
+  .logo {
+    width: auto;
+    height: 28px;
+  }
+  :root[data-theme='light'] .logo-dark,
+  :root[data-theme='dark'] .logo-light {
+    display: none;
+  }
+  h1 {
+    margin: 0 0.5rem 0 0;
+    font-size: 1.05rem;
+    font-weight: 600;
+  }
+  .control {
+    font: inherit;
+    font-size: 0.875rem;
+    padding: 0.25rem 0.5rem;
+    border-radius: 0.4rem;
+    border: 1px solid var(--sl-color-gray-5);
+    background: var(--sl-color-black);
+    color: var(--sl-color-white);
+  }
+  .spacer {
+    flex: 1;
+  }
+  .docs {
+    color: var(--sl-color-gray-2);
+    font-size: 0.875rem;
+  }
+  main {
+    flex: 1;
+    min-height: 0;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+  }
+  .pane {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    min-width: 0;
+  }
+  .source {
+    border-right: 1px solid var(--sl-color-gray-5);
+  }
+  .editor {
+    flex: 1;
+    min-height: 0;
+  }
+  .outputs .pg-view {
+    flex: 1;
+    max-height: none;
+  }
+  .count:not(:empty) {
+    margin-left: 0.35rem;
+    color: var(--sl-color-red-high);
+  }
+  .timing {
+    margin: 0;
+    padding: 0.35rem 1rem;
+    font-size: 0.8rem;
+    color: var(--sl-color-gray-3);
+    border-top: 1px solid var(--sl-color-gray-5);
+  }
+  :global(body[data-compiling]) .pg-view {
+    opacity: 0.7;
+  }
+  @media (max-width: 50rem) {
+    .bar h1,
+    .docs {
+      display: none;
+    }
+    main {
+      grid-template-columns: 1fr;
+      grid-template-rows: 1fr 1fr;
+    }
+    .source {
+      border-right: 0;
+      border-bottom: 1px solid var(--sl-color-gray-5);
+    }
+  }
+</style>

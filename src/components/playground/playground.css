@@ -1,0 +1,189 @@
+/* The playground's look, in Starlight's colour tokens so that it follows the site's theme. Shared
+   by embedded snippets and the full-screen playground. */
+
+hylo-playground {
+  display: block;
+  margin-block: 1rem;
+}
+hylo-playground [data-part='source'] .expressive-code {
+  margin: 0;
+}
+/* Until the element is defined there is nothing for the buttons to do. */
+hylo-playground:not([data-ready]) .pg-toolbar {
+  display: none;
+}
+
+.pg-editor {
+  min-height: 3rem;
+  border: 1px solid var(--sl-color-gray-5);
+  border-radius: 0.5rem;
+  overflow: hidden;
+}
+
+.pg-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+  font-size: var(--sl-text-sm, 0.875rem);
+}
+.pg-button {
+  font: inherit;
+  padding: 0.25rem 0.85rem;
+  border-radius: 0.4rem;
+  border: 1px solid var(--sl-color-gray-5);
+  background: transparent;
+  color: var(--sl-color-white);
+  cursor: pointer;
+}
+.pg-button:hover {
+  border-color: var(--sl-color-gray-3);
+}
+.pg-button:focus-visible,
+.pg-link:focus-visible,
+.pg-tabs [role='tab']:focus-visible,
+.pg-diagnostics button:focus-visible {
+  outline: 2px solid var(--sl-color-accent);
+  outline-offset: 1px;
+}
+.pg-primary {
+  background: var(--sl-color-accent);
+  border-color: var(--sl-color-accent);
+  color: var(--sl-color-black);
+  font-weight: 600;
+}
+.pg-primary:hover {
+  border-color: var(--sl-color-accent-high);
+}
+.pg-button[aria-busy] {
+  opacity: 0.6;
+  cursor: progress;
+}
+.pg-link {
+  margin-left: auto;
+  color: var(--sl-color-gray-2);
+}
+
+.pg-output {
+  margin-top: 0.5rem;
+  border: 1px solid var(--sl-color-gray-5);
+  border-radius: 0.5rem;
+  overflow: hidden;
+}
+.pg-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+  padding: 0.25rem 0.5rem 0;
+  border-bottom: 1px solid var(--sl-color-gray-5);
+  background: var(--sl-color-gray-6);
+}
+.pg-tabs [role='tab'] {
+  font: inherit;
+  font-size: var(--sl-text-xs, 0.8rem);
+  padding: 0.35rem 0.6rem;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  background: none;
+  color: var(--sl-color-gray-3);
+  cursor: pointer;
+}
+.pg-tabs [role='tab'][aria-selected='true'] {
+  color: var(--sl-color-white);
+  border-bottom-color: var(--sl-color-accent);
+}
+.pg-view {
+  padding: 0.75rem 1rem;
+  max-height: 28rem;
+  overflow: auto;
+}
+.pg-view progress {
+  width: min(20rem, 100%);
+  accent-color: var(--sl-color-accent);
+}
+
+.pg-headline {
+  margin: 0 0 0.25rem;
+  font-weight: 600;
+}
+.pg-ok {
+  color: var(--sl-color-green-high);
+}
+.pg-bad {
+  color: var(--sl-color-red-high);
+}
+.pg-warn {
+  color: var(--sl-color-orange-high);
+}
+.pg-note {
+  margin: 0;
+  color: var(--sl-color-gray-3);
+}
+.pg-label {
+  margin: 0.75rem 0 0.25rem;
+  font-size: var(--sl-text-xs, 0.8rem);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--sl-color-gray-3);
+}
+.pg-pre,
+.pg-code pre {
+  margin: 0;
+  font-family: var(--__sl-font-mono, ui-monospace, monospace);
+  font-size: var(--sl-text-code, 0.875rem);
+  line-height: 1.6;
+  white-space: pre;
+  tab-size: 4;
+  overflow: visible;
+  background: transparent !important;
+}
+
+/* Shiki's two-theme output: the page's theme decides. */
+.pg-code span {
+  color: var(--shiki-dark);
+}
+:root[data-theme='light'] .pg-code span {
+  color: var(--shiki-light);
+}
+
+.pg-diagnostics {
+  list-style: none;
+  margin: 0.5rem 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+.pg-diagnostics li {
+  margin: 0;
+}
+.pg-diagnostics button {
+  display: flex;
+  gap: 0.75rem;
+  width: 100%;
+  font: inherit;
+  text-align: left;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  cursor: pointer;
+}
+.pg-diagnostics button:disabled {
+  cursor: default;
+}
+.pg-diagnostics li[data-level='error'] .pg-site {
+  color: var(--sl-color-red-high);
+}
+.pg-diagnostics li[data-level='warning'] .pg-site {
+  color: var(--sl-color-orange-high);
+}
+.pg-site {
+  font-family: var(--__sl-font-mono, ui-monospace, monospace);
+  color: var(--sl-color-gray-3);
+}
+.pg-diagnostics .pg-pre {
+  margin-top: 0.25rem;
+  color: var(--sl-color-gray-2);
+}
