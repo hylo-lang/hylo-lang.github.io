@@ -5,6 +5,7 @@ import starlightThemeRapide from 'starlight-theme-rapide'
 import tailwindcss from '@tailwindcss/vite';
 import {sidebar} from "./src/content/docs/.sidebar.ts";
 import {compilerRepoLink, slackLink} from "./src/links.ts";
+import {injectMonacoStyles} from "./src/plugins/inject-monaco-styles.ts";
 
 // https://astro.build/config
 export default defineConfig({
@@ -40,6 +41,6 @@ export default defineConfig({
 
     ],
     vite: {
-        plugins: [tailwindcss()],
+        plugins: [tailwindcss(), injectMonacoStyles()],
     },
 });
