@@ -5,9 +5,11 @@
 import { compiler } from './compiler';
 import { createEditor, type Editor } from './editor';
 import { EXAMPLES } from './examples';
-import { renderOutput, renderStatus } from './outputs';
-import type { Output, Result } from './protocol';
+import { describeStatus, renderOutput, renderStatus, summarize } from './outputs';
+import type { Result } from './protocol';
 import { decodeOptimization, decodeSource, playgroundURL } from './source-link';
+import { connectTabs } from './tabs';
+import type { Output } from './views';
 
 const STORAGE_KEY = 'hylo-playground:source';
 
@@ -16,9 +18,12 @@ const view = $<HTMLElement>('pg-view');
 const optimization = $<HTMLSelectElement>('pg-optimization');
 const examples = $<HTMLSelectElement>('pg-examples');
 
+const status = $<HTMLElement>('pg-status');
+
 let shown: Output = 'result';
 let result: Result | null = null;
-let sent = 0;
+/** Incremented whenever a view is asked for, so that a stale rendering is dropped. */
+let generation = 0;
 
 /** Reads `key` from local storage, which may be unavailable. */
 function recall(key: string): string | null {
@@ -66,44 +71,50 @@ function scheduleCompile(): void {
   timer = setTimeout(() => void compile(), 400);
 }
 
-/** Compiles and runs the editor's code, showing the result unless a newer one was asked for. */
+/**
+ * Compiles and runs the editor's code, and shows the result. A request still waiting when a newer
+ * one is made is dropped, so that typing never queues up stale work.
+ */
 async function compile(): Promise<void> {
   clearTimeout(timer);
-  const id = ++sent;
   document.body.toggleAttribute('data-compiling', true);
-  const r = await compiler.compile({
-    source: editor.value,
-    emit: ['raw-ir', 'ir', 'llvm', 'assembly', 'executable'],
-    optimization: Number(optimization.value),
-  });
-  if (id !== sent) return;
+  const r = await compiler.compile(
+    {
+      source: editor.value,
+      emit: ['raw-ir', 'ir', 'llvm', 'assembly', 'executable'],
+      optimization: Number(optimization.value),
+    },
+    { key: 'full-screen' },
+  );
+  if (r === null) return;
   document.body.removeAttribute('data-compiling');
   result = r;
   editor.showDiagnostics(r.compile.diagnostics ?? []);
   const errors = (r.compile.diagnostics ?? []).filter((d) => d.level === 'error').length;
   $('pg-error-count').textContent = errors > 0 ? String(errors) : '';
-  $('pg-timing').textContent =
-    r.compile.milliseconds !== undefined ? `Compiled in ${r.compile.milliseconds.toFixed(0)} ms` : '';
+  const timing = r.compile.milliseconds !== undefined ? ` Compiled in ${r.compile.milliseconds.toFixed(0)} ms.` : '';
+  status.textContent = summarize(r) + timing;
   await show(shown);
 }
 
+const select = connectTabs($('pg-tabs'), view, (o) => void show(o));
+
 async function show(output: Output): Promise<void> {
   shown = output;
-  for (const tab of document.querySelectorAll<HTMLButtonElement>('[data-output]')) {
-    tab.setAttribute('aria-selected', String(tab.dataset.output === output));
-  }
-  if (result) {
-    await renderOutput(view, output, result, { onReveal: (l, c) => editor.reveal(l, c) });
-  }
+  select(output);
+  if (!result) return;
+  const g = ++generation;
+  const rendered = document.createElement('div');
+  await renderOutput(rendered, output, result, { onReveal: (l, c) => editor.reveal(l, c) });
+  if (g === generation) view.replaceChildren(...rendered.childNodes);
 }
+select(shown);
 
 compiler.watch((s) => {
-  if (s.kind !== 'ready' && result === null) renderStatus(view, s);
+  if (s.kind === 'ready' || result !== null) return;
+  renderStatus(view, s);
+  status.textContent = describeStatus(s) ?? '';
 });
-
-for (const tab of document.querySelectorAll<HTMLButtonElement>('[data-output]')) {
-  tab.addEventListener('click', () => void show(tab.dataset.output as Output));
-}
 for (const e of EXAMPLES) examples.add(new Option(e.name, e.name));
 examples.addEventListener('change', () => {
   const e = EXAMPLES.find((x) => x.name === examples.value);

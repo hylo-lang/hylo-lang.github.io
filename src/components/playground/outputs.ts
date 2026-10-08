@@ -2,14 +2,8 @@
  * How a playground shows what the compiler did: one function per view, each filling a container
  * from a `Result`, so that an embedded playground and the full-screen one show the same things.
  */
-import { highlight } from './highlight';
-import {
-  OUTPUT_LANGUAGES,
-  type CompilerStatus,
-  type Diagnostic,
-  type Output,
-  type Result,
-} from './protocol';
+import type { CompilerStatus, Diagnostic, Result } from './protocol';
+import { OUTPUT_LANGUAGES, type Output } from './views';
 
 export interface RenderOptions {
   /**
@@ -42,9 +36,11 @@ export async function renderOutput(
       return;
     }
     const shown = output === 'ir' || output === 'raw-ir' ? focusIR(text, options.focus ?? []) : text;
+    // The highlighter is only loaded by the first view that needs it.
+    const { highlight } = await import('./highlight');
     const code = document.createElement('div');
     code.className = 'pg-code';
-    code.innerHTML = await highlight(shown, OUTPUT_LANGUAGES[output]!);
+    code.innerHTML = await highlight(shown, OUTPUT_LANGUAGES[output]);
     container.replaceChildren(code);
   }
 }
@@ -54,9 +50,11 @@ export function renderStatus(container: HTMLElement, status: CompilerStatus): vo
   switch (status.kind) {
     case 'loading': {
       const p = note(
-        status.total > 0 && status.loaded < status.total
-          ? `Downloading the compiler… ${megabytes(status.loaded)} of ${megabytes(status.total)}`
-          : 'Compiling the standard library…',
+        status.total === 0
+          ? 'Loading the compiler…'
+          : status.loaded < status.total
+            ? `Downloading the compiler… ${megabytes(status.loaded)} of ${megabytes(status.total)}`
+            : 'Compiling the standard library…',
       );
       const bar = document.createElement('progress');
       if (status.total > 0) {
@@ -74,9 +72,39 @@ export function renderStatus(container: HTMLElement, status: CompilerStatus): vo
   }
 }
 
+/**
+ * Returns a sentence summing up `r`, for the status line that screen readers announce rather than
+ * the whole view.
+ */
+export function summarize(r: Result): string {
+  const c = r.compile;
+  if (r.gaveUp) return r.gaveUp;
+  if (c.error) return 'The compiler failed.';
+  const errors = (c.diagnostics ?? []).filter((d) => d.level === 'error').length;
+  if (r.run === null) {
+    return errors > 0 ? `Does not compile: ${errors} error${errors > 1 ? 's' : ''}.` : 'Compiles.';
+  }
+  return r.run.trap !== undefined ? 'The program trapped.' : `Exited with status ${r.run.exitCode}.`;
+}
+
+/** Returns a sentence describing `status`, or `null` once the compiler is ready. */
+export function describeStatus(status: CompilerStatus): string | null {
+  switch (status.kind) {
+    case 'loading':
+      return 'Loading the compiler…';
+    case 'failed':
+      return 'The compiler failed to load.';
+    default:
+      return null;
+  }
+}
+
 /** The elements of the result view. */
 function resultView(r: Result, options: RenderOptions): Node[] {
   const c = r.compile;
+  if (r.gaveUp) {
+    return [headline('warn', r.gaveUp), note('Does the program loop forever? It was stopped.')];
+  }
   if (c.error) return [headline('bad', 'Internal error'), pre(c.error)];
 
   const errors = (c.diagnostics ?? []).filter((d) => d.level === 'error');
@@ -131,6 +159,7 @@ function diagnosticList(ds: Diagnostic[], options: RenderOptions): HTMLElement {
 
 /** Returns why an artifact was not produced. */
 function notProducedReason(r: Result): string {
+  if (r.gaveUp) return `Not produced: ${r.gaveUp.toLowerCase()}`;
   if (r.compile.error) return 'Not produced: the compiler failed.';
   const failed = (r.compile.diagnostics ?? []).some((d) => d.level === 'error');
   return failed ? 'Not produced: the program does not compile.' : 'Not produced.';

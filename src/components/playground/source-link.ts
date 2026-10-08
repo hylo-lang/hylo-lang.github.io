@@ -1,9 +1,9 @@
 /**
  * Code in a URL: `#code=` followed by the source, deflated and in base64url.
  *
- * The same format as hylo-new's own playground (`Tools/wasm/repl/src/share.ts`), so that a link
- * made by either opens in either. A link may also carry an optimization level, as `&o=2`.
+ * A link may also carry an optimization level, as `&o=2`.
  */
+import { PLAYGROUND_PATH } from './site';
 
 /** Returns `source` encoded for a `#code=` fragment. */
 export async function encodeSource(source: string): Promise<string> {
@@ -36,7 +36,6 @@ export function decodeOptimization(hash: string): number | null {
 
 /** Returns the address of the full-screen playground, opened on `source` at `optimization`. */
 export async function playgroundURL(source: string, optimization = 0): Promise<string> {
-  const base = import.meta.env.BASE_URL.replace(/\/?$/, '/');
   const level = optimization > 0 ? `&o=${optimization}` : '';
-  return `${base}playground/#code=${await encodeSource(source)}${level}`;
+  return `${PLAYGROUND_PATH}#code=${await encodeSource(source)}${level}`;
 }

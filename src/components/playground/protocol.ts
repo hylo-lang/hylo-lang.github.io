@@ -5,29 +5,8 @@
  * `Tools/wasm/js/worker.mjs` there); these types describe its messages.
  */
 
-/** A view of a compilation that a playground can show. */
-export type Output = 'result' | 'diagnostics' | 'raw-ir' | 'ir' | 'llvm' | 'assembly';
-
-/** Every view, in the order a playground offers them. */
-export const OUTPUTS: readonly Output[] = ['result', 'diagnostics', 'ir', 'raw-ir', 'llvm', 'assembly'];
-
-/** What each view is called. */
-export const OUTPUT_TITLES: Record<Output, string> = {
-  result: 'Result',
-  diagnostics: 'Diagnostics',
-  ir: 'Hylo IR',
-  'raw-ir': 'Raw Hylo IR',
-  llvm: 'LLVM IR',
-  assembly: 'WebAssembly',
-};
-
-/** The language each textual view is highlighted as. */
-export const OUTPUT_LANGUAGES: Partial<Record<Output, string>> = {
-  ir: 'hylo-ir',
-  'raw-ir': 'hylo-ir',
-  llvm: 'llvm',
-  assembly: 'wasm-asm',
-};
+/** A textual artifact the compiler can produce. */
+export type Artifact = 'raw-ir' | 'ir' | 'llvm' | 'assembly';
 
 /** The compilation phase after which a request may stop. */
 export type Phase = 'parsing' | 'scoping' | 'typing' | 'lowering';
@@ -35,7 +14,7 @@ export type Phase = 'parsing' | 'scoping' | 'typing' | 'lowering';
 /** A request to compile a program. */
 export interface CompileRequest {
   source: string;
-  emit: ('raw-ir' | 'ir' | 'llvm' | 'assembly' | 'executable')[];
+  emit: (Artifact | 'executable')[];
   optimization?: number;
   standardLibrary?: boolean;
   stopAfter?: Phase;
@@ -52,7 +31,7 @@ export interface Diagnostic {
 /** What compiling a request produced. */
 export interface Compilation {
   diagnostics?: Diagnostic[];
-  artifacts?: Partial<Record<'raw-ir' | 'ir' | 'llvm' | 'assembly', string>>;
+  artifacts?: Partial<Record<Artifact, string>>;
   /** Set instead of the rest when the compiler could not serve the request at all. */
   error?: string;
   milliseconds?: number;
@@ -72,6 +51,8 @@ export interface Execution {
 export interface Result {
   compile: Compilation;
   run: Execution | null;
+  /** Set iff the page stopped waiting for the answer, to a sentence saying so. */
+  gaveUp?: string;
 }
 
 /** The state of the compiler a page is using. */

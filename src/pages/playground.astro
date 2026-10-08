@@ -7,11 +7,10 @@
 import { Image } from 'astro:assets';
 import darkLogo from '../assets/hylo-green-smaller.png';
 import lightLogo from '../assets/hylo-black.png';
-import { OUTPUTS, OUTPUT_TITLES } from '../components/playground/protocol';
+import { url } from '../utils/url';
+import { OUTPUTS, OUTPUT_TITLES } from '../components/playground/views';
 import 'starlight-theme-rapide/styles/theme';
 import '../components/playground/playground.css';
-
-const base = import.meta.env.BASE_URL.replace(/\/?$/, '/');
 ---
 
 <!doctype html>
@@ -24,7 +23,7 @@ const base = import.meta.env.BASE_URL.replace(/\/?$/, '/');
       name="description"
       content="Compile and run Hylo in your browser, and see what the compiler makes of it."
     />
-    <link rel="icon" href={`${base}hylo-favicon.png`} />
+    <link rel="icon" href={url('hylo-favicon.png')} />
     <!-- The reader's light or dark choice from the rest of the site, before the first paint, as
          Starlight's own ThemeProvider reads it. -->
     <script is:inline>
@@ -41,7 +40,7 @@ const base = import.meta.env.BASE_URL.replace(/\/?$/, '/');
   </head>
   <body>
     <header class="bar">
-      <a class="home" href={base} aria-label="Hylo home">
+      <a class="home" href={url('')} aria-label="Hylo home">
         <Image src={darkLogo} alt="" class="logo logo-dark" height={28} />
         <Image src={lightLogo} alt="" class="logo logo-light" height={28} />
       </a>
@@ -56,29 +55,35 @@ const base = import.meta.env.BASE_URL.replace(/\/?$/, '/');
         <option value="3">-O3</option>
       </select>
       <span class="spacer"></span>
-      <a class="docs" href={`${base}docs/`}>Docs</a>
+      <a class="docs" href={url('docs/')}>Docs</a>
       <button id="pg-share" type="button" class="pg-button">Share</button>
       <button id="pg-run" type="button" class="pg-button pg-primary" title="Ctrl/⌘ + Enter">
         Run
       </button>
     </header>
+    <noscript>
+      <p class="noscript">
+        The playground runs the compiler in your browser, which needs JavaScript. The
+        <a href={url('docs/')}>documentation</a> works without it.
+      </p>
+    </noscript>
     <main>
       <section class="pane source" aria-label="Source">
         <div id="pg-editor" class="editor"></div>
       </section>
       <section class="pane outputs" aria-label="Output">
-        <div class="pg-tabs" role="tablist">
+        <div id="pg-tabs" class="pg-tabs" role="tablist" aria-label="Views">
           {
             OUTPUTS.map((o) => (
-              <button type="button" role="tab" data-output={o} aria-selected={String(o === 'result')}>
+              <button type="button" role="tab" data-output={o}>
                 {OUTPUT_TITLES[o]}
                 {o === 'diagnostics' && <span id="pg-error-count" class="count" />}
               </button>
             ))
           }
         </div>
-        <div id="pg-view" class="pg-view" role="region" aria-live="polite"></div>
-        <p id="pg-timing" class="timing"></p>
+        <div id="pg-view" class="pg-view"></div>
+        <p id="pg-status" class="status" role="status"></p>
       </section>
     </main>
     <script>
@@ -170,7 +175,11 @@ const base = import.meta.env.BASE_URL.replace(/\/?$/, '/');
     margin-left: 0.35rem;
     color: var(--sl-color-red-high);
   }
-  .timing {
+  .noscript {
+    margin: 0;
+    padding: 1rem;
+  }
+  .status {
     margin: 0;
     padding: 0.35rem 1rem;
     font-size: 0.8rem;

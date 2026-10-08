@@ -141,12 +141,17 @@ import Playground from '../../../../components/playground/Playground.astro';
 Wrap a code block in `<Playground>` to let readers run it in their browser, edit it, and open it in
 the [full-screen playground](/playground/). The code block renders as any other, highlights and
 all; the compiler, compiled to WebAssembly, is only downloaded when a reader first runs a snippet.
+That is about 28 MB, once, which the browser then caches.
 
 Only make a snippet runnable if the compiler can run it today. The `expect` attribute says what it
-does, and the site's tests check every snippet still does it.
+does (`exit N`, `trap`, `error` or `ok`), and the site's tests check every snippet still does it;
+the site does not build if a snippet has none.
+
+The import path is relative to the page: from a page in `src/content/docs/docs/<section>/`, the
+component is four directories up.
 
 ````mdx
-import Playground from '../../components/playground/Playground.astro';
+import Playground from '../../../../components/playground/Playground.astro';
 
 <Playground expect="exit 42">
 ```hylo

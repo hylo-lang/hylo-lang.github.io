@@ -7,18 +7,45 @@
  */
 import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { beforeAll, describe, expect, test } from 'vitest';
+import type { Phase } from './protocol';
+import { parseExpectation, snippetRequest } from './snippet';
+import type { Output } from './views';
 
-const root = new URL('../../..', import.meta.url).pathname;
+const root = fileURLToPath(new URL('../../..', import.meta.url));
 const compilerDir = path.join(root, 'public/playground/compiler');
 const available = existsSync(path.join(compilerDir, 'manifest.json'));
 
-/** A `<Playground>` snippet: where it is, its attributes, and its code. */
+/** A `<Playground>` snippet: where it is, its attributes, and its code fence. */
 interface Snippet {
   file: string;
   line: number;
   attributes: Record<string, string>;
+  /** The language of the fence, or `undefined` if there is none. */
+  language?: string;
   source: string;
+}
+
+/**
+ * Returns `mdx` without the code blocks other than `hylo` ones and without inline code, where a
+ * `<Playground>` is an example of the syntax rather than a snippet. Lines are blanked rather than
+ * removed, so that line numbers stay right.
+ */
+function withoutExamples(mdx: string): string {
+  const lines = mdx.split('\n');
+  let fence: { ticks: number; blank: boolean } | null = null;
+  for (const [i, line] of lines.entries()) {
+    const m = /^(`{3,})(.*)$/.exec(line);
+    if (fence === null) {
+      if (m) fence = { ticks: m[1].length, blank: !/^hylo\b/.test(m[2]) };
+      if (fence?.blank) lines[i] = '';
+    } else {
+      if (fence.blank) lines[i] = '';
+      if (m && m[1].length >= fence.ticks && m[2].trim() === '') fence = null;
+    }
+  }
+  return lines.join('\n').replace(/(?<!`)`[^`\n]+`(?!`)/g, '');
 }
 
 /** Returns the snippets in the MDX files under `dir`. */
@@ -27,21 +54,19 @@ function snippets(dir: string): Snippet[] {
     .filter((e) => e.isFile() && e.name.endsWith('.mdx'))
     .flatMap((e) => {
       const file = path.join(e.parentPath, e.name);
-      // A `<Playground>` inside a longer fence is an example of the syntax, not a snippet. Such
-      // fences are blanked out, keeping their lines so that line numbers stay right.
-      const text = readFileSync(file, 'utf8').replace(/^(`{4,})[^\n]*\n[\s\S]*?^\1\s*$/gm, (f) =>
-        f.replace(/[^\n]/g, ''),
-      );
-      return [...text.matchAll(/<Playground\b([^>]*)>\s*```hylo[^\n]*\n([\s\S]*?)```\s*<\/Playground>/g)].map(
-        (m) => ({
+      const text = withoutExamples(readFileSync(file, 'utf8'));
+      return [...text.matchAll(/<Playground\b([^>]*)>([\s\S]*?)<\/Playground>/g)].map((m) => {
+        const fence = /^\s*```(\S*)[^\n]*\n([\s\S]*?)```\s*$/.exec(m[2]);
+        return {
           file: path.relative(root, file),
           line: text.slice(0, m.index).split('\n').length,
           attributes: Object.fromEntries(
             [...m[1].matchAll(/(\w+)=(?:"([^"]*)"|\{([^}]*)\})/g)].map((a) => [a[1], a[2] ?? a[3]]),
           ),
-          source: m[2],
-        }),
-      );
+          language: fence?.[1],
+          source: fence?.[2] ?? '',
+        };
+      });
     });
 }
 
@@ -49,6 +74,11 @@ const all = snippets(path.join(root, 'src/content'));
 
 test('the site has runnable snippets to check', () => {
   expect(all.length).toBeGreaterThan(0);
+});
+
+test.each(all.map((s) => [`${s.file}:${s.line}`, s] as const))('%s is well formed', (_, s) => {
+  expect(s.language, 'a snippet wraps exactly one `hylo` code fence').toBe('hylo');
+  expect(parseExpectation(s.attributes.expect ?? ''), 'a snippet says what it does').not.toBeNull();
 });
 
 describe.skipIf(!available)('snippets, with the compiler in public/playground/compiler', () => {
@@ -75,20 +105,23 @@ describe.skipIf(!available)('snippets, with the compiler in public/playground/co
 
   test.each(all.map((s) => [`${s.file}:${s.line}`, s] as const))('%s', async (_, s) => {
     const a = s.attributes;
-    expect(a.expect, 'a snippet must say what it does with `expect`').toBeDefined();
-    const r = hylo.compile({
-      source: s.source,
-      emit: a.stopAfter ? [] : ['executable'],
-      optimization: Number(a.optimization ?? 0),
-      standardLibrary: a.standardLibrary !== 'false',
-      stopAfter: a.stopAfter,
-    });
+    const expectation = parseExpectation(a.expect ?? '');
+    if (expectation === null) throw new Error(`\`expect="${a.expect}"\` says nothing`);
+
+    // The request the snippet makes in the browser.
+    const r = hylo.compile(
+      snippetRequest(s.source, {
+        outputs: (a.outputs ?? 'result').split(/[\s,]+/).filter((o) => o !== '') as Output[],
+        optimization: Number(a.optimization ?? 0),
+        standardLibrary: a.standardLibrary !== 'false',
+        stopAfter: a.stopAfter as Phase | undefined,
+      }),
+    );
     expect(r.error).toBeUndefined();
     const errors = r.diagnostics.filter((d) => d.level === 'error').map((d) => d.rendered);
     const run = r.executable ? await hylo.run(r.executable) : null;
 
-    const [kind, value] = a.expect.split(/\s+/);
-    switch (kind) {
+    switch (expectation.kind) {
       case 'error':
         expect(errors, 'expected the snippet not to compile').not.toEqual([]);
         break;
@@ -102,10 +135,8 @@ describe.skipIf(!available)('snippets, with the compiler in public/playground/co
         break;
       case 'exit':
         expect(errors).toEqual([]);
-        expect(run?.exitCode).toBe(Number(value));
+        expect(run?.exitCode).toBe(expectation.status);
         break;
-      default:
-        throw new Error(`unknown expectation '${a.expect}'`);
     }
   });
 });

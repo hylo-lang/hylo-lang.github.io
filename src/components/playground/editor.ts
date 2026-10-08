@@ -41,9 +41,8 @@ export interface Editor {
 }
 
 export interface EditorOptions {
+  /** The Hylo code the editor starts with. */
   value: string;
-  language?: string;
-  readOnly?: boolean;
   /**
    * Whether the editor grows with its content, as one embedded in prose does, rather than filling
    * its container.
@@ -60,9 +59,8 @@ export async function createEditor(host: HTMLElement, options: EditorOptions): P
   await ready;
   const editor = monaco.editor.create(host, {
     value: options.value,
-    language: options.language ?? 'hylo',
+    language: 'hylo',
     theme: pageTheme(),
-    readOnly: options.readOnly ?? false,
     fontFamily: 'var(--__sl-font-mono, ui-monospace, SFMono-Regular, Menlo, Consolas, monospace)',
     fontSize: 14,
     lineHeight: 21,

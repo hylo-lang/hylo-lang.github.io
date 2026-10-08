@@ -1,138 +1,165 @@
 /**
- * `<hylo-playground>`: makes the code block inside it runnable and editable.
+ * `<hylo-playground>`: makes the code block inside it runnable, and editable if it allows it.
  *
  * Rendered by `Playground.astro`, which documents the attributes. The code block is whatever
  * Expressive Code rendered for the author's fence, and stays on the page until the reader edits
  * it, so a snippet looks like every other code block and works without JavaScript.
  */
 import { compiler } from './compiler';
-import { renderOutput, renderStatus } from './outputs';
-import { OUTPUT_TITLES, type CompileRequest, type Output, type Phase, type Result } from './protocol';
+import { describeStatus, renderOutput, renderStatus, summarize } from './outputs';
+import type { Phase, Result } from './protocol';
+import { snippetRequest, type SnippetSettings } from './snippet';
 import { playgroundURL } from './source-link';
+import { connectTabs } from './tabs';
+import type { Output } from './views';
 import type { Editor } from './editor';
 
 class HyloPlayground extends HTMLElement {
   #original = '';
-  #editor: Editor | null = null;
+  #editor: Promise<Editor> | null = null;
   #result: Result | null = null;
   #shown: Output = 'result';
+  #select: ((o: Output) => void) | null = null;
   #running = false;
+  /** Incremented whenever what is shown is invalidated, so that a stale rendering is dropped. */
+  #generation = 0;
   #unwatch: (() => void) | null = null;
 
-  get #outputs(): Output[] {
-    return (this.dataset.outputs ?? 'result').split(',') as Output[];
+  get #settings(): SnippetSettings {
+    return {
+      outputs: (this.dataset.outputs ?? 'result').split(',') as Output[],
+      optimization: Number(this.dataset.optimization ?? 0),
+      standardLibrary: this.dataset.standardLibrary !== 'false',
+      stopAfter: (this.dataset.stopAfter || undefined) as Phase | undefined,
+    };
   }
 
-  get #source(): string {
-    return this.#editor?.value ?? this.#original;
+  get #editable(): boolean {
+    return this.#part('edit') !== null;
   }
 
   connectedCallback(): void {
     this.#original = this.#readSource();
-    this.#shown = this.#outputs[0];
-    this.#part('run').addEventListener('click', () => void this.run());
-    this.#part('edit').addEventListener('click', () => void this.edit());
-    this.#part('reset').addEventListener('click', () => this.reset());
-    this.#part('open').addEventListener('click', (e) => void this.#open(e));
-    for (const tab of this.querySelectorAll<HTMLButtonElement>('[data-output]')) {
-      tab.addEventListener('click', () => this.#show(tab.dataset.output as Output));
+    this.#shown = this.#settings.outputs[0];
+    this.#part('run')!.addEventListener('click', () => void this.run());
+    this.#part('edit')?.addEventListener('click', () => void this.edit());
+    this.#part('reset')?.addEventListener('click', () => this.reset());
+    const tablist = this.querySelector<HTMLElement>('[role="tablist"]');
+    if (tablist) {
+      this.#select = connectTabs(tablist, this.#part('view')!, (o) => void this.#show(o));
+      this.#select(this.#shown);
     }
+    void this.#updateLink(this.#original);
     this.toggleAttribute('data-ready', true);
   }
 
   disconnectedCallback(): void {
     this.#unwatch?.();
-    this.#editor?.dispose();
+    void this.#editor?.then((e) => e.dispose());
   }
 
   /** Compiles and runs the code, showing the configured outputs. */
   async run(): Promise<void> {
     if (this.#running) return;
     this.#running = true;
-    this.#part('run').toggleAttribute('aria-busy', true);
-    const view = this.#part('view');
-    this.#part('output').hidden = false;
+    const generation = ++this.#generation;
+    const button = this.#part('run')!;
+    button.toggleAttribute('aria-busy', true);
+    const view = this.#part('view')!;
+    const status = this.#part('status')!;
+    this.#part('output')!.hidden = false;
 
     // Progress, until the compiler has answered.
     this.#unwatch = compiler.watch((s) => {
-      if (s.kind !== 'ready') renderStatus(view, s);
+      if (s.kind === 'ready') return;
+      renderStatus(view, s);
+      status.textContent = describeStatus(s) ?? '';
     });
-    this.#result = await compiler.compile(this.#request());
+    const source = await this.#source();
+    const result = await compiler.compile(snippetRequest(source, this.#settings));
     this.#unwatch();
     this.#unwatch = null;
-
-    this.#editor?.showDiagnostics(this.#result.compile.diagnostics ?? []);
-    await this.#show(this.#shown);
-    this.#part('run').removeAttribute('aria-busy');
     this.#running = false;
+    button.removeAttribute('aria-busy');
+    if (generation !== this.#generation || result === null) return;
+
+    this.#result = result;
+    status.textContent = summarize(result);
+    (await this.#editor)?.showDiagnostics(result.compile.diagnostics ?? []);
+    await this.#show(this.#shown);
   }
 
-  /** Replaces the code block by an editor holding the same code. */
-  async edit(): Promise<void> {
-    if (this.#editor) return this.#editor.focus();
-    const { createEditor } = await import('./editor');
-    const host = this.#part('editor');
-    host.hidden = false;
-    this.#editor = await createEditor(host, {
-      value: this.#original,
-      fitContent: true,
-      onRun: () => void this.run(),
-    });
-    this.#part('source').hidden = true;
-    this.#part('edit').hidden = true;
-    this.#part('reset').hidden = false;
-    this.#editor.focus();
+  /** Replaces the code block by an editor holding the same code, if the snippet is editable. */
+  edit(): Promise<Editor> | null {
+    if (!this.#editable) return null;
+    this.#editor ??= (async () => {
+      const { createEditor } = await import('./editor');
+      const host = this.#part('editor')!;
+      host.hidden = false;
+      const editor = await createEditor(host, {
+        value: this.#original,
+        fitContent: true,
+        onChange: (value) => void this.#updateLink(value),
+        onRun: () => void this.run(),
+      });
+      this.#part('source')!.hidden = true;
+      this.#part('edit')!.hidden = true;
+      this.#part('reset')!.hidden = false;
+      if (this.#result) editor.showDiagnostics(this.#result.compile.diagnostics ?? []);
+      return editor;
+    })();
+    void this.#editor.then((e) => e.focus());
+    return this.#editor;
   }
 
-  /** Puts the original code block back. */
+  /** Puts the original code block back, and forgets what running it showed. */
   reset(): void {
-    this.#editor?.dispose();
+    ++this.#generation;
+    void this.#editor?.then((e) => e.dispose());
     this.#editor = null;
-    this.#part('editor').hidden = true;
-    this.#part('editor').replaceChildren();
-    this.#part('source').hidden = false;
-    this.#part('edit').hidden = false;
-    this.#part('reset').hidden = true;
-    this.#part('output').hidden = true;
+    const host = this.#part('editor');
+    if (host) {
+      host.hidden = true;
+      host.replaceChildren();
+    }
+    this.#part('source')!.hidden = false;
+    this.#part('edit')?.removeAttribute('hidden');
+    this.#part('reset')?.setAttribute('hidden', '');
+    this.#part('output')!.hidden = true;
+    this.#part('status')!.textContent = '';
     this.#result = null;
+    void this.#updateLink(this.#original);
   }
 
-  #request(): CompileRequest {
-    const stopAfter = (this.dataset.stopAfter || undefined) as Phase | undefined;
-    const emit: CompileRequest['emit'] = this.#outputs.filter(
-      (o): o is 'raw-ir' | 'ir' | 'llvm' | 'assembly' => o !== 'result' && o !== 'diagnostics',
-    );
-    if (!stopAfter) emit.push('executable');
-    return {
-      source: this.#source,
-      emit,
-      optimization: Number(this.dataset.optimization ?? 0),
-      standardLibrary: this.dataset.standardLibrary !== 'false',
-      stopAfter,
-    };
+  /** The code as the reader sees it now. */
+  async #source(): Promise<string> {
+    return (await this.#editor)?.value ?? this.#original;
   }
 
   async #show(output: Output): Promise<void> {
     this.#shown = output;
-    for (const tab of this.querySelectorAll<HTMLButtonElement>('[data-output]')) {
-      tab.setAttribute('aria-selected', String(tab.dataset.output === output));
-    }
+    this.#select?.(output);
     if (!this.#result) return;
-    await renderOutput(this.#part('view'), output, this.#result, {
+    const generation = this.#generation;
+    const view = document.createElement('div');
+    await renderOutput(view, output, this.#result, {
       focus: this.dataset.focus ? this.dataset.focus.split(',') : [],
-      onReveal: (line, column) => void this.edit().then(() => this.#editor?.reveal(line, column)),
+      // Taking the reader to a diagnostic means editing the code.
+      onReveal: this.#editable
+        ? (line, column) => void this.edit()?.then((e) => e.reveal(line, column))
+        : undefined,
     });
-    this.#part('view').setAttribute('aria-label', OUTPUT_TITLES[output]);
+    // Another view may have been asked for, or the code run again, while this one rendered.
+    if (generation !== this.#generation || output !== this.#shown) return;
+    this.#part('view')!.replaceChildren(...view.childNodes);
   }
 
-  /** Opens the full-screen playground on the code as it is now. */
-  async #open(e: MouseEvent): Promise<void> {
-    const link = e.currentTarget as HTMLAnchorElement;
-    e.preventDefault();
-    const url = await playgroundURL(this.#source, Number(this.dataset.optimization ?? 0));
-    if (e.ctrlKey || e.metaKey || e.button === 1) window.open(url, '_blank');
-    else location.href = url;
-    link.href = url;
+  /** Points the link to the full-screen playground at `source`. */
+  async #updateLink(source: string): Promise<void> {
+    const link = this.#part('open') as HTMLAnchorElement;
+    const url = await playgroundURL(source, this.#settings.optimization);
+    // Encoding is asynchronous; a later edit may have been encoded first.
+    if (source === (await this.#source())) link.href = url;
   }
 
   /** The code of the block, as Expressive Code's copy button holds it. */
@@ -147,8 +174,8 @@ class HyloPlayground extends HTMLElement {
     return this.querySelector('pre')?.textContent ?? '';
   }
 
-  #part(name: string): HTMLElement {
-    return this.querySelector(`[data-part="${name}"]`)!;
+  #part(name: string): HTMLElement | null {
+    return this.querySelector(`[data-part="${name}"]`);
   }
 }
 
