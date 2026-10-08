@@ -57,9 +57,11 @@ Snippets wrapped in `<Playground>` run in the reader's browser, and `/playground
 full-screen playground; see "Runnable snippets" in
 `src/content/docs/docs/contributing/documentation.mdx` for how to write them. Both run the Hylo
 compiler compiled to WebAssembly, which `scripts/fetch-compiler.ts` puts in
-`public/playground/compiler/` from hylo-new's newest `wasm-v*` release:
+`public/playground/compiler/` from the release the site is built against (its
+`hylo-<tag>-wasm32-wasip1.tar.zst`):
 
 ```bash
+node scripts/write-release-tag.ts
 node scripts/fetch-compiler.ts
 ```
 

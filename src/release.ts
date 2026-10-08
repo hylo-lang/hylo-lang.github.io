@@ -49,6 +49,14 @@ export function downloadUrl(
 }
 
 /**
+ * Where the archive of the compiler compiled to WebAssembly is served from for `tag`: what the
+ * playground runs. Releases made before it existed do not have one.
+ */
+export function wasmDownloadUrl(tag: string): string {
+  return `${DOWNLOAD_BASE}/${tag}/hylo-${tag}-wasm32-wasip1.tar.zst`;
+}
+
+/**
  * Commands that download and unpack `tag` into the conventional location.
  *
  * Windows needs `curl.exe`, because `curl` is a PowerShell alias for
