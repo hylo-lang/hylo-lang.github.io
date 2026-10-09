@@ -4,18 +4,13 @@
  *
  * Every word of the IR and assembly the playground's compiler prints for the examples must get a
  * scope of its own, so that a construct the compiler learns and the grammars do not shows up here
- * rather than as uncoloured text on a page. That needs the compiler in public/playground/compiler
- * (see `scripts/fetch-compiler.ts`). A few lines are also checked token by token, for the scopes
- * that are easy to get subtly wrong.
+ * rather than as uncoloured text on a page. A few lines are also checked token by token, for the
+ * scopes that are easy to get subtly wrong.
  */
+import { type Compiler, load } from '@hylo-lang/hylo-wasm';
 import { beforeAll, describe, expect, test } from 'vitest';
 import { EXAMPLES } from '../../components/playground/examples';
 import { getHighlighter, THEMES } from '../../components/playground/highlight';
-import {
-  compilerAvailable,
-  instantiateCompiler,
-  type TestCompiler,
-} from '../../components/playground/test-compiler';
 
 type Language = 'hylo-ir' | 'wasm-asm';
 
@@ -153,13 +148,13 @@ describe('WebAssembly assembly', () => {
   });
 });
 
-describe.skipIf(!compilerAvailable)(
-  'what the compiler in public/playground/compiler prints for the examples',
+describe(
+  'what the compiler prints for the examples',
   () => {
-    let compile: TestCompiler['compile'];
+    let compile: Compiler['compile'];
 
     beforeAll(async () => {
-      const hylo = await instantiateCompiler();
+      const hylo = await load();
       compile = (request) => hylo.compile(request);
     }, 120_000);
 

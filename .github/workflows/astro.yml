@@ -63,10 +63,6 @@ jobs:
           # Raises GitHub's unauthenticated API limit, which is shared across
           # Actions egress IPs.
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - name: Fetch the playground compiler
-        run: node scripts/fetch-compiler.ts
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Install, build, and upload your site
         uses: withastro/action@v6.1.3
         with:

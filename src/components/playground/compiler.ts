@@ -6,8 +6,8 @@
  * that never returns, can be told apart from those waiting behind it: the worker is then
  * terminated, the request answered with an error, and a new worker started for the next one.
  */
+import HyloWorker from '@hylo-lang/hylo-wasm/worker?worker';
 import type { CompileRequest, CompilerStatus, Result } from './protocol';
-import { COMPILER_PATH } from './site';
 
 type Listener = (status: CompilerStatus) => void;
 
@@ -92,9 +92,7 @@ class Compiler {
 
   #start(): Worker {
     if (this.#worker) return this.#worker;
-    const w = new Worker(new URL('worker.mjs', new URL(COMPILER_PATH, location.href)), {
-      type: 'module',
-    });
+    const w = new HyloWorker();
     w.onmessage = ({ data }) => {
       switch (data.type) {
         case 'progress':

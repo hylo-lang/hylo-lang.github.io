@@ -32,17 +32,6 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      # The runnable snippets are checked against the compiler the site is built with.
-      - name: Record the release to build against
-        run: node scripts/write-release-tag.ts
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Fetch the playground compiler
-        run: node scripts/fetch-compiler.ts
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
       - name: Run tests
         run: pnpm test
 
@@ -69,11 +58,6 @@ jobs:
 
       - name: Record the release to build against
         run: node scripts/write-release-tag.ts
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Fetch the playground compiler
-        run: node scripts/fetch-compiler.ts
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 

@@ -42,5 +42,8 @@ export default defineConfig({
     ],
     vite: {
         plugins: [tailwindcss(), injectMonacoStyles()],
+        // The compiler's loader finds its files next to it, where dependency optimization would
+        // not leave it.
+        optimizeDeps: {exclude: ['@hylo-lang/hylo-wasm']},
     },
 });

@@ -9,12 +9,21 @@
  */
 import { writeFileSync } from 'node:fs';
 import { parseLatestTag, releaseProblem } from '../src/release.ts';
-import { fetchFromGitHub } from './github.ts';
 
 const API_URL = 'https://api.github.com/repos/hylo-lang/hylo-new/releases/latest';
 const TARGET = new URL('../src/release-tag.ts', import.meta.url);
 
-const payload: unknown = await (await fetchFromGitHub(API_URL)).json();
+const headers: Record<string, string> = { Accept: 'application/vnd.github+json' };
+// Raises GitHub's unauthenticated rate limit, which is shared across CI egress IPs.
+if (process.env.GITHUB_TOKEN) headers.Authorization = `Bearer ${process.env.GITHUB_TOKEN}`;
+
+const response = await fetch(API_URL, { headers, signal: AbortSignal.timeout(15_000) });
+if (!response.ok) {
+  console.error(`${API_URL} returned ${response.status} ${response.statusText}`);
+  process.exit(1);
+}
+
+const payload: unknown = await response.json();
 const tag = parseLatestTag(payload);
 if (!tag) {
   console.error(`Unusable release: ${releaseProblem(payload)}`);

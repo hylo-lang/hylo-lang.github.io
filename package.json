@@ -14,6 +14,7 @@
     "@astrojs/starlight": "^0.42.3",
     "@astrojs/starlight-tailwind": "^5.0.0",
     "@expressive-code/core": "^0.44.2",
+    "@hylo-lang/hylo-wasm": "^0.0.2",
     "@lucide/astro": "^1.48.0",
     "@shikijs/monaco": "^4.5.0",
     "@tailwindcss/vite": "^4.3.3",

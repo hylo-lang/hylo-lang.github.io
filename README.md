@@ -56,19 +56,11 @@ on new releases of `hylo-new`.
 Snippets wrapped in `<Playground>` run in the reader's browser, and `/playground/` is a
 full-screen playground; see "Runnable snippets" in
 `src/content/docs/docs/contributing/documentation.mdx` for how to write them. Both run the Hylo
-compiler compiled to WebAssembly, which `scripts/fetch-compiler.ts` puts in
-`public/playground/compiler/` from the release the site is built against (its
-`hylo-<tag>-wasm32-wasip1.tar.zst`):
-
-```bash
-node scripts/write-release-tag.ts
-node scripts/fetch-compiler.ts
-```
-
-Without it the site still builds, and running a snippet says the compiler is not available. To
-try a compiler you built yourself (`Sources/WASM` in hylo-new), point `HYLO_WASM_DIR` at the
-release its `js/scripts/package-release.ts` produced. `pnpm test` checks every snippet against
-the compiler that was fetched.
+compiler compiled to WebAssembly, from the npm package
+[`@hylo-lang/hylo-wasm`](https://www.npmjs.com/package/@hylo-lang/hylo-wasm), which hylo-new
+publishes with every release. The page loads it in a worker the first time a snippet runs. To
+try a compiler you built yourself (`Sources/WASM` in hylo-new), install the package you packed
+from it (`pnpm add <path to the .tgz>`). `pnpm test` checks every snippet against the compiler.
 
 ## Typos
 

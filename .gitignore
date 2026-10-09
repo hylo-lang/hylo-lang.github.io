@@ -23,5 +23,3 @@ pnpm-debug.log*
 .DS_Store
 
 .idea
-# the playground compiler, fetched by scripts/fetch-compiler.ts
-public/playground/compiler/

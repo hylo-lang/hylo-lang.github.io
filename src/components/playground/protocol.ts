@@ -1,8 +1,8 @@
 /**
  * What the compiler's worker is asked and answers.
  *
- * The worker is `worker.mjs` from a hylo-new WebAssembly release (see
- * `Sources/WASM/js/src/worker.ts` and `protocol.ts` there); these types describe its messages.
+ * The worker is `@hylo-lang/hylo-wasm/worker`, whose messages `@hylo-lang/hylo-wasm/protocol`
+ * describes; these types are the parts of them the playground relies on.
  */
 
 /** A textual artifact the compiler can produce. */

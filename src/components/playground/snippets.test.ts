@@ -1,6 +1,6 @@
 /**
  * Every `<Playground>` snippet in the site's content does what its `expect` attribute says, with
- * the compiler the site is built with (see `scripts/fetch-compiler.ts`).
+ * the compiler the site is built with, `@hylo-lang/hylo-wasm`.
  *
  * The compiler changes under the documentation, and a snippet offering to run code that no longer
  * compiles is worse than a code block that does not offer to.
@@ -8,10 +8,10 @@
 import { readdirSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { type Compiler, load } from '@hylo-lang/hylo-wasm';
 import { beforeAll, describe, expect, test } from 'vitest';
 import type { Phase } from './protocol';
 import { parseExpectation, snippetRequest } from './snippet';
-import { compilerAvailable, instantiateCompiler, type TestCompiler } from './test-compiler';
 import type { Output } from './views';
 
 const root = fileURLToPath(new URL('../../..', import.meta.url));
@@ -80,10 +80,10 @@ test.each(all.map((s) => [`${s.file}:${s.line}`, s] as const))('%s is well forme
   expect(parseExpectation(s.attributes.expect ?? ''), 'a snippet says what it does').not.toBeNull();
 });
 
-describe.skipIf(!compilerAvailable)('snippets, with the compiler in public/playground/compiler', () => {
-  let hylo: TestCompiler;
+describe('snippets, with the compiler', () => {
+  let hylo: Compiler;
   beforeAll(async () => {
-    hylo = await instantiateCompiler();
+    hylo = await load();
   }, 120_000);
 
   test.each(all.map((s) => [`${s.file}:${s.line}`, s] as const))('%s', async (_, s) => {
