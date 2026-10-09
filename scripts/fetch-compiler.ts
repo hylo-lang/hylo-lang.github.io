@@ -6,7 +6,7 @@
  * The compiler comes from the release the site is built against (`src/release-tag.ts`), whose
  * `hylo-<tag>-wasm32-wasip1.tar.zst` archive hylo-new's release workflow builds. When
  * `HYLO_WASM_DIR` names a directory, the release packaged there (by hylo-new's
- * `Tools/wasm/js/package-release.mjs`) is used instead, for working on both at once.
+ * `Sources/WASM/js/scripts/package-release.ts`) is used instead, for working on both at once.
  *
  * Every file is checked against the digest the release's `manifest.json` records.
  *

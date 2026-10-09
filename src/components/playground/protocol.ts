@@ -2,7 +2,7 @@
  * What the compiler's worker is asked and answers.
  *
  * The worker is `worker.mjs` from a hylo-new WebAssembly release (see
- * `Tools/wasm/js/worker.mjs` there); these types describe its messages.
+ * `Sources/WASM/js/src/worker.ts` and `protocol.ts` there); these types describe its messages.
  */
 
 /** A textual artifact the compiler can produce. */

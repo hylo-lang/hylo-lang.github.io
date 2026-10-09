@@ -66,8 +66,8 @@ node scripts/fetch-compiler.ts
 ```
 
 Without it the site still builds, and running a snippet says the compiler is not available. To
-try a compiler you built yourself (`Tools/wasm` in hylo-new), point `HYLO_WASM_DIR` at the
-release `Tools/wasm/js/package-release.mjs` produced. `pnpm test` checks every snippet against
+try a compiler you built yourself (`Sources/WASM` in hylo-new), point `HYLO_WASM_DIR` at the
+release its `js/scripts/package-release.ts` produced. `pnpm test` checks every snippet against
 the compiler that was fetched.
 
 ## Typos
