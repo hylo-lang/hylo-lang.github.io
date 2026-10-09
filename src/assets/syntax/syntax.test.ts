@@ -8,12 +8,14 @@
  * (see `scripts/fetch-compiler.ts`). A few lines are also checked token by token, for the scopes
  * that are easy to get subtly wrong.
  */
-import { existsSync, readFileSync } from 'node:fs';
-import path from 'node:path';
-import { fileURLToPath } from 'node:url';
 import { beforeAll, describe, expect, test } from 'vitest';
 import { EXAMPLES } from '../../components/playground/examples';
 import { getHighlighter, THEMES } from '../../components/playground/highlight';
+import {
+  compilerAvailable,
+  instantiateCompiler,
+  type TestCompiler,
+} from '../../components/playground/test-compiler';
 
 type Language = 'hylo-ir' | 'wasm-asm';
 
@@ -151,22 +153,13 @@ describe('WebAssembly assembly', () => {
   });
 });
 
-const compilerDir = fileURLToPath(new URL('../../../public/playground/compiler', import.meta.url));
-
-describe.skipIf(!existsSync(path.join(compilerDir, 'manifest.json')))(
+describe.skipIf(!compilerAvailable)(
   'what the compiler in public/playground/compiler prints for the examples',
   () => {
-    let compile: (request: object) => { artifacts?: Record<string, string> };
+    let compile: TestCompiler['compile'];
 
     beforeAll(async () => {
-      const manifest = JSON.parse(readFileSync(path.join(compilerDir, 'manifest.json'), 'utf8'));
-      const file = (key: string) => readFileSync(path.join(compilerDir, manifest.files[key].path));
-      const { instantiate } = await import(path.join(compilerDir, 'index.mjs'));
-      const hylo = await instantiate({
-        compiler: await WebAssembly.compile(new Uint8Array(file('compiler'))),
-        standardLibrary: JSON.parse(file('standardLibrary').toString('utf8')),
-        sysroot: new Map(manifest.sysroot.map((k: string) => [manifest.files[k].name, file(k)])),
-      });
+      const hylo = await instantiateCompiler();
       compile = (request) => hylo.compile(request);
     }, 120_000);
 

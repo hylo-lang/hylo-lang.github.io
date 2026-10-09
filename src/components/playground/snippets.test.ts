@@ -5,17 +5,16 @@
  * The compiler changes under the documentation, and a snippet offering to run code that no longer
  * compiles is worse than a code block that does not offer to.
  */
-import { existsSync, readdirSync, readFileSync } from 'node:fs';
+import { readdirSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { beforeAll, describe, expect, test } from 'vitest';
 import type { Phase } from './protocol';
 import { parseExpectation, snippetRequest } from './snippet';
+import { compilerAvailable, instantiateCompiler, type TestCompiler } from './test-compiler';
 import type { Output } from './views';
 
 const root = fileURLToPath(new URL('../../..', import.meta.url));
-const compilerDir = path.join(root, 'public/playground/compiler');
-const available = existsSync(path.join(compilerDir, 'manifest.json'));
 
 /** A `<Playground>` snippet: where it is, its attributes, and its code fence. */
 interface Snippet {
@@ -81,26 +80,10 @@ test.each(all.map((s) => [`${s.file}:${s.line}`, s] as const))('%s is well forme
   expect(parseExpectation(s.attributes.expect ?? ''), 'a snippet says what it does').not.toBeNull();
 });
 
-describe.skipIf(!available)('snippets, with the compiler in public/playground/compiler', () => {
-  // The compiler's loader, as the release ships it.
-  let hylo: {
-    compile(request: object): {
-      diagnostics: { level: string; rendered: string }[];
-      error?: string;
-      executable?: Uint8Array;
-    };
-    run(executable: Uint8Array): Promise<{ exitCode: number | null; trap?: string }>;
-  };
-
+describe.skipIf(!compilerAvailable)('snippets, with the compiler in public/playground/compiler', () => {
+  let hylo: TestCompiler;
   beforeAll(async () => {
-    const manifest = JSON.parse(readFileSync(path.join(compilerDir, 'manifest.json'), 'utf8'));
-    const file = (key: string): Buffer => readFileSync(path.join(compilerDir, manifest.files[key].path));
-    const { instantiate } = await import(path.join(compilerDir, 'index.mjs'));
-    hylo = await instantiate({
-      compiler: await WebAssembly.compile(new Uint8Array(file('compiler'))),
-      standardLibrary: JSON.parse(file('standardLibrary').toString('utf8')),
-      sysroot: new Map(manifest.sysroot.map((k: string) => [manifest.files[k].name, file(k)])),
-    });
+    hylo = await instantiateCompiler();
   }, 120_000);
 
   test.each(all.map((s) => [`${s.file}:${s.line}`, s] as const))('%s', async (_, s) => {
@@ -118,7 +101,7 @@ describe.skipIf(!available)('snippets, with the compiler in public/playground/co
       }),
     );
     expect(r.error).toBeUndefined();
-    const errors = r.diagnostics.filter((d) => d.level === 'error').map((d) => d.rendered);
+    const errors = (r.diagnostics ?? []).filter((d) => d.level === 'error').map((d) => d.rendered);
     const run = r.executable ? await hylo.run(r.executable) : null;
 
     switch (expectation.kind) {

@@ -49,7 +49,7 @@ function skip(reason: string): never {
 function install(dir: string): Manifest {
   const manifestBytes = readFileSync(path.join(dir, 'manifest.json'));
   const manifest = JSON.parse(manifestBytes.toString('utf8')) as Manifest;
-  if (manifest.schemaVersion !== 1 || typeof manifest.files !== 'object' || !manifest.loaders) {
+  if (manifest.schemaVersion !== 2 || typeof manifest.files !== 'object' || !manifest.loaders) {
     fail(`Unsupported compiler manifest (schema version ${manifest.schemaVersion}).`);
   }
   if (!manifest.loaders['worker.mjs']) fail('The compiler release has no worker.mjs.');
