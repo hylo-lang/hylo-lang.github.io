@@ -83,7 +83,7 @@ export function summarize(r: Result): string {
   if (c.error) return 'The compiler failed.';
   const errors = c.diagnostics.filter((d) => d.level === 'error').length;
   if (r.run === null) {
-    return errors > 0 ? `Does not compile: ${errors} error${errors > 1 ? 's' : ''}.` : 'Compiles.';
+    return errors > 0 ? `${errors} error${errors > 1 ? 's' : ''}.` : 'Compiles.';
   }
   return r.run.trap !== undefined ? 'The program trapped.' : `Exited with status ${r.run.exitCode}.`;
 }
@@ -111,11 +111,8 @@ function resultView(r: Result, options: RenderOptions): Node[] {
   const errors = c.diagnostics.filter((d) => d.level === 'error');
   const nodes: Node[] = [];
   if (r.run === null) {
-    nodes.push(
-      errors.length > 0
-        ? headline('bad', 'Does not compile')
-        : headline('ok', 'Compiles'),
-    );
+    // Errors speak for themselves; only their absence needs saying.
+    if (errors.length === 0) nodes.push(headline('ok', 'Compiles'));
     if (c.diagnostics.length > 0) nodes.push(diagnosticList(c.diagnostics, options));
     return nodes;
   }
@@ -159,7 +156,7 @@ function notProducedReason(r: Result): string {
   if (r.gaveUp) return `Not produced: ${r.gaveUp.toLowerCase()}`;
   if (r.compile.error) return 'Not produced: the compiler failed.';
   const failed = r.compile.diagnostics.some((d) => d.level === 'error');
-  return failed ? 'Not produced: the program does not compile.' : 'Not produced.';
+  return failed ? 'Not produced: the program has errors.' : 'Not produced.';
 }
 
 /**
