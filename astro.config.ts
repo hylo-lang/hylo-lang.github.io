@@ -8,7 +8,6 @@ import {compilerRepoLink, slackLink} from "./src/links.ts";
 import {injectMonacoStyles} from "./src/plugins/inject-monaco-styles.ts";
 import {satteri} from '@astrojs/markdown-satteri';
 import {playgroundSource} from "./src/plugins/playground-source.ts";
-import {stableAssetTimes} from "./src/plugins/stable-asset-times.ts";
 
 // https://astro.build/config
 export default defineConfig({
@@ -47,8 +46,7 @@ export default defineConfig({
             customCss: ['./src/styles/global.css', './src/styles/fonts.css'],
             plugins: [starlightThemeRapide()],
         }),
-        // Keeps unchanged assets, such as the playground's compiler, cached across deployments.
-        stableAssetTimes(),
+
     ],
     vite: {
         plugins: [tailwindcss(), injectMonacoStyles()],
