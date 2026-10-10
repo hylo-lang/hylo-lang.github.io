@@ -36,7 +36,8 @@ export default defineConfig({
             editLink: {
                 baseUrl: 'https://github.com/hylo-lang/hylo-lang.github.io/tree/main/'
             },
-            customCss: ['./src/styles/fonts.css', './src/styles/global.css'],
+            // `global.css` first: it declares the order of the CSS layers, which its first mention fixes.
+            customCss: ['./src/styles/global.css', './src/styles/fonts.css'],
             plugins: [starlightThemeRapide()],
         }),
 

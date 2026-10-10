@@ -33,10 +33,12 @@ const playground = await playgroundURL({ source: program, optimization: 0, view:
   </div>
   <figure class="example not-content">
     <Code code={excerpt} lang="hylo" title="min.hylo" wrap />
-    <a class="try" href={playground} title="Open this program in the playground">
-      <Play size={16} aria-hidden="true" />
-      Run
-    </a>
+    <div class="try">
+      <LinkButton href={playground} title="Open this program in the playground">
+        <Play size={16} aria-hidden="true" />
+        Run
+      </LinkButton>
+    </div>
     <figcaption class="sr-only">
       A subscript projecting the lesser of two variables, which the caller increments in place.
     </figcaption>
@@ -98,45 +100,14 @@ const playground = await playgroundURL({ source: program, optimization: 0, view:
   .example :global(pre > code) {
     padding-bottom: 1.5rem;
   }
-  /* The playground link sits on the code's lower edge, as a call to action. */
+  /* The playground link, styled by the theme as any other, sits on the code's lower edge. */
   .try {
     position: absolute;
     right: 1rem;
     bottom: 0;
-    display: inline-flex;
-    align-items: center;
-    gap: 0.35rem;
-    padding: 0.55rem 1.1rem 0.55rem 0.8rem;
-    border: 1.5px solid var(--sl-color-green);
-    border-radius: 999rem;
-    /* The page's background, so that the code under the link's edge does not show through. */
-    background: var(--sl-color-bg);
-    color: var(--sl-color-green-high);
-    font-weight: 600;
-    font-size: var(--sl-text-sm);
-    text-decoration: none;
-    box-shadow: 0 0.5rem 1.25rem -0.5rem rgb(0 0 0 / 0.5);
-    transition:
-      background-color 0.15s,
-      transform 0.15s,
-      box-shadow 0.15s;
   }
-  .try:hover {
-    background: var(--sl-color-green-low);
-    transform: translateY(-2px);
-    box-shadow: 0 0.75rem 1.5rem -0.5rem rgb(0 0 0 / 0.5);
-  }
-  .try:focus-visible {
-    outline: 2px solid var(--sl-color-green);
-    outline-offset: 3px;
-  }
-  @media (prefers-reduced-motion: reduce) {
-    .try {
-      transition: none;
-    }
-    .try:hover {
-      transform: none;
-    }
+  .try :global(.sl-link-button) {
+    gap: 0.4rem;
   }
 
   @media (min-width: 50rem) {

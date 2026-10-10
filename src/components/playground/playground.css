@@ -1,15 +1,6 @@
 /* The playground's look, in Starlight's colour tokens so that it follows the site's theme. Shared
    by embedded snippets and the full-screen playground. */
 
-/* The accent that contrasts with the page, as Starlight's own primary buttons use; spelled out for
-   the full-screen playground, which does not load Starlight's base styles that define it. */
-:root {
-  --pg-accent: var(--sl-color-text-accent, var(--sl-color-accent-high));
-}
-:root[data-theme='light'] {
-  --pg-accent: var(--sl-color-text-accent, var(--sl-color-accent));
-}
-
 hylo-playground {
   display: block;
   margin-block: 1rem;
@@ -92,17 +83,19 @@ hylo-playground:not([data-ready]) .pg-toolbar {
   outline: 2px solid var(--sl-color-accent);
   outline-offset: 2px;
 }
+/* As the theme's primary link buttons (starlight-theme-rapide). */
 .pg-primary {
-  background: var(--pg-accent);
-  border-color: var(--pg-accent);
-  color: var(--sl-color-black);
+  background: var(--sl-color-green-low);
+  border-color: var(--sl-color-green);
+  color: var(--sl-color-green-high);
   font-weight: 600;
 }
 .pg-primary:hover {
-  background: var(--pg-accent);
-  border-color: var(--pg-accent);
-  filter: brightness(1.1);
+  background: var(--sl-color-green-low);
+  border-color: var(--sl-color-green-high);
+  color: var(--sl-color-green-accent-invert);
 }
+
 .pg-icon {
   width: 1rem;
   height: 1rem;
@@ -182,7 +175,7 @@ hylo-playground:not([data-ready]) .pg-toolbar {
   transition: transform 0.15s;
 }
 .pg-switch input:checked {
-  background: var(--pg-accent);
+  background: var(--sl-color-green);
 }
 .pg-switch input:checked::before {
   transform: translateX(0.875rem);
