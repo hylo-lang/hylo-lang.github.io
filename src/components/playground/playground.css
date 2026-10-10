@@ -95,6 +95,25 @@ hylo-playground:not([data-ready]) .pg-toolbar {
   color: var(--sl-color-green-accent-invert);
 }
 
+/* A button showing only an icon, square. */
+.pg-icon-button {
+  position: relative;
+  justify-content: center;
+  width: 2rem;
+  padding: 0;
+}
+/* A setting behind the button differs from its default. */
+.pg-icon-button[data-modified]::after {
+  content: '';
+  position: absolute;
+  top: 0.2rem;
+  right: 0.2rem;
+  width: 0.4rem;
+  height: 0.4rem;
+  border-radius: 50%;
+  background: var(--sl-color-green);
+}
+
 .pg-icon {
   width: 1rem;
   height: 1rem;

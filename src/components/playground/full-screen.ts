@@ -53,6 +53,8 @@ const view = $<HTMLElement>('pg-view');
 const optimization = $<HTMLSelectElement>('pg-optimization');
 const stopAfter = $<HTMLSelectElement>('pg-stop-after');
 const standardLibrary = $<HTMLInputElement>('pg-standard-library');
+const moreButton = $<HTMLButtonElement>('pg-more-button');
+const more = $<HTMLElement>('pg-more');
 const examples = $<HTMLSelectElement>('pg-examples');
 const autorun = $<HTMLInputElement>('pg-autorun');
 const run = $<HTMLButtonElement>('pg-run');
@@ -143,6 +145,20 @@ function setSettings(settings: CompileSettings): void {
   optimization.value = String(settings.optimization);
   stopAfter.value = settings.stopAfter ?? '';
   standardLibrary.checked = settings.standardLibrary;
+  markModifiedOptions();
+}
+
+/** Marks the "More options" button iff a setting in its menu differs from its default. */
+function markModifiedOptions(): void {
+  moreButton.toggleAttribute('data-modified', stopAfter.value !== '' || !standardLibrary.checked);
+}
+
+/** Places the "More options" menu under its button, within the window. */
+function placeMenu(): void {
+  const button = moreButton.getBoundingClientRect();
+  const margin = 8;
+  more.style.top = `${button.bottom + 6}px`;
+  more.style.left = `${Math.max(margin, Math.min(button.left, innerWidth - more.offsetWidth - margin))}px`;
 }
 
 /** Returns the settings the controls are set to. */
@@ -306,10 +322,17 @@ examples.addEventListener('change', () => {
 });
 for (const control of [optimization, stopAfter, standardLibrary]) {
   control.addEventListener('change', () => {
+    markModifiedOptions();
     scheduleSave();
     void compile();
   });
 }
+more.addEventListener('toggle', (e) => {
+  if ((e as ToggleEvent).newState === 'open') placeMenu();
+});
+addEventListener('resize', () => {
+  if (more.matches(':popover-open')) placeMenu();
+});
 autorun.addEventListener('change', () => {
   remember(AUTORUN_KEY, autorun.checked ? 'on' : 'off');
   if (autorun.checked) {

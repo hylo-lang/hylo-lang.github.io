@@ -9,7 +9,7 @@
  * `share.ts`'s `playgroundURL`).
  */
 import { Image } from 'astro:assets';
-import { Check, LoaderCircle, Play, Share2 } from '@lucide/astro';
+import { Check, Ellipsis, LoaderCircle, Play, Share2 } from '@lucide/astro';
 import darkLogo from '../assets/hylo-green-smaller.png';
 import lightLogo from '../assets/hylo-black.png';
 import { url } from '../utils/url';
@@ -58,14 +58,33 @@ import '../components/playground/playground.css';
       <select id="pg-optimization" class="pg-select" aria-label="Optimization level">
         {OPTIMIZATION_LEVELS.map((l) => <option value={l}>-O{l}</option>)}
       </select>
-      <select id="pg-stop-after" class="pg-select" aria-label="How far to compile">
-        <option value="">Compile and run</option>
-        {[...PHASES].reverse().map((p) => <option value={p}>Stop after {p}</option>)}
-      </select>
-      <label class="pg-checkbox" title="Compile with the standard library">
-        <input id="pg-standard-library" type="checkbox" checked />
-        Standard library
-      </label>
+      <button
+        id="pg-more-button"
+        type="button"
+        class="pg-button pg-icon-button"
+        popovertarget="pg-more"
+        aria-label="More options"
+        title="More options"
+      >
+        <Ellipsis class="pg-icon" aria-hidden="true" />
+      </button>
+      <div id="pg-more" class="menu" popover aria-label="More options">
+        <label class="field" title="The phase after which compilation stops">
+          Final phase
+          <select id="pg-stop-after" class="pg-select">
+            <option value="">Execution</option>
+            {
+              [...PHASES].reverse().map((p) => (
+                <option value={p}>{p[0].toUpperCase() + p.slice(1)}</option>
+              ))
+            }
+          </select>
+        </label>
+        <label class="pg-checkbox">
+          <input id="pg-standard-library" type="checkbox" checked />
+          Standard library
+        </label>
+      </div>
       <label class="pg-checkbox" title="Compile and run as you type">
         <input id="pg-autorun" type="checkbox" checked />
         Auto-run
@@ -160,6 +179,32 @@ import '../components/playground/playground.css';
   }
   .spacer {
     flex: 1;
+  }
+  /* The "More options" menu, in the top layer, placed under its button by `full-screen.ts`. */
+  .menu {
+    position: fixed;
+    inset: auto;
+    margin: 0;
+    display: none;
+    flex-direction: column;
+    gap: 0.75rem;
+    min-width: 14rem;
+    padding: 0.85rem 1rem;
+    border: 1px solid var(--sl-color-gray-5);
+    border-radius: 0.6rem;
+    background: var(--sl-color-gray-6, var(--sl-color-black));
+    color: var(--sl-color-white);
+    box-shadow: 0 0.75rem 2rem -0.5rem rgb(0 0 0 / 0.4);
+    font-size: 0.875rem;
+  }
+  .menu:popover-open {
+    display: flex;
+  }
+  .field {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+    color: var(--sl-color-gray-2);
   }
   .docs {
     color: var(--sl-color-gray-2);
