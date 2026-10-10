@@ -76,7 +76,6 @@ hylo-playground:not([data-ready]) .pg-toolbar {
 }
 .pg-button:focus-visible,
 .pg-select:focus-visible,
-.pg-switch:has(:focus-visible),
 .pg-link:focus-visible,
 .pg-tabs [role='tab']:focus-visible,
 .pg-diagnostics button:focus-visible {
@@ -142,45 +141,22 @@ hylo-playground:not([data-ready]) .pg-toolbar {
   background: color-mix(in srgb, currentColor 15%, transparent);
 }
 
-.pg-switch {
+.pg-checkbox {
   display: inline-flex;
   align-items: center;
-  gap: 0.45rem;
+  gap: 0.4rem;
   font-size: var(--sl-text-sm, 0.875rem);
   color: var(--sl-color-gray-2);
   cursor: pointer;
   user-select: none;
-  border-radius: 1rem;
 }
-.pg-switch input {
-  appearance: none;
-  position: relative;
-  width: 2rem;
-  height: 1.125rem;
+.pg-checkbox input {
+  width: 1rem;
+  height: 1rem;
   margin: 0;
-  border-radius: 1rem;
-  background: var(--sl-color-gray-5);
+  /* The theme's green, as its primary buttons. */
+  accent-color: var(--sl-color-green);
   cursor: pointer;
-  transition: background-color 0.15s;
-}
-.pg-switch input::before {
-  content: '';
-  position: absolute;
-  top: 0.125rem;
-  left: 0.125rem;
-  width: 0.875rem;
-  height: 0.875rem;
-  border-radius: 50%;
-  background: var(--sl-color-white);
-  transition: transform 0.15s;
-}
-.pg-switch input:checked {
-  background: var(--sl-color-green);
-}
-.pg-switch input:checked::before {
-  transform: translateX(0.875rem);
-  /* The page's background colour, in either theme. */
-  background: var(--sl-color-black);
 }
 
 .pg-link {
