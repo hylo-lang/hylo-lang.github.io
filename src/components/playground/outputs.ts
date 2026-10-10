@@ -7,6 +7,9 @@ import type { CompilerStatus, Result } from './compiler';
 import { MAIN_FILE } from './settings';
 import { OUTPUT_LANGUAGES, type Output } from './views';
 
+/** The sentence saying the compiler failed to load. */
+const FAILED_TO_LOAD = 'The compiler failed to load.';
+
 /** How the views of a result are shown. */
 export interface RenderOptions {
   /**
@@ -56,34 +59,92 @@ export async function renderOutput(
 }
 
 /**
- * Replaces the contents of `container` with what the compiler is doing while it is not ready:
- * progress while it loads, the reason it failed to, and nothing otherwise.
+ * Shows what the compiler is doing in `container`: progress while it loads, the reason it failed
+ * to, and nothing otherwise. Progress updates the elements it last showed in place.
  */
 export function renderStatus(container: HTMLElement, status: CompilerStatus): void {
   switch (status.kind) {
     case 'loading': {
-      const p = note(
+      let [p, bar] = container.children;
+      if (container.children.length !== 2 || !(bar instanceof HTMLProgressElement)) {
+        p = note('');
+        bar = document.createElement('progress');
+        container.replaceChildren(p, bar);
+      }
+      const progress = bar as HTMLProgressElement;
+      p.textContent =
         status.total === 0
           ? 'Loading the compiler…'
           : status.loaded < status.total
             ? `Downloading the compiler… ${megabytes(status.loaded)} of ${megabytes(status.total)}`
-            : 'Compiling the standard library…',
-      );
+            : 'Compiling the standard library…';
       // Without a total, the bar is indeterminate.
-      const bar = document.createElement('progress');
       if (status.total > 0) {
-        bar.max = status.total;
-        bar.value = status.loaded;
+        progress.max = status.total;
+        progress.value = status.loaded;
+      } else {
+        progress.removeAttribute('value');
       }
-      container.replaceChildren(p, bar);
       break;
     }
     case 'failed':
-      container.replaceChildren(headline('bad', 'The compiler failed to load.'), note(status.error));
+      container.replaceChildren(headline('bad', FAILED_TO_LOAD), note(status.error));
       break;
     default:
       container.replaceChildren();
   }
+}
+
+/** What can be watched for the compiler's status: the page's compiler. */
+interface StatusSource {
+  watch(listener: (status: CompilerStatus) => void): () => void;
+}
+
+/**
+ * Shows `compiler`'s status in `view` and announces it in `status` whenever it changes, while it
+ * is not ready and `relevant` returns `true`, until the returned function is called. Changes are
+ * shown at most once a frame, since the download reports progress for every chunk.
+ */
+export function watchStatus(
+  compiler: StatusSource,
+  view: HTMLElement,
+  status: HTMLElement,
+  relevant: () => boolean = () => true,
+): () => void {
+  let latest: CompilerStatus | null = null;
+  let frame = 0;
+  const unwatch = compiler.watch((s) => {
+    if (s.kind === 'ready' || !relevant()) return;
+    latest = s;
+    frame ||= requestAnimationFrame(() => {
+      frame = 0;
+      if (latest === null) return;
+      renderStatus(view, latest);
+      const sentence = describeStatus(latest) ?? '';
+      // Rewriting a live region with the same text would announce it again.
+      if (status.textContent !== sentence) status.textContent = sentence;
+    });
+  });
+  return () => {
+    cancelAnimationFrame(frame);
+    unwatch();
+  };
+}
+
+/**
+ * Returns a sentence saying why `r` holds nothing compiled, if the request was not served: the
+ * compiler failed to load, the page gave up waiting, or the compiler failed.
+ */
+export function failure(r: Result): string | undefined {
+  if (r.unavailable !== undefined) return FAILED_TO_LOAD;
+  if (r.gaveUp) return r.gaveUp;
+  if (r.compile.error) return 'The compiler failed.';
+  return undefined;
+}
+
+/** Returns how many of `ds` are errors. */
+export function errorCount(ds: readonly Diagnostic[]): number {
+  return ds.filter((d) => d.level === 'error').length;
 }
 
 /**
@@ -91,11 +152,9 @@ export function renderStatus(container: HTMLElement, status: CompilerStatus): vo
  * the whole view.
  */
 export function summarize(r: Result): string {
-  const c = r.compile;
-  if (r.unavailable !== undefined) return 'The compiler failed to load.';
-  if (r.gaveUp) return r.gaveUp;
-  if (c.error) return 'The compiler failed.';
-  const errors = c.diagnostics.filter((d) => d.level === 'error').length;
+  const failed = failure(r);
+  if (failed !== undefined) return failed;
+  const errors = errorCount(r.compile.diagnostics);
   if (r.run === null) {
     return errors > 0 ? `${errors} error${errors > 1 ? 's' : ''}.` : 'Compiles.';
   }
@@ -108,10 +167,18 @@ export function describeStatus(status: CompilerStatus): string | null {
     case 'loading':
       return 'Loading the compiler…';
     case 'failed':
-      return 'The compiler failed to load.';
+      return FAILED_TO_LOAD;
     default:
       return null;
   }
+}
+
+/** Returns a paragraph of secondary text, `text`. */
+export function note(text: string): HTMLElement {
+  const p = document.createElement('p');
+  p.className = 'pg-note';
+  p.textContent = text;
+  return p;
 }
 
 /**
@@ -131,19 +198,16 @@ export function focusIR(ir: string, focus: readonly string[]): string {
 /** Returns the elements of the result view of `r`. */
 function resultView(r: Result, options: RenderOptions): Node[] {
   const c = r.compile;
-  if (r.unavailable !== undefined) {
-    return [headline('bad', 'The compiler failed to load.'), note(r.unavailable)];
-  }
+  if (r.unavailable !== undefined) return [headline('bad', FAILED_TO_LOAD), note(r.unavailable)];
   if (r.gaveUp) {
     return [headline('warn', r.gaveUp), note('Does the program loop forever? It was stopped.')];
   }
   if (c.error) return [headline('bad', 'Internal error'), pre(c.error)];
 
-  const errors = c.diagnostics.filter((d) => d.level === 'error');
   const nodes: Node[] = [];
   if (r.run === null) {
     // Errors speak for themselves; only their absence needs saying.
-    if (errors.length === 0) nodes.push(headline('ok', 'Compiles'));
+    if (errorCount(c.diagnostics) === 0) nodes.push(headline('ok', 'Compiles'));
     if (c.diagnostics.length > 0) nodes.push(diagnosticList(c.diagnostics, options));
     return nodes;
   }
@@ -187,25 +251,17 @@ function diagnosticList(ds: readonly Diagnostic[], options: RenderOptions): HTML
 
 /** Returns a sentence saying why `r` has no artifact of a view that asked for one. */
 function notProducedReason(r: Result): string {
-  if (r.unavailable !== undefined) return 'Not produced: the compiler failed to load.';
-  if (r.gaveUp) return `Not produced: ${r.gaveUp.toLowerCase()}`;
-  if (r.compile.error) return 'Not produced: the compiler failed.';
-  const failed = r.compile.diagnostics.some((d) => d.level === 'error');
-  return failed ? 'Not produced: the program has errors.' : 'Not produced.';
+  const failed = failure(r);
+  if (failed !== undefined) return `Not produced: ${failed[0].toLowerCase()}${failed.slice(1)}`;
+  return errorCount(r.compile.diagnostics) > 0
+    ? 'Not produced: the program has errors.'
+    : 'Not produced.';
 }
 
 /** Returns a paragraph stating `text` in the colour of `tone`. */
 function headline(tone: 'ok' | 'bad' | 'warn' | 'neutral', text: string): HTMLElement {
   const p = document.createElement('p');
   p.className = `pg-headline pg-${tone}`;
-  p.textContent = text;
-  return p;
-}
-
-/** Returns a paragraph of secondary text, `text`. */
-function note(text: string): HTMLElement {
-  const p = document.createElement('p');
-  p.className = 'pg-note';
   p.textContent = text;
   return p;
 }

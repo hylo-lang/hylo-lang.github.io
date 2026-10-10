@@ -14,19 +14,22 @@ import { MAIN_FILE } from './settings';
   getWorker: () => new EditorWorker(),
 };
 
-/** The editor's font, which `src/styles/fonts.css` serves. */
-const FONT = 'JetBrains Mono Variable';
+/** The site's code font, as `src/styles/fonts.css` sets it, or `''` if the page sets none. */
+const font = getComputedStyle(document.documentElement).getPropertyValue('--sl-font-mono').trim();
 
 /**
- * Resolves once Monaco highlights through Shiki and its font is loaded, since Monaco measures the
- * font once, and a fallback measured in its place misplaces the caret; done once per page.
+ * Resolves once Monaco highlights every language of the highlighter through Shiki, and the font
+ * is loaded, since Monaco measures the font once, and a fallback measured in its place misplaces
+ * the caret; done once per page.
  */
 const ready = (async () => {
-  for (const id of ['hylo', 'hylo-ir', 'wasm-asm', 'llvm']) monaco.languages.register({ id });
   await Promise.all([
-    getHighlighter().then((h) => shikiToMonaco(h, monaco as never)),
+    getHighlighter().then((h) => {
+      for (const id of h.getLoadedLanguages()) monaco.languages.register({ id });
+      shikiToMonaco(h, monaco as never);
+    }),
     // A font that does not load leaves the fallback, which Monaco then measures correctly.
-    document.fonts.load(`14px "${FONT}"`).catch(() => {}),
+    font && document.fonts.load(`14px ${font}`).catch(() => {}),
   ]);
 })();
 
@@ -70,8 +73,8 @@ export interface EditorOptions {
    * its container.
    */
   fitContent?: boolean;
-  /** Called after every edit, with the code. */
-  onChange?: (value: string) => void;
+  /** Called after every edit; `Editor.value` is the code. */
+  onChange?: () => void;
   /** Called when the reader presses Ctrl+Enter (⌘+Enter on a Mac) in the editor. */
   onRun?: () => void;
 }
@@ -89,7 +92,9 @@ export async function createEditor(host: HTMLElement, options: EditorOptions): P
     value: options.value,
     language: 'hylo',
     theme: pageTheme(),
-    fontFamily: `'${FONT}', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace`,
+    fontFamily: [font, 'ui-monospace, SFMono-Regular, Menlo, Consolas, monospace']
+      .filter((f) => f !== '')
+      .join(', '),
     fontSize: 14,
     lineHeight: 21,
     tabSize: 2,
@@ -124,7 +129,7 @@ export async function createEditor(host: HTMLElement, options: EditorOptions): P
     editor.onDidContentSizeChange(fit);
     fit();
   }
-  editor.onDidChangeModelContent(() => options.onChange?.(editor.getValue()));
+  editor.onDidChangeModelContent(() => options.onChange?.());
   if (options.onRun) {
     editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.Enter, options.onRun);
   }

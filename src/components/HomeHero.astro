@@ -13,18 +13,12 @@ import { Image } from 'astro:assets';
 import darkLogo from '../assets/hylo-green.png';
 import lightLogo from '../assets/hylo-black.png';
 import { Play } from '@lucide/astro';
-import { playgroundURL } from './playground/share';
+import { DEFAULT_STATE, playgroundURL } from './playground/share';
 import { excerpt, program } from './home-example';
 
 const { data } = Astro.locals.starlightRoute.entry;
 const { title = data.title, tagline, actions = [] } = data.hero ?? {};
-const playground = playgroundURL({
-  source: program,
-  optimization: 0,
-  standardLibrary: true,
-  stopAfter: null,
-  view: 'result',
-});
+const playground = playgroundURL({ source: program, ...DEFAULT_STATE });
 ---
 
 <div class="hero">

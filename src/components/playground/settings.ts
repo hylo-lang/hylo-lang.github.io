@@ -37,6 +37,13 @@ export interface CompileSettings {
   stopAfter: Phase | null;
 }
 
+/** How code is compiled unless something says otherwise: a program, run, unoptimized. */
+export const DEFAULT_SETTINGS: Readonly<CompileSettings> = {
+  optimization: 0,
+  standardLibrary: true,
+  stopAfter: null,
+};
+
 /**
  * Returns the request compiling `source` with `settings`, producing `artifacts`, and an
  * executable to run unless `settings.stopAfter` stops compilation before there is one.
@@ -67,4 +74,16 @@ export function parseOptimizationLevel(text: string): OptimizationLevel {
   const level = OPTIMIZATION_LEVELS.find((l) => String(l) === text);
   if (level === undefined) throw new RangeError(`'${text}' is not an optimization level`);
   return level;
+}
+
+/**
+ * Returns the phase `text` names, such as `"typing"`, or `null` if `text` is empty, naming none.
+ *
+ * Throws a `RangeError` if `text` is neither, for the reason `parseOptimizationLevel` does.
+ */
+export function parsePhase(text: string): Phase | null {
+  if (text === '') return null;
+  const phase = PHASES.find((p) => p === text);
+  if (phase === undefined) throw new RangeError(`'${text}' is not a phase of compilation`);
+  return phase;
 }

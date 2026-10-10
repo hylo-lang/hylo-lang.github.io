@@ -12,16 +12,15 @@ import type { CompileRequest } from '@hylo-lang/hylo-wasm/protocol';
 import { compiler, type Result } from './compiler';
 import { createEditor, type Editor } from './editor';
 import { EXAMPLES } from './examples';
-import { describeStatus, renderOutput, renderStatus, summarize } from './outputs';
-import { compileRequest, parseOptimizationLevel, PHASES, type CompileSettings } from './settings';
+import { errorCount, failure, renderOutput, summarize, watchStatus } from './outputs';
 import {
-  decodeFragment,
-  deserialize,
-  playgroundURL,
-  serialize,
-  type Decoded,
-  type PlaygroundState,
-} from './share';
+  compileRequest,
+  parseOptimizationLevel,
+  parsePhase,
+  type CompileSettings,
+} from './settings';
+import { DEFAULT_STATE, playgroundURL, serialize, type PlaygroundState } from './share';
+import { decodeFragment, deserialize, type Decoded } from './share-reader';
 import { connectTabs } from './tabs';
 import { isArtifact, OUTPUTS, type Output } from './views';
 
@@ -38,13 +37,7 @@ const ARTIFACTS = OUTPUTS.filter(isArtifact);
 /** The key of the page's requests, each of which replaces the last if it is still waiting. */
 const REQUEST_KEY = 'full-screen';
 /** The state of a first visit. */
-const FIRST_STATE: PlaygroundState = {
-  source: EXAMPLES[0].source,
-  optimization: 0,
-  standardLibrary: true,
-  stopAfter: null,
-  view: 'result',
-};
+const FIRST_STATE: PlaygroundState = { source: EXAMPLES[0].source, ...DEFAULT_STATE };
 
 /** Returns the element whose id is `id`, which the page has. */
 const $ = <T extends HTMLElement>(id: string): T => document.getElementById(id) as T;
@@ -124,6 +117,8 @@ let pending = 0;
 
 setSettings(initial);
 autorun.checked = recall(AUTORUN_KEY) !== 'off';
+// The compiler, the longest download, loads while the editor does.
+compiler.start();
 
 /** The editor, holding the code. */
 const editor: Editor = await createEditor($('pg-editor'), {
@@ -163,12 +158,10 @@ function placeMenu(): void {
 
 /** Returns the settings the controls are set to. */
 function currentSettings(): CompileSettings {
-  const phase = stopAfter.value === '' ? null : PHASES.find((p) => p === stopAfter.value);
-  if (phase === undefined) throw new RangeError(`'${stopAfter.value}' is not a phase`);
   return {
     optimization: parseOptimizationLevel(optimization.value),
     standardLibrary: standardLibrary.checked,
-    stopAfter: phase,
+    stopAfter: parsePhase(stopAfter.value),
   };
 }
 
@@ -234,10 +227,10 @@ async function compile(): Promise<void> {
     JSON.stringify(request) !== JSON.stringify(currentRequest()),
   );
   editor.showDiagnostics(r.compile.diagnostics);
-  const errors = r.compile.diagnostics.filter((d) => d.level === 'error').length;
+  const errors = errorCount(r.compile.diagnostics);
   $('pg-error-count').textContent = errors > 0 ? String(errors) : '';
-  const served = r.unavailable === undefined && !r.gaveUp && !r.compile.error;
-  const timing = served ? ` Compiled in ${r.compile.milliseconds.toFixed(0)} ms.` : '';
+  const timing =
+    failure(r) === undefined ? ` Compiled in ${r.compile.milliseconds.toFixed(0)} ms.` : '';
   status.textContent = summarize(r) + timing;
   updateHint();
   await show(shown);
@@ -305,11 +298,8 @@ function openLinkedState(): void {
   void compile();
 }
 
-compiler.watch((s) => {
-  if (s.kind === 'ready' || result !== null) return;
-  renderStatus(view, s);
-  status.textContent = describeStatus(s) ?? '';
-});
+// Loading is shown until there is a result to show instead.
+watchStatus(compiler, view, status, () => result === null);
 
 for (const e of EXAMPLES) examples.add(new Option(e.name, e.name));
 examples.addEventListener('change', () => {

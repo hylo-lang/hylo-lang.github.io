@@ -83,9 +83,12 @@ class Compiler {
   /** The time limit of loading's next progress, while the compiler is loading. */
   #loadingTimer: ReturnType<typeof setTimeout> | undefined;
 
-  /** The status now. */
-  get status(): CompilerStatus {
-    return this.#status;
+  /**
+   * Starts loading the compiler if it is not loading or loaded, so that it is ready sooner than
+   * the first request would have it.
+   */
+  start(): void {
+    this.#start();
   }
 
   /**

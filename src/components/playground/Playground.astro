@@ -31,7 +31,7 @@
  */
 import { ExternalLink, LoaderCircle, Pencil, Play, RotateCcw } from '@lucide/astro';
 import type { Phase } from '@hylo-lang/hylo-wasm/protocol';
-import { OPTIMIZATION_LEVELS, PHASES } from './settings';
+import { DEFAULT_SETTINGS, OPTIMIZATION_LEVELS, PHASES } from './settings';
 import { PLAYGROUND_PATH } from './site';
 import { EXPECTATION_FORMS, parseExpectation } from './snippet';
 import { OUTPUTS, OUTPUT_TITLES, type Output } from './views';
@@ -67,8 +67,8 @@ interface Props {
 const {
   outputs = ['result'],
   focus = [],
-  optimization = 0,
-  standardLibrary = true,
+  optimization = DEFAULT_SETTINGS.optimization,
+  standardLibrary = DEFAULT_SETTINGS.standardLibrary,
   stopAfter,
   editable = true,
   expect,
@@ -127,18 +127,16 @@ if (blocks.length !== 1 || !/\bdata-language="hylo"/.test(blocks[0][0])) {
     </button>
     {
       editable && (
-        <button type="button" data-part="edit" class="pg-button">
-          <Pencil class="pg-icon" aria-hidden="true" />
-          Edit
-        </button>
-      )
-    }
-    {
-      editable && (
-        <button type="button" data-part="reset" class="pg-button" hidden>
-          <RotateCcw class="pg-icon" aria-hidden="true" />
-          Reset
-        </button>
+        <>
+          <button type="button" data-part="edit" class="pg-button">
+            <Pencil class="pg-icon" aria-hidden="true" />
+            Edit
+          </button>
+          <button type="button" data-part="reset" class="pg-button" hidden>
+            <RotateCcw class="pg-icon" aria-hidden="true" />
+            Reset
+          </button>
+        </>
       )
     }
     <a data-part="open" class="pg-link" href={PLAYGROUND_PATH}>
@@ -146,7 +144,7 @@ if (blocks.length !== 1 || !/\bdata-language="hylo"/.test(blocks[0][0])) {
       <ExternalLink class="pg-icon" aria-hidden="true" />
     </a>
   </div>
-  <p data-part="status" class="pg-visually-hidden" role="status"></p>
+  <p data-part="status" class="sr-only" role="status"></p>
   <div data-part="output" class="pg-output" hidden>
     {
       shown.length > 1 && (

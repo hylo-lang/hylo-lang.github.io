@@ -3,13 +3,8 @@
  * else yields a problem rather than a malformed state.
  */
 import { describe, expect, test } from 'vitest';
-import {
-  decodeFragment,
-  deserialize,
-  encodeFragment,
-  serialize,
-  type PlaygroundState,
-} from './share';
+import { encodeFragment, serialize, type PlaygroundState } from './share';
+import { decodeFragment, deserialize } from './share-reader';
 
 const state: PlaygroundState = {
   source: 'public fun main() -> Int32 {\n  // ünïcödé, emoji 🦎, and a long line\n  42\n}\n',

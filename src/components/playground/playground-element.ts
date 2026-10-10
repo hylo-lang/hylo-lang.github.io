@@ -8,8 +8,8 @@
  */
 import { compiler, type Result } from './compiler';
 import type { Editor } from './editor';
-import { describeStatus, renderOutput, renderStatus, summarize } from './outputs';
-import { parseOptimizationLevel, PHASES } from './settings';
+import { note, renderOutput, summarize, watchStatus } from './outputs';
+import { DEFAULT_SETTINGS, parseOptimizationLevel, parsePhase } from './settings';
 import { playgroundURL } from './share';
 import { snippetRequest, type SnippetSettings } from './snippet';
 import { connectTabs } from './tabs';
@@ -27,14 +27,17 @@ function readSettings(dataset: DOMStringMap): SnippetSettings {
   const outputs = (dataset.outputs ?? 'result').split(',');
   const unknown = outputs.find((o) => !OUTPUTS.includes(o as Output));
   if (unknown !== undefined) throw new RangeError(`'${unknown}' is not a view of a snippet`);
-  const stopAfter = dataset.stopAfter ?? null;
-  const phase = stopAfter === null ? null : PHASES.find((p) => p === stopAfter);
-  if (phase === undefined) throw new RangeError(`'${stopAfter}' is not a phase of compilation`);
   return {
     outputs: outputs as Output[],
-    optimization: parseOptimizationLevel(dataset.optimization ?? '0'),
-    standardLibrary: dataset.standardLibrary !== 'false',
-    stopAfter: phase,
+    optimization:
+      dataset.optimization === undefined
+        ? DEFAULT_SETTINGS.optimization
+        : parseOptimizationLevel(dataset.optimization),
+    standardLibrary:
+      dataset.standardLibrary === undefined
+        ? DEFAULT_SETTINGS.standardLibrary
+        : dataset.standardLibrary !== 'false',
+    stopAfter: parsePhase(dataset.stopAfter ?? ''),
   };
 }
 
@@ -75,12 +78,16 @@ class HyloPlayground extends HTMLElement {
     this.#part('run')!.addEventListener('click', () => void this.run());
     this.#part('edit')?.addEventListener('click', () => void this.edit()?.catch(() => {}));
     this.#part('reset')?.addEventListener('click', () => this.reset());
+    // The link is pointed at the code when it is about to be used, rather than on every edit:
+    // a pointer enters it before clicking or tapping it, and the keyboard focuses it.
+    const link = this.#part('open')!;
+    link.addEventListener('pointerenter', () => this.#updateLink());
+    link.addEventListener('focus', () => this.#updateLink());
     const tablist = this.querySelector<HTMLElement>('[role="tablist"]');
     if (tablist) {
       this.#select = connectTabs(tablist, this.#part('view')!, (o) => void this.#show(o));
       this.#select(this.#shown);
     }
-    this.#updateLink();
     this.toggleAttribute('data-ready', true);
   }
 
@@ -116,11 +123,7 @@ class HyloPlayground extends HTMLElement {
     let result: Result | null;
     try {
       // Progress, until the compiler has answered.
-      this.#unwatch = compiler.watch((s) => {
-        if (s.kind === 'ready') return;
-        renderStatus(view, s);
-        status.textContent = describeStatus(s) ?? '';
-      });
+      this.#unwatch = watchStatus(compiler, view, status);
       result = await compiler.compile(snippetRequest(this.#source, this.#settings));
     } finally {
       this.#unwatch?.();
@@ -177,7 +180,6 @@ class HyloPlayground extends HTMLElement {
     this.#part('output')!.hidden = true;
     this.#part('status')!.textContent = '';
     this.#result = null;
-    this.#updateLink();
   }
 
   /** The code as the reader sees it now. */
@@ -200,7 +202,6 @@ class HyloPlayground extends HTMLElement {
         value: this.#original,
         fitContent: true,
         onChange: () => {
-          this.#updateLink();
           // Once the reader has run the snippet, its output follows their edits.
           if (this.#result !== null) {
             clearTimeout(this.#rerun);
@@ -233,20 +234,14 @@ class HyloPlayground extends HTMLElement {
 
   /** Shows `sentence` in place of the views, and announces it. */
   #say(sentence: string): void {
-    const p = document.createElement('p');
-    p.className = 'pg-note';
-    p.textContent = sentence;
     this.#part('output')!.hidden = false;
-    this.#part('view')!.replaceChildren(p);
+    this.#part('view')!.replaceChildren(note(sentence));
     this.#part('status')!.textContent = sentence;
   }
 
   /** Selects the `output` view, and shows it if the code has run. */
   async #show(output: Output): Promise<void> {
-    if (output !== this.#shown) {
-      this.#shown = output;
-      this.#updateLink();
-    }
+    this.#shown = output;
     this.#select?.(output);
     if (!this.#result) return;
     const generation = this.#generation;
