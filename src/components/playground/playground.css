@@ -151,12 +151,33 @@ hylo-playground:not([data-ready]) .pg-toolbar {
   user-select: none;
 }
 .pg-checkbox input {
+  appearance: none;
+  display: grid;
+  place-content: center;
   width: 1rem;
   height: 1rem;
   margin: 0;
-  /* The theme's green, as its primary buttons. */
-  accent-color: var(--sl-color-green);
+  border: 1.5px solid var(--sl-color-gray-3);
+  border-radius: 0.25rem;
+  background: transparent;
   cursor: pointer;
+}
+/* Outlined in the theme's green, as its primary buttons, with a check mark of the same colour. */
+.pg-checkbox input:checked {
+  border-color: var(--sl-color-green);
+}
+.pg-checkbox input:checked::after {
+  content: '';
+  width: 0.3rem;
+  height: 0.55rem;
+  margin-top: -0.1rem;
+  border: solid var(--sl-color-green-high);
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg);
+}
+.pg-checkbox input:focus-visible {
+  outline: 2px solid var(--sl-color-green);
+  outline-offset: 2px;
 }
 
 .pg-link {
