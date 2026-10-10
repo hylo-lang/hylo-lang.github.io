@@ -21,12 +21,20 @@
  *
  * The compiler is only downloaded when a reader runs a snippet, and is shared by every snippet on
  * the page.
+ *
+ * The build fails, naming the page, if the slot is not exactly one `hylo` code fence, if `expect`
+ * is missing or not one of its forms, or if another prop has a value it does not take. The site's
+ * tests then check that the snippet does what `expect` says (`snippets.test.ts`).
+ *
+ * Renders a `<hylo-playground>` (`playground-element.ts`), which takes the settings from the
+ * `data-` attributes set here and the code from the rendered code block.
  */
 import { ExternalLink, LoaderCircle, Pencil, Play, RotateCcw } from '@lucide/astro';
+import type { Phase } from '@hylo-lang/hylo-wasm/protocol';
+import { OPTIMIZATION_LEVELS, PHASES } from './settings';
 import { PLAYGROUND_PATH } from './site';
 import { EXPECTATION_FORMS, parseExpectation } from './snippet';
 import { OUTPUTS, OUTPUT_TITLES, type Output } from './views';
-import type { Phase } from '@hylo-lang/hylo-wasm/protocol';
 import './playground.css';
 
 interface Props {
@@ -66,10 +74,14 @@ const {
   expect,
 } = Astro.props;
 
-// Mistakes are reported as the site builds, rather than as a snippet that misbehaves.
+// Mistakes are reported as the site builds, rather than as a snippet that misbehaves. MDX does not
+// check the props' types, so every prop is checked here.
+
+/** Fails the build, saying `problem` and where. */
 const fail = (problem: string): never => {
   throw new Error(`<Playground> in ${Astro.url.pathname}: ${problem}`);
 };
+/** Returns the items of `x`, a list or a string of items separated by spaces or commas. */
 const list = (x: string[] | string): string[] =>
   (typeof x === 'string' ? x.split(/[\s,]+/) : x).filter((s) => s !== '');
 const shown = list(outputs) as Output[];
@@ -77,13 +89,23 @@ if (shown.length === 0) fail('`outputs` lists nothing to show');
 for (const o of shown) {
   if (!OUTPUTS.includes(o)) fail(`unknown output '${o}'`);
 }
+if (!OPTIMIZATION_LEVELS.includes(optimization)) {
+  fail(`\`optimization={${optimization}}\` is not one of ${OPTIMIZATION_LEVELS.join(', ')}`);
+}
+if (stopAfter !== undefined && !PHASES.includes(stopAfter)) {
+  fail(`\`stopAfter="${stopAfter}"\` is not one of ${PHASES.join(', ')}`);
+}
 if (expect === undefined) fail(`say what the snippet does with \`expect\`: ${EXPECTATION_FORMS}`);
 if (parseExpectation(expect) === null) {
   fail(`\`expect="${expect}"\` is not one of ${EXPECTATION_FORMS}`);
 }
 
 const code = await Astro.slots.render('default');
-if (!/<pre\b[^>]*\bdata-language="hylo"/.test(code)) fail('wrap exactly one `hylo` code fence');
+// Expressive Code renders each fence as one `<pre>`, which names its language.
+const blocks = [...code.matchAll(/<pre\b[^>]*>/g)];
+if (blocks.length !== 1 || !/\bdata-language="hylo"/.test(blocks[0][0])) {
+  fail(`wrap exactly one \`hylo\` code fence, not ${blocks.length} code blocks`);
+}
 ---
 
 <hylo-playground

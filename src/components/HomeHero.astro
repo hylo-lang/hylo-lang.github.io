@@ -1,7 +1,12 @@
 ---
 /**
- * The home page's hero: the title, tagline and actions of the page's `hero` front matter, as
- * Starlight's own hero shows them, beside a Hylo program the reader can open in the playground.
+ * The home page's hero, rendered in place of Starlight's by `Hero.astro`: the logo as the page's
+ * title, and the tagline and actions of the page's `hero` front matter, as Starlight's own hero
+ * shows them, beside a Hylo program (`home-example.ts`) with a link opening it in the playground.
+ *
+ * Takes no props: it reads the page's front matter from Starlight's route data, so it only works
+ * as a part of a Starlight page. The title's text, the front matter's `hero.title` or else the
+ * page's `title`, is the logo's alternative text.
  */
 import { Code, LinkButton } from '@astrojs/starlight/components';
 import { Image } from 'astro:assets';
@@ -13,7 +18,13 @@ import { excerpt, program } from './home-example';
 
 const { data } = Astro.locals.starlightRoute.entry;
 const { title = data.title, tagline, actions = [] } = data.hero ?? {};
-const playground = await playgroundURL({ source: program, optimization: 0, view: 'result' });
+const playground = playgroundURL({
+  source: program,
+  optimization: 0,
+  standardLibrary: true,
+  stopAfter: null,
+  view: 'result',
+});
 ---
 
 <div class="hero">

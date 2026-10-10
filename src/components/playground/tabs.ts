@@ -5,11 +5,18 @@
  */
 import type { Output } from './views';
 
+/** How many panels have been given an id, which numbers the next. */
 let panels = 0;
 
 /**
- * Makes the `[role="tab"][data-output]` buttons in `tablist` control `panel`, calling `onSelect`
- * when the reader selects one, and returns the function marking `output` as the selected tab.
+ * Makes the `[role="tab"][data-output]` buttons in `tablist` the tabs of `panel`, giving `panel`
+ * and the tabs ids if they have none, and returns the function marking the tab of an output as the
+ * selected one.
+ *
+ * `onSelect` is called with a tab's `data-output` when the reader selects it, by clicking it or by
+ * moving to it with the keyboard; it should show that output in `panel` and mark the tab as
+ * selected with the returned function, which does not call `onSelect`. Until it is first called,
+ * no tab is selected.
  */
 export function connectTabs(
   tablist: HTMLElement,

@@ -7,7 +7,9 @@ import * as monaco from './monaco';
 import EditorWorker from 'monaco-editor/editor/editor.worker.js?worker';
 import { getHighlighter, THEMES } from './highlight';
 import type { Diagnostic } from '@hylo-lang/hylo-wasm/protocol';
+import { MAIN_FILE } from './settings';
 
+// Monaco runs the editor's language services in a worker, which it asks the page for.
 (self as unknown as { MonacoEnvironment: unknown }).MonacoEnvironment = {
   getWorker: () => new EditorWorker(),
 };
@@ -28,7 +30,10 @@ const ready = (async () => {
   ]);
 })();
 
-/** The theme matching the page's: Starlight sets `data-theme` on the root element. */
+/**
+ * Returns the name of the Shiki theme matching the page's, which Starlight sets as `data-theme`
+ * on the root element.
+ */
 function pageTheme(): string {
   return document.documentElement.dataset.theme === 'light' ? THEMES.light : THEMES.dark;
 }
@@ -37,19 +42,26 @@ new MutationObserver(() => monaco.editor.setTheme(pageTheme())).observe(document
   attributeFilter: ['data-theme'],
 });
 
-/** What a playground may ask of its editor. */
+/** What a playground may ask of its editor. None of it may be used once the editor is disposed. */
 export interface Editor {
+  /** The code. */
   readonly value: string;
-  /** Replaces the code, as an edit the reader can undo. */
+  /** Replaces the code with `value`, as one edit the reader can undo, and scrolls to the top. */
   replace(value: string): void;
-  /** Underlines `diagnostics`, replacing those shown before. */
-  showDiagnostics(diagnostics: Diagnostic[]): void;
-  /** Moves the caret to `line`:`column`, scrolls it into view and focuses the editor. */
+  /**
+   * Marks the diagnostics of `diagnostics` that are in the code (`MAIN_FILE`) at their sites,
+   * with their rendered text on hover, replacing those marked before.
+   */
+  showDiagnostics(diagnostics: readonly Diagnostic[]): void;
+  /** Moves the caret to the 1-based `line` and `column`, scrolls it into view, and focuses. */
   reveal(line: number, column: number): void;
+  /** Gives the editor the keyboard focus. */
   focus(): void;
+  /** Removes the editor from its host and releases what it holds. */
   dispose(): void;
 }
 
+/** How `createEditor` creates an editor. */
 export interface EditorOptions {
   /** The Hylo code the editor starts with. */
   value: string;
@@ -58,13 +70,19 @@ export interface EditorOptions {
    * its container.
    */
   fitContent?: boolean;
-  /** Called after every edit. */
+  /** Called after every edit, with the code. */
   onChange?: (value: string) => void;
-  /** Called on Ctrl+Enter (⌘+Enter on a Mac). */
+  /** Called when the reader presses Ctrl+Enter (⌘+Enter on a Mac) in the editor. */
   onRun?: () => void;
 }
 
-/** Creates an editor in `host`. */
+/**
+ * Returns an editor created in `host`, an element that is empty and laid out, once Monaco, the
+ * highlighter and the editor's font are loaded.
+ *
+ * Rejects if Monaco or the highlighter fails to load; a font that fails to load leaves the
+ * fallback font.
+ */
 export async function createEditor(host: HTMLElement, options: EditorOptions): Promise<Editor> {
   await ready;
   const editor = monaco.editor.create(host, {
@@ -135,7 +153,8 @@ export async function createEditor(host: HTMLElement, options: EditorOptions): P
       monaco.editor.setModelMarkers(
         model,
         'hylo',
-        diagnostics.map((d) => ({
+        // A site in another file, the standard library's, is nowhere in this code.
+        diagnostics.filter((d) => d.file === MAIN_FILE).map((d) => ({
           severity: severity[d.level],
           // The whole diagnostic, as the compiler renders it.
           message: d.rendered.replace(/\n$/, ''),

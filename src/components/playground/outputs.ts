@@ -4,19 +4,30 @@
  */
 import type { Diagnostic } from '@hylo-lang/hylo-wasm/protocol';
 import type { CompilerStatus, Result } from './compiler';
+import { MAIN_FILE } from './settings';
 import { OUTPUT_LANGUAGES, type Output } from './views';
 
+/** How the views of a result are shown. */
 export interface RenderOptions {
   /**
-   * The functions to show in Hylo IR, by name; all of them if empty. `main` shows `main`,
-   * `factorial` shows `factorial(_:)`, and `Int32.infix+` shows that operator.
+   * The functions to show in Hylo IR, by name; all of them if empty or absent. `main` shows
+   * `main`, `factorial` shows `factorial(_:)`, and `Int32.infix+` shows that operator.
    */
   focus?: readonly string[];
-  /** Called with a diagnostic's site when it is clicked. */
+  /**
+   * Called with the 1-based line and column of a diagnostic in the code (`MAIN_FILE`) when the
+   * reader clicks it; if absent, diagnostics cannot be clicked.
+   */
   onReveal?: (line: number, column: number) => void;
 }
 
-/** Fills `container` with the `output` view of `result`. */
+/**
+ * Replaces the contents of `container` with the `output` view of `result`.
+ *
+ * Resolves once they are replaced, which for a textual artifact takes loading the highlighter
+ * the first time. Rendering a view again before the last resolved is allowed; the caller decides
+ * which rendering to keep, by rendering into a detached element.
+ */
 export async function renderOutput(
   container: HTMLElement,
   output: Output,
@@ -27,9 +38,7 @@ export async function renderOutput(
     container.replaceChildren(...resultView(result, options));
   } else if (output === 'diagnostics') {
     const ds = result.compile.diagnostics;
-    container.replaceChildren(
-      ds.length > 0 ? diagnosticList(ds, options) : note('No diagnostics.'),
-    );
+    container.replaceChildren(ds.length > 0 ? diagnosticList(ds, options) : note('No diagnostics.'));
   } else {
     const text = result.compile.artifacts[output];
     if (text === undefined) {
@@ -46,7 +55,10 @@ export async function renderOutput(
   }
 }
 
-/** Fills `container` with what the compiler is doing while it is not yet ready. */
+/**
+ * Replaces the contents of `container` with what the compiler is doing while it is not ready:
+ * progress while it loads, the reason it failed to, and nothing otherwise.
+ */
 export function renderStatus(container: HTMLElement, status: CompilerStatus): void {
   switch (status.kind) {
     case 'loading': {
@@ -57,6 +69,7 @@ export function renderStatus(container: HTMLElement, status: CompilerStatus): vo
             ? `Downloading the compiler… ${megabytes(status.loaded)} of ${megabytes(status.total)}`
             : 'Compiling the standard library…',
       );
+      // Without a total, the bar is indeterminate.
       const bar = document.createElement('progress');
       if (status.total > 0) {
         bar.max = status.total;
@@ -79,6 +92,7 @@ export function renderStatus(container: HTMLElement, status: CompilerStatus): vo
  */
 export function summarize(r: Result): string {
   const c = r.compile;
+  if (r.unavailable !== undefined) return 'The compiler failed to load.';
   if (r.gaveUp) return r.gaveUp;
   if (c.error) return 'The compiler failed.';
   const errors = c.diagnostics.filter((d) => d.level === 'error').length;
@@ -88,7 +102,7 @@ export function summarize(r: Result): string {
   return r.run.trap !== undefined ? 'The program trapped.' : `Exited with status ${r.run.exitCode}.`;
 }
 
-/** Returns a sentence describing `status`, or `null` once the compiler is ready. */
+/** Returns a sentence describing `status`, or `null` if there is nothing to say about it. */
 export function describeStatus(status: CompilerStatus): string | null {
   switch (status.kind) {
     case 'loading':
@@ -100,9 +114,26 @@ export function describeStatus(status: CompilerStatus): string | null {
   }
 }
 
-/** The elements of the result view. */
+/**
+ * Returns the functions of `ir`, Hylo IR, whose names are in `focus` (see `RenderOptions.focus`),
+ * or all of `ir` if `focus` is empty or names none of them. Functions are separated by blank
+ * lines and begin with `fun <name>`.
+ */
+export function focusIR(ir: string, focus: readonly string[]): string {
+  if (focus.length === 0) return ir;
+  const shown = ir.split(/\n{2,}/).filter((f) => {
+    const name = /^fun (\S+?)(?:<|\(|$)/.exec(f)?.[1];
+    return name !== undefined && focus.some((n) => name === n || name.startsWith(`${n}(`));
+  });
+  return shown.length > 0 ? shown.join('\n\n') : ir;
+}
+
+/** Returns the elements of the result view of `r`. */
 function resultView(r: Result, options: RenderOptions): Node[] {
   const c = r.compile;
+  if (r.unavailable !== undefined) {
+    return [headline('bad', 'The compiler failed to load.'), note(r.unavailable)];
+  }
   if (r.gaveUp) {
     return [headline('warn', r.gaveUp), note('Does the program loop forever? It was stopped.')];
   }
@@ -119,7 +150,8 @@ function resultView(r: Result, options: RenderOptions): Node[] {
   if (r.run.trap !== undefined) {
     nodes.push(headline('warn', 'The program trapped'));
   } else {
-    nodes.push(headline(r.run.exitCode === 0 ? 'ok' : 'neutral', `Exited with status ${r.run.exitCode}`));
+    const tone = r.run.exitCode === 0 ? 'ok' : 'neutral';
+    nodes.push(headline(tone, `Exited with status ${r.run.exitCode}`));
   }
   if (r.run.stdout) nodes.push(labelled('Standard output', pre(r.run.stdout)));
   if (r.run.stderr) nodes.push(labelled('Standard error', pre(r.run.stderr)));
@@ -128,8 +160,8 @@ function resultView(r: Result, options: RenderOptions): Node[] {
 }
 
 /**
- * A list of diagnostics, each shown as the compiler renders it, and taking the reader to its site
- * when clicked.
+ * Returns a list of `ds`, each shown as the compiler renders it; one in the code takes the reader
+ * to its site when clicked, if `options.onReveal` is given.
  */
 function diagnosticList(ds: readonly Diagnostic[], options: RenderOptions): HTMLElement {
   const list = document.createElement('ul');
@@ -140,8 +172,10 @@ function diagnosticList(ds: readonly Diagnostic[], options: RenderOptions): HTML
     const button = document.createElement('button');
     button.type = 'button';
     button.append(pre(d.rendered.replace(/\n$/, '')));
-    if (options.onReveal) {
-      button.addEventListener('click', () => options.onReveal!(d.site.line, d.site.column));
+    const reveal = options.onReveal;
+    // A site in another file, the standard library's, is nowhere in the editor.
+    if (reveal && d.file === MAIN_FILE) {
+      button.addEventListener('click', () => reveal(d.site.line, d.site.column));
     } else {
       button.disabled = true;
     }
@@ -151,27 +185,16 @@ function diagnosticList(ds: readonly Diagnostic[], options: RenderOptions): HTML
   return list;
 }
 
-/** Returns why an artifact was not produced. */
+/** Returns a sentence saying why `r` has no artifact of a view that asked for one. */
 function notProducedReason(r: Result): string {
+  if (r.unavailable !== undefined) return 'Not produced: the compiler failed to load.';
   if (r.gaveUp) return `Not produced: ${r.gaveUp.toLowerCase()}`;
   if (r.compile.error) return 'Not produced: the compiler failed.';
   const failed = r.compile.diagnostics.some((d) => d.level === 'error');
   return failed ? 'Not produced: the program has errors.' : 'Not produced.';
 }
 
-/**
- * Returns the functions of `ir`, Hylo IR, whose names are in `focus`, or all of `ir` if `focus` is
- * empty. Functions are separated by blank lines and begin with `fun <name>`.
- */
-export function focusIR(ir: string, focus: readonly string[]): string {
-  if (focus.length === 0) return ir;
-  const shown = ir.split(/\n{2,}/).filter((f) => {
-    const name = /^fun (\S+?)(?:<|\(|$)/.exec(f)?.[1];
-    return name !== undefined && focus.some((n) => name === n || name.startsWith(`${n}(`));
-  });
-  return shown.length > 0 ? shown.join('\n\n') : ir;
-}
-
+/** Returns a paragraph stating `text` in the colour of `tone`. */
 function headline(tone: 'ok' | 'bad' | 'warn' | 'neutral', text: string): HTMLElement {
   const p = document.createElement('p');
   p.className = `pg-headline pg-${tone}`;
@@ -179,6 +202,7 @@ function headline(tone: 'ok' | 'bad' | 'warn' | 'neutral', text: string): HTMLEl
   return p;
 }
 
+/** Returns a paragraph of secondary text, `text`. */
 function note(text: string): HTMLElement {
   const p = document.createElement('p');
   p.className = 'pg-note';
@@ -186,6 +210,7 @@ function note(text: string): HTMLElement {
   return p;
 }
 
+/** Returns a preformatted block of `text`. */
 function pre(text: string): HTMLElement {
   const p = document.createElement('pre');
   p.className = 'pg-pre';
@@ -193,6 +218,7 @@ function pre(text: string): HTMLElement {
   return p;
 }
 
+/** Returns a section holding `content` under the heading `label`. */
 function labelled(label: string, content: HTMLElement): HTMLElement {
   const section = document.createElement('section');
   const h = document.createElement('h4');
@@ -202,6 +228,7 @@ function labelled(label: string, content: HTMLElement): HTMLElement {
   return section;
 }
 
+/** Returns `n` bytes in megabytes, to one decimal below 10 MB and none above. */
 function megabytes(n: number): string {
   return `${(n / 1048576).toFixed(n < 10 * 1048576 ? 1 : 0)} MB`;
 }

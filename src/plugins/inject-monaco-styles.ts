@@ -20,6 +20,11 @@ type Plugin = Extract<NonNullable<ViteUserConfig['plugins']>[number], { name: st
 const PREFIX = '\0hylo-injected-style:';
 const SUFFIX = '.js';
 
+/**
+ * Returns the plugin, which turns every style sheet of the `monaco-editor` package that client
+ * code imports into a module adding it to the page's head when it is evaluated. Other style
+ * sheets, and imports made for server rendering, are left to Vite.
+ */
 export function injectMonacoStyles(): Plugin {
   return {
     name: 'hylo:inject-monaco-styles',

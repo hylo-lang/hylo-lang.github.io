@@ -3,12 +3,17 @@
  * The full-screen playground: the whole window for the editor and what the compiler made of the
  * code. A page of its own rather than a Starlight one, which would bring the site's header and
  * sidebars; it uses the same colours, theme and fonts all the same.
+ *
+ * The markup is static; `full-screen.ts` makes it work, finding its elements by the `pg-` ids
+ * below, which it relies on. A link to the page may hold a state in its fragment (see
+ * `share.ts`'s `playgroundURL`).
  */
 import { Image } from 'astro:assets';
 import { Check, LoaderCircle, Play, Share2 } from '@lucide/astro';
 import darkLogo from '../assets/hylo-green-smaller.png';
 import lightLogo from '../assets/hylo-black.png';
 import { url } from '../utils/url';
+import { OPTIMIZATION_LEVELS, PHASES } from '../components/playground/settings';
 import { OUTPUTS, OUTPUT_TITLES } from '../components/playground/views';
 import 'starlight-theme-rapide/styles/theme';
 import '../styles/fonts.css';
@@ -51,11 +56,16 @@ import '../components/playground/playground.css';
         <option value="">Examples…</option>
       </select>
       <select id="pg-optimization" class="pg-select" aria-label="Optimization level">
-        <option value="0">-O0</option>
-        <option value="1">-O1</option>
-        <option value="2">-O2</option>
-        <option value="3">-O3</option>
+        {OPTIMIZATION_LEVELS.map((l) => <option value={l}>-O{l}</option>)}
       </select>
+      <select id="pg-stop-after" class="pg-select" aria-label="How far to compile">
+        <option value="">Compile and run</option>
+        {[...PHASES].reverse().map((p) => <option value={p}>Stop after {p}</option>)}
+      </select>
+      <label class="pg-checkbox" title="Compile with the standard library">
+        <input id="pg-standard-library" type="checkbox" checked />
+        Standard library
+      </label>
       <label class="pg-checkbox" title="Compile and run as you type">
         <input id="pg-autorun" type="checkbox" checked />
         Auto-run

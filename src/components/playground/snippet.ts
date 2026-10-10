@@ -1,40 +1,38 @@
 /**
  * What a runnable snippet asks of the compiler and promises to do, shared by the snippets
- * themselves, the component checking them as the site builds, and the test running them.
+ * themselves (`playground-element.ts`), the component checking them as the site builds
+ * (`Playground.astro`), and the test running them (`snippets.test.ts`).
  */
-import type { CompileRequest, Phase } from '@hylo-lang/hylo-wasm/protocol';
+import type { CompileRequest } from '@hylo-lang/hylo-wasm/protocol';
+import { compileRequest, type CompileSettings } from './settings';
 import { isArtifact, type Output } from './views';
 
 /** The settings of a snippet, as `Playground.astro` takes them. */
-export interface SnippetSettings {
+export interface SnippetSettings extends CompileSettings {
+  /** The views the snippet offers, in order; the first is shown first. Never empty. */
   outputs: readonly Output[];
-  optimization: number;
-  standardLibrary: boolean;
-  stopAfter?: Phase;
 }
 
-/** Returns the request compiling `source` as a snippet with `settings`. */
+/** Returns the request compiling `source` as a snippet with `settings` does. */
 export function snippetRequest(source: string, settings: SnippetSettings): CompileRequest {
-  const emit: CompileRequest['emit'] = settings.outputs.filter(isArtifact);
-  // A snippet that stops early is not a program, and has nothing to run.
-  if (!settings.stopAfter) emit.push('executable');
-  return {
-    source,
-    emit,
-    optimization: settings.optimization,
-    standardLibrary: settings.standardLibrary,
-    stopAfter: settings.stopAfter,
-  };
+  return compileRequest(source, settings.outputs.filter(isArtifact), settings);
 }
 
 /** What a snippet does: its `expect` attribute. */
 export type Expectation =
+  /** It runs, and exits with `status`. */
   | { kind: 'exit'; status: number }
+  /** It runs, and traps. */
   | { kind: 'trap' }
+  /** It does not compile. */
   | { kind: 'error' }
+  /** It compiles, and if it is a program, runs to completion. */
   | { kind: 'ok' };
 
-/** Returns the expectation `text` describes, or `null` if it describes none. */
+/**
+ * Returns the expectation `text` describes, in one of `EXPECTATION_FORMS`, ignoring surrounding
+ * whitespace, or `null` if it describes none.
+ */
 export function parseExpectation(text: string): Expectation | null {
   const m = /^\s*(?:exit\s+(-?\d+)|(trap|error|ok))\s*$/.exec(text);
   if (!m) return null;

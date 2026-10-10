@@ -1,103 +1,148 @@
 /**
- * The playground's state as text, for links (`#v=1&s=…`) and for remembering it across visits.
+ * The full-screen playground's state as text, for links to it and for remembering it across
+ * visits.
  *
- * The text is versioned: `v` names the schema of `s`, and `DECODERS` has a decoder for every
- * version ever written, so that a link keeps opening after the schema changes. A change to what
- * the state holds adds a version: a new `encode` writing it and a decoder reading it, while the
- * decoders of the older versions stay, mapping what they read onto the current state.
+ * The state is written as a JSON object naming the version of its schema, `version`. In a link
+ * it follows `#state=` in the fragment, as UTF-8 in base64url; in local storage it is the JSON
+ * itself. Reading it validates it against the schema of its version, so that a link of any origin
+ * yields either a well-formed state or a problem to tell the reader, and nothing else.
  *
- * Version 1: `s` is the JSON of `{ source, optimization, view }`, deflated (`deflate-raw`) and in
- * base64url; `optimization` and `view` may be missing, and other fields are ignored.
+ * Every version ever written has a schema below, which reads it into the current
+ * `PlaygroundState`, so that links keep opening after the schema changes. A change to what the
+ * state holds adds a version, with a schema of its own, while the older schemas stay and map what
+ * they hold onto the current state.
+ *
+ * Version 1 is `{ version: 1, source, optimization?, standardLibrary?, stopAfter?, view? }`, with
+ * the fields of `PlaygroundState`; the optional ones default to 0, `true`, `null` and `"result"`.
+ * Fields it does not name are ignored.
  */
+import * as v from 'valibot';
+import { OPTIMIZATION_LEVELS, PHASES, type CompileSettings } from './settings';
 import { PLAYGROUND_PATH } from './site';
 import { OUTPUTS, type Output } from './views';
 
-/** An optimization level of LLVM. */
-export type OptimizationLevel = 0 | 1 | 2 | 3;
-
-/** What the playground shows: everything a link reproduces. */
-export interface PlaygroundState {
+/** What the full-screen playground shows: everything a link to it reproduces. */
+export interface PlaygroundState extends CompileSettings {
   /** The code in the editor. */
   source: string;
-  optimization: OptimizationLevel;
   /** The view of the compilation shown. */
   view: Output;
 }
 
-/** The version `encode` writes. */
-const CURRENT_VERSION = '1';
-
-/** Returns `state` as text, `v=<version>&s=<payload>`, the fragment of a link. */
-export async function encode(state: PlaygroundState): Promise<string> {
-  const { source, optimization, view } = state;
-  const payload = await deflate(JSON.stringify({ source, optimization, view }));
-  return new URLSearchParams({ v: CURRENT_VERSION, s: payload }).toString();
-}
-
-/** What reading a state from text found. */
+/** What reading a state found. */
 export type Decoded =
   | { state: PlaygroundState }
   /** A state that could not be read, and why, in a sentence for the reader. */
   | { problem: string };
 
-/**
- * Returns the state in `text`, a link's fragment with or without its `#`, or `null` if it holds
- * none.
- */
-export async function decode(text: string): Promise<Decoded | null> {
-  const params = new URLSearchParams(text.replace(/^#/, ''));
-  const version = params.get('v');
-  const payload = params.get('s');
-  if (version === null || payload === null) return null;
-  const decoder = DECODERS[version];
-  if (!decoder) {
-    return { problem: 'The link was made by a newer playground; reload the page and try again.' };
-  }
-  try {
-    return { state: await decoder(payload) };
-  } catch {
-    return { problem: 'The link is damaged: it does not hold code the playground can read.' };
-  }
+/** The version `serialize` writes. */
+const CURRENT_VERSION = 1;
+
+/** Version 1 of the state. */
+const Version1 = v.object({
+  version: v.literal(1),
+  source: v.string(),
+  optimization: v.optional(v.picklist(OPTIMIZATION_LEVELS), 0),
+  standardLibrary: v.optional(v.boolean(), true),
+  stopAfter: v.optional(v.nullable(v.picklist(PHASES)), null),
+  view: v.optional(v.picklist(OUTPUTS), 'result'),
+});
+
+/** A state of any version, read as the current state. */
+const State: v.GenericSchema<unknown, PlaygroundState> = v.pipe(
+  v.variant('version', [Version1]),
+  v.transform(({ source, optimization, standardLibrary, stopAfter, view }) => ({
+    source,
+    optimization,
+    standardLibrary,
+    stopAfter,
+    view,
+  })),
+);
+
+/** What every version has in common: the version, which says how to read the rest. */
+const Versioned = v.looseObject({ version: v.pipe(v.number(), v.integer(), v.minValue(1)) });
+
+/** Returns `state` as JSON, in the current version. */
+export function serialize(state: PlaygroundState): string {
+  const { source, optimization, standardLibrary, stopAfter, view } = state;
+  return JSON.stringify({
+    version: CURRENT_VERSION,
+    source,
+    optimization,
+    standardLibrary,
+    stopAfter,
+    view,
+  });
 }
 
-/** Reads a payload of each version, throwing if it is not one. */
-const DECODERS: Record<string, (payload: string) => Promise<PlaygroundState>> = {
-  async 1(payload) {
-    const json: unknown = JSON.parse(await inflate(payload));
-    if (typeof json !== 'object' || json === null) throw new Error('not an object');
-    const { source, optimization = 0, view = 'result' } = json as Record<string, unknown>;
-    if (typeof source !== 'string') throw new Error('no source');
-    if (!isOptimizationLevel(optimization)) throw new Error('bad optimization level');
-    if (!OUTPUTS.includes(view as Output)) throw new Error('bad view');
-    return { source, optimization, view: view as Output };
-  },
-};
+/** Returns the state `json` holds, as `serialize` writes it in any version, or why it holds none. */
+export function deserialize(json: string): Decoded {
+  let value: unknown;
+  try {
+    value = JSON.parse(json);
+  } catch {
+    return damaged;
+  }
+  const versioned = v.safeParse(Versioned, value);
+  if (versioned.success && versioned.output.version > CURRENT_VERSION) {
+    return { problem: 'The link was made by a newer playground; reload the page and try again.' };
+  }
+  const state = v.safeParse(State, value);
+  return state.success ? { state: state.output } : damaged;
+}
 
-/** Returns `true` iff `x` is an optimization level. */
-export function isOptimizationLevel(x: unknown): x is OptimizationLevel {
-  return x === 0 || x === 1 || x === 2 || x === 3;
+/** Returns `state` as the fragment of a link, without its `#`. */
+export function encodeFragment(state: PlaygroundState): string {
+  return `state=${toBase64Url(new TextEncoder().encode(serialize(state)))}`;
+}
+
+/**
+ * Returns the state in `fragment`, a link's fragment with or without its `#`, or why it holds
+ * none; `null` if it does not try to hold one, having no `state` parameter.
+ */
+export function decodeFragment(fragment: string): Decoded | null {
+  const payload = new URLSearchParams(fragment.replace(/^#/, '')).get('state');
+  if (payload === null) return null;
+  let json: string;
+  try {
+    json = new TextDecoder('utf-8', { fatal: true }).decode(fromBase64Url(payload));
+  } catch {
+    return damaged;
+  }
+  return deserialize(json);
 }
 
 /** Returns the address of the full-screen playground, opened on `state`. */
-export async function playgroundURL(state: PlaygroundState): Promise<string> {
-  return `${PLAYGROUND_PATH}#${await encode(state)}`;
+export function playgroundURL(state: PlaygroundState): string {
+  return `${PLAYGROUND_PATH}#${encodeFragment(state)}`;
 }
 
-/** Returns `text`, deflated and in base64url. */
-async function deflate(text: string): Promise<string> {
-  const stream = new Blob([text]).stream().pipeThrough(new CompressionStream('deflate-raw'));
-  const bytes = new Uint8Array(await new Response(stream).arrayBuffer());
+/** What reading a state that is not one finds. */
+const damaged: Decoded = {
+  problem: 'The link is damaged: it does not hold code the playground can read.',
+};
+
+/** Returns `bytes` in base64url, without padding. */
+function toBase64Url(bytes: Uint8Array): string {
   let binary = '';
   for (const b of bytes) binary += String.fromCharCode(b);
   return btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
 }
 
-/** Returns the text `deflate` encoded as `payload`. */
-async function inflate(payload: string): Promise<string> {
-  const bytes = Uint8Array.from(atob(payload.replace(/-/g, '+').replace(/_/g, '/')), (c) =>
-    c.charCodeAt(0),
-  );
-  const stream = new Blob([bytes]).stream().pipeThrough(new DecompressionStream('deflate-raw'));
-  // `fatal`, so that bytes that are not UTF-8 are an error rather than replacement characters.
-  return new TextDecoder('utf-8', { fatal: true }).decode(await new Response(stream).arrayBuffer());
+/**
+ * Returns the bytes `text` encodes in base64url, with or without padding.
+ *
+ * Throws a `SyntaxError` if `text` is not base64url.
+ */
+function fromBase64Url(text: string): Uint8Array {
+  // `atob` also accepts whitespace and the standard alphabet, which a link never holds.
+  if (!/^[A-Za-z0-9_-]*={0,2}$/.test(text)) throw new SyntaxError('not base64url');
+  let binary: string;
+  try {
+    binary = atob(text.replace(/-/g, '+').replace(/_/g, '/'));
+  } catch {
+    throw new SyntaxError('not base64url');
+  }
+  return Uint8Array.from(binary, (c) => c.charCodeAt(0));
 }

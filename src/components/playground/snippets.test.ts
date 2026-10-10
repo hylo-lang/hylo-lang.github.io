@@ -10,7 +10,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { type Compiler, load } from '@hylo-lang/hylo-wasm';
 import { beforeAll, describe, expect, test } from 'vitest';
-import type { Phase } from '@hylo-lang/hylo-wasm/protocol';
+import { parseOptimizationLevel, PHASES } from './settings';
 import { parseExpectation, snippetRequest } from './snippet';
 import type { Output } from './views';
 
@@ -21,7 +21,9 @@ interface Snippet {
   file: string;
   line: number;
   attributes: Record<string, string>;
-  /** The language of the fence, or `undefined` if there is none. */
+  /** How many code fences it wraps, of which there must be one. */
+  fences: number;
+  /** The language of the first fence, or `undefined` if there is none. */
   language?: string;
   source: string;
 }
@@ -56,12 +58,15 @@ function snippets(dir: string): Snippet[] {
       const text = withoutExamples(readFileSync(file, 'utf8'));
       return [...text.matchAll(/<Playground\b([^>]*)>([\s\S]*?)<\/Playground>/g)].map((m) => {
         const fence = /^\s*```(\S*)[^\n]*\n([\s\S]*?)```\s*$/.exec(m[2]);
+        // Every fence opens and closes on a line starting with backticks.
+        const fences = (m[2].match(/^\s*```/gm) ?? []).length / 2;
         return {
           file: path.relative(root, file),
           line: text.slice(0, m.index).split('\n').length,
           attributes: Object.fromEntries(
             [...m[1].matchAll(/(\w+)=(?:"([^"]*)"|\{([^}]*)\})/g)].map((a) => [a[1], a[2] ?? a[3]]),
           ),
+          fences,
           language: fence?.[1],
           source: fence?.[2] ?? '',
         };
@@ -76,7 +81,8 @@ test('the site has runnable snippets to check', () => {
 });
 
 test.each(all.map((s) => [`${s.file}:${s.line}`, s] as const))('%s is well formed', (_, s) => {
-  expect(s.language, 'a snippet wraps exactly one `hylo` code fence').toBe('hylo');
+  expect(s.fences, 'a snippet wraps exactly one code fence').toBe(1);
+  expect(s.language, 'a snippet wraps a `hylo` code fence').toBe('hylo');
   expect(parseExpectation(s.attributes.expect ?? ''), 'a snippet says what it does').not.toBeNull();
 });
 
@@ -95,9 +101,9 @@ describe('snippets, with the compiler', () => {
     const r = hylo.compile(
       snippetRequest(s.source, {
         outputs: (a.outputs ?? 'result').split(/[\s,]+/).filter((o) => o !== '') as Output[],
-        optimization: Number(a.optimization ?? 0),
+        optimization: parseOptimizationLevel(a.optimization ?? '0'),
         standardLibrary: a.standardLibrary !== 'false',
-        stopAfter: a.stopAfter as Phase | undefined,
+        stopAfter: PHASES.find((p) => p === a.stopAfter) ?? null,
       }),
     );
     expect(r.error).toBeUndefined();
