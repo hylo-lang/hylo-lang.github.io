@@ -5,7 +5,8 @@
 import { shikiToMonaco } from '@shikijs/monaco';
 import * as monaco from './monaco';
 import EditorWorker from 'monaco-editor/editor/editor.worker.js?worker';
-import { getHighlighter, THEMES } from './highlight';
+import { CODE_THEMES } from '../../assets/syntax/code-style';
+import { getHighlighter } from './highlight';
 import type { Diagnostic } from '@hylo-lang/hylo-wasm/protocol';
 import { MAIN_FILE } from './settings';
 
@@ -38,7 +39,7 @@ const ready = (async () => {
  * on the root element.
  */
 function pageTheme(): string {
-  return document.documentElement.dataset.theme === 'light' ? THEMES.light : THEMES.dark;
+  return document.documentElement.dataset.theme === 'light' ? CODE_THEMES.light : CODE_THEMES.dark;
 }
 new MutationObserver(() => monaco.editor.setTheme(pageTheme())).observe(document.documentElement, {
   attributes: true,

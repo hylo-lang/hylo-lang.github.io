@@ -8,34 +8,30 @@
  * work with it, without its forgiving mode.
  */
 import type { HighlighterCore } from 'shiki/core';
-import hylo from '../../assets/syntax/hylo.tmLanguage.json';
-import hyloIR from '../../assets/syntax/hylo-ir.tmLanguage.json';
-import wasmAsm from '../../assets/syntax/wasm-asm.tmLanguage.json';
-
-/** The site's code block themes, as configured by starlight-theme-rapide. */
-export const THEMES = { light: 'vitesse-light', dark: 'vitesse-dark' } as const;
+import { CODE_THEMES, GRAMMARS } from '../../assets/syntax/code-style';
 
 /** The highlighter, once something asked for it. */
 let highlighter: Promise<HighlighterCore> | null = null;
 
 /**
- * Returns the highlighter, with the site's themes and the grammars of Hylo, Hylo IR, LLVM IR and
- * WebAssembly assembly, creating it on first use. Rejects if a part of it fails to load.
+ * Returns the highlighter, with the site's themes and grammars (`code-style.ts`) and LLVM IR's,
+ * creating it on first use. Rejects if a part of it fails to load.
  */
 export function getHighlighter(): Promise<HighlighterCore> {
   highlighter ??= (async () => {
-    const [{ createHighlighterCore }, { createJavaScriptRegexEngine }] = await Promise.all([
-      import('shiki/core'),
-      import('shiki/engine/javascript'),
-    ]);
+    const [{ createHighlighterCore }, { createJavaScriptRegexEngine }, { bundledThemes }] =
+      await Promise.all([
+        import('shiki/core'),
+        import('shiki/engine/javascript'),
+        // A map of the themes to functions loading them, each a chunk of its own.
+        import('shiki/themes'),
+      ]);
     return createHighlighterCore({
       engine: createJavaScriptRegexEngine({ forgiving: false }),
-      themes: [import('shiki/themes/vitesse-light.mjs'), import('shiki/themes/vitesse-dark.mjs')],
+      themes: [bundledThemes[CODE_THEMES.light](), bundledThemes[CODE_THEMES.dark]()],
       langs: [
         // The grammars' JSON is typed loosely; Shiki checks it as it loads it.
-        hylo as never,
-        hyloIR as never,
-        wasmAsm as never,
+        ...(GRAMMARS as never[]),
         import('shiki/langs/llvm.mjs'),
       ],
     });
@@ -50,5 +46,5 @@ export function getHighlighter(): Promise<HighlighterCore> {
  */
 export async function highlight(code: string, lang: string): Promise<string> {
   const h = await getHighlighter();
-  return h.codeToHtml(code, { lang, themes: THEMES, defaultColor: false });
+  return h.codeToHtml(code, { lang, themes: CODE_THEMES, defaultColor: false });
 }

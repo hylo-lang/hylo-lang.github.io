@@ -2,9 +2,9 @@
  * `<hylo-playground>`: makes the code block inside it runnable, and editable if it allows it.
  *
  * Rendered by `Playground.astro`, which documents the attributes and checks them as the site
- * builds. The code block is whatever Expressive Code rendered for the author's fence, and stays on
- * the page until the reader edits it, so a snippet looks like every other code block and works
- * without JavaScript.
+ * builds, and sets the code as `data-source`. The code block inside is whatever Expressive Code
+ * rendered for the author's fence, and stays on the page until the reader edits it, so a snippet
+ * looks like every other code block and works without JavaScript.
  */
 import { compiler, type Result } from './compiler';
 import type { Editor } from './editor';
@@ -45,7 +45,7 @@ function readSettings(dataset: DOMStringMap): SnippetSettings {
 class HyloPlayground extends HTMLElement {
   /** The settings, read from the attributes once connected. */
   #settings!: SnippetSettings;
-  /** The code as the author wrote it. */
+  /** The code as the author wrote it, which `Playground.astro` sets as `data-source`. */
   #original = '';
   /** The editor, from the moment the reader asks to edit, while it loads and after. */
   #editor: Promise<Editor> | null = null;
@@ -73,7 +73,7 @@ class HyloPlayground extends HTMLElement {
   /** Reads the settings and the code, and makes the buttons work. */
   connectedCallback(): void {
     this.#settings = readSettings(this.dataset);
-    this.#original = this.#readSource();
+    this.#original = this.dataset.source ?? '';
     this.#shown = this.#settings.outputs[0];
     this.#part('run')!.addEventListener('click', () => void this.run());
     this.#part('edit')?.addEventListener('click', () => void this.edit()?.catch(() => {}));
@@ -273,18 +273,6 @@ class HyloPlayground extends HTMLElement {
       stopAfter,
       view: this.#shown,
     });
-  }
-
-  /** Returns the code of the block, as Expressive Code's copy button holds it. */
-  #readSource(): string {
-    const copy = this.querySelector<HTMLElement>('[data-code]');
-    if (copy?.dataset.code !== undefined) {
-      // Expressive Code stores line breaks as U+007F, since attributes normalise newlines away.
-      return copy.dataset.code.replace(/\u007f/g, '\n');
-    }
-    const lines = this.querySelectorAll('.ec-line');
-    if (lines.length > 0) return [...lines].map((l) => l.textContent ?? '').join('\n');
-    return this.querySelector('pre')?.textContent ?? '';
   }
 
   /** Returns the element of this snippet whose `data-part` is `name`, if any. */

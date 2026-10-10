@@ -8,6 +8,7 @@
  * below, which it relies on. A link to the page may hold a state in its fragment (see
  * `share.ts`'s `playgroundURL`).
  */
+import ThemeProvider from '@astrojs/starlight/components/ThemeProvider.astro';
 import { Image } from 'astro:assets';
 import { Check, Ellipsis, LoaderCircle, Play, Share2 } from '@lucide/astro';
 import darkLogo from '../assets/hylo-green-smaller.png';
@@ -32,18 +33,8 @@ import '../components/playground/playground.css';
     />
     <link rel="icon" href={url('hylo-favicon.png')} />
     <!-- The reader's light or dark choice from the rest of the site, before the first paint, as
-         Starlight's own ThemeProvider reads it. -->
-    <script is:inline>
-      (() => {
-        let stored = null;
-        try {
-          stored = localStorage.getItem('starlight-theme');
-        } catch {}
-        const theme =
-          stored || (matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
-        document.documentElement.dataset.theme = theme === 'light' ? 'light' : 'dark';
-      })();
-    </script>
+         on every Starlight page. -->
+    <ThemeProvider />
   </head>
   <body>
     <header class="bar">

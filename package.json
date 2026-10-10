@@ -11,6 +11,7 @@
     "test": "vitest run"
   },
   "dependencies": {
+    "@astrojs/markdown-satteri": "0.4.1",
     "@astrojs/starlight": "^0.42.3",
     "@astrojs/starlight-tailwind": "^5.0.0",
     "@expressive-code/core": "^0.44.2",

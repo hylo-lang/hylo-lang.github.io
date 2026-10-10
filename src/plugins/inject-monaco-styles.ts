@@ -6,34 +6,48 @@
  * load, dynamically imported or not, from the page's head. Every page with a snippet would then
  * wait for the editor's styles before rendering, although the editor is only loaded when a reader
  * edits a snippet.
+ *
+ * It also resolves `monaco-editor/<path>.css`, which the package's exports map does not, as
+ * `<path>.css` in the directory its modules are in (`esm/vs/`), as the map does for modules.
  */
+import { realpathSync } from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import type { ViteUserConfig } from 'astro';
 
 /** A Vite plugin, named through Astro, which depends on Vite where the site does not. */
 type Plugin = Extract<NonNullable<ViteUserConfig['plugins']>[number], { name: string }>;
 
 /**
- * Ids of the modules injecting style sheets are the sheets' paths between these. Ids starting with a null character
- * are virtual modules by Vite's convention, and the extension keeps plugins processing CSS, which
- * go by the end of an id, from taking the module for a style sheet.
+ * Ids of the modules injecting style sheets are the sheets' paths between these. Ids starting with
+ * a null character are virtual modules by Vite's convention, and the extension keeps plugins
+ * processing CSS, which go by the end of an id, from taking the module for a style sheet.
  */
 const PREFIX = '\0hylo-injected-style:';
 const SUFFIX = '.js';
 
+/** The specifiers this plugin resolves begin with this. */
+const PACKAGE = 'monaco-editor/';
+
 /**
  * Returns the plugin, which turns every style sheet of the `monaco-editor` package that client
- * code imports into a module adding it to the page's head when it is evaluated. Other style
- * sheets, and imports made for server rendering, are left to Vite.
+ * code imports into a module adding it to the page's head when it is evaluated, and resolves
+ * `monaco-editor/<path>.css`. Other style sheets, and imports made for server rendering, are left
+ * to Vite.
  */
 export function injectMonacoStyles(): Plugin {
+  // Where Monaco's modules are, as Vite names them: without the links a package manager makes.
+  const modules = realpathSync(path.dirname(fileURLToPath(import.meta.resolve('monaco-editor'))));
   return {
     name: 'hylo:inject-monaco-styles',
     enforce: 'pre',
     async resolveId(source, importer, options) {
       if (!source.endsWith('.css') || importer === undefined || options.ssr) return null;
-      const resolved = await this.resolve(source, importer, { ...options, skipSelf: true });
-      if (!resolved || !/[\\/]node_modules[\\/]monaco-editor[\\/].*\.css$/.test(resolved.id)) return null;
-      return PREFIX + resolved.id + SUFFIX;
+      const sheet = source.startsWith(PACKAGE)
+        ? path.join(modules, source.slice(PACKAGE.length))
+        : (await this.resolve(source, importer, { ...options, skipSelf: true }))?.id;
+      if (sheet === undefined || !sheet.startsWith(modules + path.sep)) return null;
+      return PREFIX + sheet + SUFFIX;
     },
     load(id) {
       if (!id.startsWith(PREFIX) || !id.endsWith(SUFFIX)) return null;

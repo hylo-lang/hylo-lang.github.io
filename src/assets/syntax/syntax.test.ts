@@ -10,7 +10,8 @@
 import { type Compiler, load } from '@hylo-lang/hylo-wasm';
 import { beforeAll, describe, expect, test } from 'vitest';
 import { EXAMPLES } from '../../components/playground/examples';
-import { getHighlighter, THEMES } from '../../components/playground/highlight';
+import { getHighlighter } from '../../components/playground/highlight';
+import { CODE_THEMES } from './code-style';
 
 type Language = 'hylo-ir' | 'wasm-asm';
 
@@ -25,7 +26,7 @@ interface Token {
 async function tokens(text: string, lang: Language): Promise<Token[]> {
   const h = await getHighlighter();
   return h
-    .codeToTokens(text, { lang, theme: THEMES.dark, includeExplanation: true })
+    .codeToTokens(text, { lang, theme: CODE_THEMES.dark, includeExplanation: true })
     .tokens.flatMap((line, i) =>
       line.flatMap((t) =>
         (t.explanation ?? []).map((e) => ({

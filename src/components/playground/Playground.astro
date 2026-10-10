@@ -22,12 +22,14 @@
  * The compiler is only downloaded when a reader runs a snippet, and is shared by every snippet on
  * the page.
  *
- * The build fails, naming the page, if the slot is not exactly one `hylo` code fence, if `expect`
- * is missing or not one of its forms, or if another prop has a value it does not take. The site's
- * tests then check that the snippet does what `expect` says (`snippets.test.ts`).
+ * Only works in MDX pages: the code comes from the Markdown plugin `src/plugins/playground-source.ts`, which
+ * sets `source` to the code of the fence, and fails the build, naming the page and the line, if
+ * the slot is not exactly one `hylo` code fence. The build also fails if `expect` is missing or
+ * not one of its forms, or if another prop has a value it does not take. The site's tests then
+ * check that the snippet does what `expect` says (`snippets.test.ts`).
  *
- * Renders a `<hylo-playground>` (`playground-element.ts`), which takes the settings from the
- * `data-` attributes set here and the code from the rendered code block.
+ * Renders a `<hylo-playground>` (`playground-element.ts`), which takes the settings and the code
+ * from the `data-` attributes set here.
  */
 import { ExternalLink, LoaderCircle, Pencil, Play, RotateCcw } from '@lucide/astro';
 import type { Phase } from '@hylo-lang/hylo-wasm/protocol';
@@ -62,6 +64,8 @@ interface Props {
    * (it does not compile), or `ok` (it compiles, and runs if it is a program). Required.
    */
   expect: string;
+  /** The code of the fence, which `playground-source.ts` sets; not for authors to set. */
+  source: string;
 }
 
 const {
@@ -72,6 +76,7 @@ const {
   stopAfter,
   editable = true,
   expect,
+  source,
 } = Astro.props;
 
 // Mistakes are reported as the site builds, rather than as a snippet that misbehaves. MDX does not
@@ -100,12 +105,8 @@ if (parseExpectation(expect) === null) {
   fail(`\`expect="${expect}"\` is not one of ${EXPECTATION_FORMS}`);
 }
 
+if (typeof source !== 'string') fail('no code: use it in an MDX page, where `src/plugins/playground-source.ts` gives it its code');
 const code = await Astro.slots.render('default');
-// Expressive Code renders each fence as one `<pre>`, which names its language.
-const blocks = [...code.matchAll(/<pre\b[^>]*>/g)];
-if (blocks.length !== 1 || !/\bdata-language="hylo"/.test(blocks[0][0])) {
-  fail(`wrap exactly one \`hylo\` code fence, not ${blocks.length} code blocks`);
-}
 ---
 
 <hylo-playground
@@ -115,6 +116,7 @@ if (blocks.length !== 1 || !/\bdata-language="hylo"/.test(blocks[0][0])) {
   data-standard-library={String(standardLibrary)}
   data-stop-after={stopAfter}
   data-expect={expect}
+  data-source={source}
   class="not-content"
 >
   <div data-part="source"><Fragment set:html={code} /></div>

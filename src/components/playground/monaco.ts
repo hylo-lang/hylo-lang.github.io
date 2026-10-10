@@ -8,9 +8,10 @@
  */
 import 'monaco-editor/editor/browser/coreCommands.js';
 import 'monaco-editor/editor/browser/widget/codeEditor/codeEditorWidget.js';
-// The icon font's CSS is not reachable through the package's exports map.
-import '../../../node_modules/monaco-editor/esm/vs/base/browser/ui/codicons/codicon/codicon.css';
-import '../../../node_modules/monaco-editor/esm/vs/base/browser/ui/codicons/codicon/codicon-modifiers.css';
+// The icon font's CSS, which the package's exports map does not reach; `inject-monaco-styles.ts`
+// resolves it.
+import 'monaco-editor/base/browser/ui/codicons/codicon/codicon.css';
+import 'monaco-editor/base/browser/ui/codicons/codicon/codicon-modifiers.css';
 import 'monaco-editor/editor/contrib/bracketMatching/browser/bracketMatching.js';
 import 'monaco-editor/editor/contrib/clipboard/browser/clipboard.js';
 import 'monaco-editor/editor/contrib/comment/browser/comment.js';
