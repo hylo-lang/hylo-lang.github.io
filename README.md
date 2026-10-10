@@ -51,6 +51,17 @@ The site is a fully static build, deployed to **GitHub Pages** by
 [`.github/workflows/astro.yml`](.github/workflows/astro.yml) on every push to `main`, and
 on new releases of `hylo-new`.
 
+## Playground
+
+Snippets wrapped in `<Playground>` run in the reader's browser, and `/playground/` is a
+full-screen playground; see "Runnable snippets" in
+`src/content/docs/docs/contributing/documentation.mdx` for how to write them. Both run the Hylo
+compiler compiled to WebAssembly, from the npm package
+[`@hylo-lang/hylo-wasm`](https://www.npmjs.com/package/@hylo-lang/hylo-wasm), which hylo-new
+publishes with every release. The page loads it in a worker the first time a snippet runs. To
+try a compiler you built yourself (`Sources/WASM` in hylo-new), install the package you packed
+from it (`pnpm add <path to the .tgz>`). `pnpm test` checks every snippet against the compiler.
+
 ## Typos
 
 We use [typos](https://github.com/crate-ci/typos) to check for typos in the documentation.

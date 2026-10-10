@@ -1,0 +1,275 @@
+---
+/**
+ * The full-screen playground: the whole window for the editor and what the compiler made of the
+ * code. A page of its own rather than a Starlight one, which would bring the site's header and
+ * sidebars; it uses the same colours, theme and fonts all the same.
+ *
+ * The markup is static; `full-screen.ts` makes it work, finding its elements by the `pg-` ids
+ * below, which it relies on. A link to the page may hold a state in its fragment (see
+ * `share.ts`'s `playgroundURL`).
+ */
+import ThemeProvider from '@astrojs/starlight/components/ThemeProvider.astro';
+import { Image } from 'astro:assets';
+import { Check, Ellipsis, LoaderCircle, Play, Share2 } from '@lucide/astro';
+import darkLogo from '../assets/hylo-green-smaller.png';
+import lightLogo from '../assets/hylo-black.png';
+import { url } from '../utils/url';
+import { OPTIMIZATION_LEVELS, PHASES } from '../components/playground/settings';
+import { OUTPUTS, OUTPUT_TITLES } from '../components/playground/views';
+import 'starlight-theme-rapide/styles/theme';
+import '../styles/fonts.css';
+import '../components/playground/playground.css';
+---
+
+<!doctype html>
+<html lang="en" dir="ltr" data-theme="dark">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Playground | Hylo</title>
+    <meta
+      name="description"
+      content="Compile and run Hylo in your browser, and see what the compiler makes of it."
+    />
+    <link rel="icon" href={url('hylo-favicon.png')} />
+    <!-- The reader's light or dark choice from the rest of the site, before the first paint, as
+         on every Starlight page. -->
+    <ThemeProvider />
+  </head>
+  <body>
+    <header class="bar">
+      <a class="home" href={url('')} aria-label="Hylo home">
+        <Image src={darkLogo} alt="" class="logo logo-dark" height={28} />
+        <Image src={lightLogo} alt="" class="logo logo-light" height={28} />
+      </a>
+      <h1>Playground</h1>
+      <select id="pg-examples" class="pg-select" aria-label="Load an example">
+        <option value="">Examples…</option>
+      </select>
+      <select id="pg-optimization" class="pg-select" aria-label="Optimization level">
+        {OPTIMIZATION_LEVELS.map((l) => <option value={l}>-O{l}</option>)}
+      </select>
+      <button
+        id="pg-more-button"
+        type="button"
+        class="pg-button pg-icon-button"
+        popovertarget="pg-more"
+        aria-label="More options"
+        title="More options"
+      >
+        <Ellipsis class="pg-icon" aria-hidden="true" />
+      </button>
+      <div id="pg-more" class="menu" popover aria-label="More options">
+        <label class="field" title="The phase after which compilation stops">
+          Final phase
+          <select id="pg-stop-after" class="pg-select">
+            <option value="">Execution</option>
+            {
+              [...PHASES].reverse().map((p) => (
+                <option value={p}>{p[0].toUpperCase() + p.slice(1)}</option>
+              ))
+            }
+          </select>
+        </label>
+        <label class="pg-checkbox">
+          <input id="pg-standard-library" type="checkbox" checked />
+          Standard library
+        </label>
+      </div>
+      <label class="pg-checkbox" title="Compile and run as you type">
+        <input id="pg-autorun" type="checkbox" checked />
+        Auto-run
+      </label>
+      <span class="spacer"></span>
+      <a class="docs" href={url('docs/')}>Docs</a>
+      <button id="pg-share" type="button" class="pg-button" title="Copy a link to this code">
+        <Share2 class="pg-icon pg-idle-icon" aria-hidden="true" />
+        <Check class="pg-icon pg-done-icon" aria-hidden="true" />
+        <span id="pg-share-label">Share</span>
+      </button>
+      <button id="pg-run" type="button" class="pg-button pg-primary">
+        <Play class="pg-icon pg-idle-icon" aria-hidden="true" />
+        <LoaderCircle class="pg-icon pg-busy-icon" aria-hidden="true" />
+        Run
+        <kbd class="pg-kbd" data-shortcut>Ctrl ↵</kbd>
+      </button>
+    </header>
+    <noscript>
+      <p class="noscript">
+        The playground runs the compiler in your browser, which needs JavaScript. The
+        <a href={url('docs/')}>documentation</a> works without it.
+      </p>
+    </noscript>
+    <main>
+      <section class="pane source" aria-label="Source">
+        <div id="pg-editor" class="editor"></div>
+      </section>
+      <section class="pane outputs" aria-label="Output">
+        <div id="pg-tabs" class="pg-tabs" role="tablist" aria-label="Views">
+          {
+            OUTPUTS.map((o) => (
+              <button type="button" role="tab" data-output={o}>
+                {OUTPUT_TITLES[o]}
+                {o === 'diagnostics' && <span id="pg-error-count" class="count" />}
+              </button>
+            ))
+          }
+        </div>
+        <div id="pg-view" class="pg-view"></div>
+        <footer class="status">
+          <p id="pg-status" role="status"></p>
+          <p id="pg-hint" class="hint"></p>
+        </footer>
+      </section>
+    </main>
+    <script>
+      import '../components/playground/full-screen';
+    </script>
+  </body>
+</html>
+
+<style>
+  :root {
+    --font: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  }
+  html,
+  body {
+    height: 100%;
+    margin: 0;
+  }
+  body {
+    display: flex;
+    flex-direction: column;
+    background: var(--sl-color-black);
+    color: var(--sl-color-white);
+    font: 15px/1.5 var(--font);
+  }
+  .bar {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.5rem 1rem;
+    border-bottom: 1px solid var(--sl-color-gray-5);
+    background: var(--sl-color-gray-7, var(--sl-color-black));
+  }
+  .home {
+    display: flex;
+  }
+  .logo {
+    width: auto;
+    height: 28px;
+  }
+  :root[data-theme='light'] .logo-dark,
+  :root[data-theme='dark'] .logo-light {
+    display: none;
+  }
+  h1 {
+    margin: 0 0.5rem 0 0;
+    font-size: 1.05rem;
+    font-weight: 600;
+  }
+  .spacer {
+    flex: 1;
+  }
+  /* The "More options" menu, in the top layer, placed under its button by `full-screen.ts`. */
+  .menu {
+    position: fixed;
+    inset: auto;
+    margin: 0;
+    display: none;
+    flex-direction: column;
+    gap: 0.75rem;
+    min-width: 14rem;
+    padding: 0.85rem 1rem;
+    border: 1px solid var(--sl-color-gray-5);
+    border-radius: 0.6rem;
+    background: var(--sl-color-gray-6, var(--sl-color-black));
+    color: var(--sl-color-white);
+    box-shadow: 0 0.75rem 2rem -0.5rem rgb(0 0 0 / 0.4);
+    font-size: 0.875rem;
+  }
+  .menu:popover-open {
+    display: flex;
+  }
+  .field {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+    color: var(--sl-color-gray-2);
+  }
+  .docs {
+    color: var(--sl-color-gray-2);
+    font-size: 0.875rem;
+  }
+  main {
+    flex: 1;
+    min-height: 0;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+  }
+  .pane {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    min-width: 0;
+  }
+  .source {
+    border-right: 1px solid var(--sl-color-gray-5);
+  }
+  .editor {
+    flex: 1;
+    min-height: 0;
+  }
+  .outputs .pg-view {
+    flex: 1;
+    max-height: none;
+  }
+  .count:not(:empty) {
+    margin-left: 0.35rem;
+    color: var(--sl-color-red-high);
+  }
+  .noscript {
+    margin: 0;
+    padding: 1rem;
+  }
+  .status {
+    display: flex;
+    gap: 1rem;
+    justify-content: space-between;
+    padding: 0.35rem 1rem;
+    font-size: 0.8rem;
+    color: var(--sl-color-gray-3);
+    border-top: 1px solid var(--sl-color-gray-5);
+  }
+  .status p {
+    margin: 0;
+  }
+  .hint {
+    text-align: right;
+  }
+  /* What is shown no longer matches the code: being recompiled, or edited without auto-run. */
+  :global(body[data-compiling]) .pg-view,
+  :global(body[data-stale]) .pg-view {
+    opacity: 0.6;
+    transition: opacity 0.15s;
+  }
+  @media (max-width: 50rem) {
+    .bar {
+      flex-wrap: wrap;
+      gap: 0.5rem;
+    }
+    .bar h1,
+    .docs,
+    .pg-kbd {
+      display: none;
+    }
+    main {
+      grid-template-columns: 1fr;
+      grid-template-rows: 1fr 1fr;
+    }
+    .source {
+      border-right: 0;
+      border-bottom: 1px solid var(--sl-color-gray-5);
+    }
+  }
+</style>

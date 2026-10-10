@@ -1,0 +1,396 @@
+{
+  "$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
+  "name": "hylo-ir",
+  "displayName": "Hylo IR",
+  "aliases": [
+    "hir"
+  ],
+  "scopeName": "source.hylo-ir",
+  "fileTypes": [
+    "hir"
+  ],
+  "patterns": [
+    {
+      "include": "#comments"
+    },
+    {
+      "include": "#function"
+    },
+    {
+      "include": "#global"
+    },
+    {
+      "include": "#block-label"
+    },
+    {
+      "include": "#instruction"
+    },
+    {
+      "include": "#operands"
+    }
+  ],
+  "repository": {
+    "comments": {
+      "patterns": [
+        {
+          "name": "comment.line.double-slash.hylo-ir",
+          "match": "//.*$"
+        },
+        {
+          "name": "comment.line.semicolon.hylo-ir",
+          "match": ";.*$"
+        }
+      ]
+    },
+    "function": {
+      "comment": "`fun <name><<generics>>(<convention> %pN: <type>, ...) [<convention> <: <type>] [{`. A name may contain parentheses (argument labels, as in `f(_:by:)`), brackets (`$implementation[P.f for Self: T]`) and angle brackets (`$<ConformanceDeclaration at main:8.1>`, which is not a generic clause because of its `$`), so it is everything up to the generic clause or the parameter list, which opens on a convention or closes at once.",
+      "begin": "^(fun)\\s+(.*?)(?=(?:(?<!\\$)<[^<>()]*>)?\\((?:let|inout|sink|set|yielded)\\s|(?:(?<!\\$)<[^<>()]*>)?\\(\\))",
+      "beginCaptures": {
+        "1": {
+          "name": "keyword.other.fun.hylo-ir"
+        },
+        "2": {
+          "patterns": [
+            {
+              "include": "#function-name"
+            }
+          ]
+        }
+      },
+      "end": "\\{|$",
+      "endCaptures": {
+        "0": {
+          "name": "punctuation.section.block.begin.hylo-ir"
+        }
+      },
+      "patterns": [
+        {
+          "match": "<:",
+          "name": "keyword.operator.hylo-ir"
+        },
+        {
+          "include": "#generic-clause"
+        },
+        {
+          "include": "#conventions"
+        },
+        {
+          "include": "#operands"
+        }
+      ]
+    },
+    "function-name": {
+      "patterns": [
+        {
+          "comment": "Names the compiler gives what it synthesizes: `$implementation[...]`, `$synthesized[...]`, `$<Declaration at site>`.",
+          "match": "\\$(?:implementation|synthesized)\\b",
+          "name": "support.function.synthesized.hylo-ir"
+        },
+        {
+          "match": "(\\$<)([A-Za-z]+)(?:\\s+(at)\\s+([^>]*))?(>)",
+          "captures": {
+            "1": {
+              "name": "punctuation.definition.synthesized.begin.hylo-ir"
+            },
+            "2": {
+              "name": "support.class.hylo-ir"
+            },
+            "3": {
+              "name": "keyword.other.hylo-ir"
+            },
+            "4": {
+              "name": "constant.other.source-site.hylo-ir"
+            },
+            "5": {
+              "name": "punctuation.definition.synthesized.end.hylo-ir"
+            }
+          }
+        },
+        {
+          "match": "\\.(existentialized|applied_\\d+|slide_\\d+|plateau_\\d+|initializer)\\b",
+          "captures": {
+            "1": {
+              "name": "support.function.derived.hylo-ir"
+            }
+          }
+        },
+        {
+          "match": "\\b(for)\\b",
+          "name": "keyword.other.hylo-ir"
+        },
+        {
+          "include": "#argument-labels"
+        },
+        {
+          "match": "\\b[A-Z][A-Za-z0-9_]*\\b",
+          "name": "entity.name.type.hylo-ir"
+        },
+        {
+          "match": "(?:infix|prefix|postfix)[^\\s(]*|[A-Za-z_][A-Za-z0-9_]*",
+          "name": "entity.name.function.hylo-ir"
+        }
+      ]
+    },
+    "argument-labels": {
+      "comment": "`(_:by:)` in a function's name.",
+      "match": "\\((?:[A-Za-z_][A-Za-z0-9_]*:)+\\)",
+      "name": "entity.name.function.labels.hylo-ir"
+    },
+    "generic-clause": {
+      "begin": "<",
+      "end": ">",
+      "beginCaptures": {
+        "0": {
+          "name": "punctuation.definition.generic.begin.hylo-ir"
+        }
+      },
+      "endCaptures": {
+        "0": {
+          "name": "punctuation.definition.generic.end.hylo-ir"
+        }
+      },
+      "patterns": [
+        {
+          "include": "#types"
+        }
+      ]
+    },
+    "conventions": {
+      "match": "\\b(let|inout|sink|set|yielded)\\b",
+      "name": "storage.modifier.convention.hylo-ir"
+    },
+    "global": {
+      "comment": "`global <name> as <type>, <alignment>`.",
+      "match": "^(global)\\s+(#witness)?",
+      "captures": {
+        "1": {
+          "name": "keyword.other.global.hylo-ir"
+        },
+        "2": {
+          "name": "constant.language.witness.hylo-ir"
+        }
+      }
+    },
+    "block-label": {
+      "match": "^(%b\\d+)(:)",
+      "captures": {
+        "1": {
+          "name": "entity.name.label.block.hylo-ir"
+        },
+        "2": {
+          "name": "punctuation.separator.label.hylo-ir"
+        }
+      }
+    },
+    "instruction": {
+      "comment": "`%rN = <mnemonic> ...`, one per line.",
+      "begin": "^\\s+(%r\\d+)\\s*(=)\\s*",
+      "beginCaptures": {
+        "1": {
+          "name": "variable.other.register.definition.hylo-ir"
+        },
+        "2": {
+          "name": "keyword.operator.assignment.hylo-ir"
+        }
+      },
+      "end": "$",
+      "patterns": [
+        {
+          "comment": "Terminators: the instructions ending a block.",
+          "match": "\\G(br|condbr|switch|return|unreachable|yield)\\b",
+          "name": "keyword.control.terminator.hylo-ir"
+        },
+        {
+          "match": "\\G(apply_builtin)\\s+([A-Za-z_][A-Za-z0-9_]*)",
+          "captures": {
+            "1": {
+              "name": "keyword.other.instruction.hylo-ir"
+            },
+            "2": {
+              "name": "support.function.builtin.hylo-ir"
+            }
+          }
+        },
+        {
+          "match": "\\G(access)\\s+(\\[)([^\\]]*)(\\])",
+          "captures": {
+            "1": {
+              "name": "keyword.other.instruction.hylo-ir"
+            },
+            "2": {
+              "name": "punctuation.definition.capabilities.begin.hylo-ir"
+            },
+            "3": {
+              "patterns": [
+                {
+                  "include": "#conventions"
+                }
+              ]
+            },
+            "4": {
+              "name": "punctuation.definition.capabilities.end.hylo-ir"
+            }
+          }
+        },
+        {
+          "match": "\\G(access|alloca|apply|assume_state|case|end|enum_tag|global_access|load|memcpy|move|partial_apply|place_cast|pointer_to_place|project|property|store|subfield|type_apply|type_witness|witness_table_stash|witness_table)\\b",
+          "name": "keyword.other.instruction.hylo-ir"
+        },
+        {
+          "include": "#operands"
+        }
+      ]
+    },
+    "operands": {
+      "patterns": [
+        {
+          "include": "#comments"
+        },
+        {
+          "match": "%p\\d+",
+          "name": "variable.parameter.hylo-ir"
+        },
+        {
+          "match": "%r\\d+",
+          "name": "variable.other.register.hylo-ir"
+        },
+        {
+          "match": "%b\\d+",
+          "name": "entity.name.label.block.hylo-ir"
+        },
+        {
+          "match": "#preferred\\b",
+          "name": "constant.language.alignment.hylo-ir"
+        },
+        {
+          "match": "#!poison\\b",
+          "name": "constant.language.poison.hylo-ir"
+        },
+        {
+          "match": "#witness\\b",
+          "name": "constant.language.witness.hylo-ir"
+        },
+        {
+          "match": "\\b(initialized|uninitialized)\\b",
+          "name": "constant.language.state.hylo-ir"
+        },
+        {
+          "comment": "The words instructions are spelled with, between their operands.",
+          "match": "\\b(to|as|at|of|for)\\b",
+          "name": "keyword.other.hylo-ir"
+        },
+        {
+          "match": "\\b(let|inout|sink|set|yielded)\\b",
+          "name": "storage.modifier.convention.hylo-ir"
+        },
+        {
+          "match": "=>|<:|->",
+          "name": "keyword.operator.hylo-ir"
+        },
+        {
+          "comment": "An argument label in a function type, `self: let Self`.",
+          "match": "\\b[a-z_][A-Za-z0-9_]*(?=:\\s)",
+          "name": "variable.parameter.label.hylo-ir"
+        },
+        {
+          "match": "\"(?:[^\"\\\\]|\\\\.)*\"",
+          "name": "string.quoted.double.hylo-ir"
+        },
+        {
+          "comment": "A bundle variant set, `f@{let, inout}`.",
+          "match": "(@\\{)([^}]*)(\\})",
+          "captures": {
+            "1": {
+              "name": "punctuation.definition.bundle.begin.hylo-ir"
+            },
+            "2": {
+              "patterns": [
+                {
+                  "include": "#conventions"
+                }
+              ]
+            },
+            "3": {
+              "name": "punctuation.definition.bundle.end.hylo-ir"
+            }
+          }
+        },
+        {
+          "include": "#function-name-in-operand"
+        },
+        {
+          "include": "#types"
+        },
+        {
+          "match": "-?\\b(?:0x[0-9A-Fa-f]+|\\d+(?:\\.\\d+)?(?:[eE][+-]?\\d+)?)\\b",
+          "name": "constant.numeric.hylo-ir"
+        },
+        {
+          "match": "[{}()\\[\\],:]",
+          "name": "punctuation.separator.hylo-ir"
+        }
+      ]
+    },
+    "function-name-in-operand": {
+      "patterns": [
+        {
+          "match": "\\$(?:implementation|synthesized)\\b",
+          "name": "support.function.synthesized.hylo-ir"
+        },
+        {
+          "match": "(\\$<)([A-Za-z]+)(?:\\s+(at)\\s+([^>]*))?(>)",
+          "captures": {
+            "1": {
+              "name": "punctuation.definition.synthesized.begin.hylo-ir"
+            },
+            "2": {
+              "name": "support.class.hylo-ir"
+            },
+            "3": {
+              "name": "keyword.other.hylo-ir"
+            },
+            "4": {
+              "name": "constant.other.source-site.hylo-ir"
+            },
+            "5": {
+              "name": "punctuation.definition.synthesized.end.hylo-ir"
+            }
+          }
+        },
+        {
+          "match": "\\.(existentialized|applied_\\d+|slide_\\d+|plateau_\\d+|initializer)\\b",
+          "captures": {
+            "1": {
+              "name": "support.function.derived.hylo-ir"
+            }
+          }
+        },
+        {
+          "include": "#argument-labels"
+        },
+        {
+          "comment": "A callee or member spelled by name: an operator before `(`, a lower-case name before `(`, `[`, `<` or `.`, or any name after `.`.",
+          "match": "\\b(?:infix|prefix|postfix)[^\\s(]*(?=\\()|\\b[a-z_][A-Za-z0-9_]*(?=[(\\[<.])|(?<=\\.)[a-z_][A-Za-z0-9_]*",
+          "name": "entity.name.function.hylo-ir"
+        }
+      ]
+    },
+    "types": {
+      "patterns": [
+        {
+          "comment": "Machine types: `i1` ... `i128`, `word`, `ptr`, and the IEEE floats.",
+          "match": "\\b(i\\d+|word|ptr|float16|float32|float64|float128)\\b",
+          "name": "storage.type.machine.hylo-ir"
+        },
+        {
+          "match": "\\b(Self|Type|Void|Never)\\b",
+          "name": "support.type.hylo-ir"
+        },
+        {
+          "match": "\\b[A-Z][A-Za-z0-9_]*\\b",
+          "name": "entity.name.type.hylo-ir"
+        }
+      ]
+    }
+  }
+}

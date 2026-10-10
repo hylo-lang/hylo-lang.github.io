@@ -1,5 +1,5 @@
 import { defineEcConfig } from '@astrojs/starlight/expressive-code';
-import * as fs from 'node:fs';
+import { CODE_THEMES, GRAMMARS } from './src/assets/syntax/code-style.ts';
 import { pluginErrorPreview } from './src/components/error-preview-plugin.ts';
 
 /**
@@ -9,11 +9,11 @@ import { pluginErrorPreview } from './src/components/error-preview-plugin.ts';
  */
 export default defineEcConfig({
   defaultProps: { hangingIndent: 2 },
+  // The theme's own, made explicit so that the playground can use the same.
+  themes: [CODE_THEMES.dark, CODE_THEMES.light],
   shiki: {
-    langs: [
-      JSON.parse(fs.readFileSync('./src/assets/syntax/hylo.tmLanguage.json', 'utf-8')),
-      JSON.parse(fs.readFileSync('./src/assets/syntax/ebnf.tmLanguage.json', 'utf-8')),
-    ],
+    // The grammars' JSON is typed loosely; Shiki checks it as it loads it.
+    langs: /** @type {any[]} */ (GRAMMARS),
   },
   plugins: [pluginErrorPreview()],
 });

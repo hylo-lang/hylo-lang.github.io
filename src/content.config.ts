@@ -4,7 +4,19 @@ import {docsSchema} from '@astrojs/starlight/schema';
 import {glob, file} from "astro/loaders";
 
 export const collections = {
-    docs: defineCollection({loader: docsLoader(), schema: docsSchema()}),
+    docs: defineCollection({
+        loader: docsLoader(),
+        schema: docsSchema({
+            extend: z.object({
+                /**
+                 * Whether the page's hero is the home page's (`HomeHero.astro`): the logo as its
+                 * title, beside a program the reader can open in the playground, rather than
+                 * Starlight's.
+                 */
+                homeHero: z.boolean().default(false),
+            }),
+        }),
+    }),
     blog: defineCollection({
         loader: glob({pattern: "**/*.{md,mdx}", base: "src/content/blog/"}),
         schema: z.object({

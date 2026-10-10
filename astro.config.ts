@@ -5,10 +5,17 @@ import starlightThemeRapide from 'starlight-theme-rapide'
 import tailwindcss from '@tailwindcss/vite';
 import {sidebar} from "./src/content/docs/.sidebar.ts";
 import {compilerRepoLink, slackLink} from "./src/links.ts";
+import {injectMonacoStyles} from "./src/plugins/inject-monaco-styles.ts";
+import {satteri} from '@astrojs/markdown-satteri';
+import {playgroundSource} from "./src/plugins/playground-source.ts";
 
 // https://astro.build/config
 export default defineConfig({
     site: 'https://hylo-lang.org',
+    markdown: {
+        // Astro's default processor, with a plugin giving every `<Playground>` the code it wraps.
+        processor: satteri({mdastPlugins: [playgroundSource]}),
+    },
     integrations: [
         starlight({
             title: 'Hylo',
@@ -28,18 +35,23 @@ export default defineConfig({
             ],
             components: {
                 'Header': './src/layouts/Header.astro',
+                'Hero': './src/components/Hero.astro',
             },
 
             sidebar: sidebar,
             editLink: {
                 baseUrl: 'https://github.com/hylo-lang/hylo-lang.github.io/tree/main/'
             },
-            customCss: ['./src/styles/global.css'],
+            // `global.css` first: it declares the order of the CSS layers, which its first mention fixes.
+            customCss: ['./src/styles/global.css', './src/styles/fonts.css'],
             plugins: [starlightThemeRapide()],
         }),
 
     ],
     vite: {
-        plugins: [tailwindcss()],
+        plugins: [tailwindcss(), injectMonacoStyles()],
+        // The compiler's loader finds its files next to it, where dependency optimization would
+        // not leave it.
+        optimizeDeps: {exclude: ['@hylo-lang/hylo-wasm']},
     },
 });

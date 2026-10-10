@@ -133,3 +133,112 @@ import { FileTree } from '@astrojs/starlight/components';
   - Greetings
     - Greetings.hylo
 </FileTree>
+
+## Runnable snippets
+
+import Playground from '../../../../components/playground/Playground.astro';
+
+Wrap a code block in `<Playground>` to let readers run it in their browser, edit it, and open it in
+the [full-screen playground](/playground/). The code block renders as any other, highlights and
+all; the compiler, compiled to WebAssembly (the npm package
+[`@hylo-lang/hylo-wasm`](https://www.npmjs.com/package/@hylo-lang/hylo-wasm)), is only downloaded
+when a reader first runs a snippet. That is about 15 MB compressed, once, which the browser then
+caches.
+
+Only make a snippet runnable if the compiler can run it today. The `expect` attribute says what it
+does (`exit N`, `trap`, `error` or `ok`), and the site's tests check every snippet still does it;
+the site does not build if a snippet has none.
+
+The import path is relative to the page: from a page in `src/content/docs/docs/<section>/`, the
+component is four directories up.
+
+````mdx
+import Playground from '../../../../components/playground/Playground.astro';
+
+<Playground expect="exit 42">
+```hylo
+public fun main() -> Int32 { ... }
+```
+</Playground>
+````
+
+<Playground expect="exit 42">
+```hylo
+public fun main() -> Int32 {
+  var x = 40
+  &x = x + 2
+  return if x == 42 { 42 } else { 1 }
+}
+```
+</Playground>
+
+### Showing what the compiler makes of it
+
+`outputs` lists what to show once the code has run, as tabs: `result` (the default), `diagnostics`,
+`ir`, `raw-ir`, `llvm` and `assembly`. `focus` limits Hylo IR to the functions named, and
+`optimization` sets LLVM's level. Code fence attributes still apply: line 4 is highlighted here.
+
+```mdx
+<Playground outputs="result ir llvm assembly" focus="factorial" optimization={2} expect="exit 120">
+```
+
+<Playground outputs="result ir llvm assembly" focus="factorial" optimization={2} expect="exit 120">
+```hylo {4}
+fun factorial(n: sink Int32) -> Int32 {
+  var m: Int32 = 1
+  while n > (0 as Int32) {
+    &m = m * n
+    &n = n - (1 as Int32)
+  }
+  return m
+}
+
+public fun main() -> Int32 {
+  factorial(5 as Int32)
+}
+```
+</Playground>
+
+### Showing an error
+
+A snippet that does not compile shows its diagnostics; clicking one takes the reader to it.
+
+<Playground expect="error">
+```hylo
+public fun main() -> Int32 {
+  40 + 2 // Integer literals are `Int` unless something says otherwise.
+}
+```
+</Playground>
+
+### Checking code that is not a program
+
+`stopAfter="typing"` only type checks, for a snippet with no `main`; `stopAfter="lowering"` also
+produces its IR. `editable={false}` keeps the reader from editing a snippet, and
+`standardLibrary={false}` compiles it without the standard library.
+
+<Playground stopAfter="lowering" outputs="result ir" focus="sum" expect="ok">
+```hylo
+struct Pair is Deinitializable {
+  public memberwise init
+  public var a: Int32
+  public var b: Int32
+}
+
+fun sum(_ p: Pair) -> Int32 { p.a + p.b }
+```
+</Playground>
+
+The [Hylo IR](/docs/reference/ir/) and the WebAssembly assembly LLVM prints have code fence
+languages of their own, `hylo-ir` and `wasm-asm`:
+
+```hylo-ir
+fun main(set %p0: Int32) {
+%b0:
+  %r0 = subfield %p0 at 0 as i32
+  %r1 = access [set] %r0
+  %r2 = store i32 42 to %r1
+  %r3 = end %r1
+  %r4 = return
+}
+```

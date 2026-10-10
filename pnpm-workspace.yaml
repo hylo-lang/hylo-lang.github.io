@@ -3,6 +3,10 @@ allowBuilds:
   sharp: true
 
 minimumReleaseAge: 4320 # 3 days
+# The project's own compiler, published by hylo-new's release workflow with provenance, which the
+# playground should run as soon as it is released.
+minimumReleaseAgeExclude:
+  - '@hylo-lang/hylo-wasm'
 
 onlyBuiltDependencies:
   - esbuild

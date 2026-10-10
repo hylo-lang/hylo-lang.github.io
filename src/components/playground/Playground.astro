@@ -1,0 +1,174 @@
+---
+/**
+ * A runnable, editable Hylo snippet.
+ *
+ * Wraps a code fence, which renders as any other code block (titles, highlighted lines and the
+ * like all work), and adds a button running it in the reader's browser with the compiler compiled
+ * to WebAssembly, one editing it, and a link opening it in the full-screen playground.
+ *
+ *     // From a page in `src/content/docs/docs/<section>/`.
+ *     import Playground from '../../../../components/playground/Playground.astro';
+ *
+ *     <Playground outputs="result ir" focus="main" expect="exit 42">
+ *     ```hylo {3}
+ *     public fun main() -> Int32 {
+ *       var x = 40
+ *       &x = x + 2
+ *       return if x == 42 { 42 } else { 1 }
+ *     }
+ *     ```
+ *     </Playground>
+ *
+ * The compiler is only downloaded when a reader runs a snippet, and is shared by every snippet on
+ * the page.
+ *
+ * Only works in MDX pages: the code comes from the Markdown plugin `src/plugins/playground-source.ts`, which
+ * sets `source` to the code of the fence, and fails the build, naming the page and the line, if
+ * the slot is not exactly one `hylo` code fence. The build also fails if `expect` is missing or
+ * not one of its forms, or if another prop has a value it does not take. The site's tests then
+ * check that the snippet does what `expect` says (`snippets.test.ts`).
+ *
+ * Renders a `<hylo-playground>` (`playground-element.ts`), which takes the settings and the code
+ * from the `data-` attributes set here.
+ */
+import { ExternalLink, LoaderCircle, Pencil, Play, RotateCcw } from '@lucide/astro';
+import type { Phase } from '@hylo-lang/hylo-wasm/protocol';
+import { DEFAULT_SETTINGS, OPTIMIZATION_LEVELS, PHASES } from './settings';
+import { PLAYGROUND_PATH } from './site';
+import { EXPECTATION_FORMS, parseExpectation } from './snippet';
+import { OUTPUTS, OUTPUT_TITLES, type Output } from './views';
+import './playground.css';
+
+interface Props {
+  /**
+   * What to show once the code has run, as a list or a space-separated string, in the order of
+   * the tabs: `result` (the default: the exit status, what the program printed, and any
+   * diagnostics), `diagnostics`, `ir`, `raw-ir`, `llvm` and `assembly`.
+   */
+  outputs?: Output[] | string;
+  /** Functions to show in Hylo IR, by name, rather than all of them. */
+  focus?: string[] | string;
+  /** LLVM's optimization level, 0 to 3; 0 by default. */
+  optimization?: 0 | 1 | 2 | 3;
+  /** Whether the program depends on the standard library; true by default. */
+  standardLibrary?: boolean;
+  /**
+   * The phase after which to stop, for a snippet that is not a program: `typing` checks the code
+   * without running it, `lowering` also shows its IR.
+   */
+  stopAfter?: Phase;
+  /** Whether the reader may edit the code; true by default. */
+  editable?: boolean;
+  /**
+   * What the snippet does, which the site's tests check it still does: `exit N`, `trap`, `error`
+   * (it does not compile), or `ok` (it compiles, and runs if it is a program). Required.
+   */
+  expect: string;
+  /** The code of the fence, which `playground-source.ts` sets; not for authors to set. */
+  source: string;
+}
+
+const {
+  outputs = ['result'],
+  focus = [],
+  optimization = DEFAULT_SETTINGS.optimization,
+  standardLibrary = DEFAULT_SETTINGS.standardLibrary,
+  stopAfter,
+  editable = true,
+  expect,
+  source,
+} = Astro.props;
+
+// Mistakes are reported as the site builds, rather than as a snippet that misbehaves. MDX does not
+// check the props' types, so every prop is checked here.
+
+/** Fails the build, saying `problem` and where. */
+const fail = (problem: string): never => {
+  throw new Error(`<Playground> in ${Astro.url.pathname}: ${problem}`);
+};
+/** Returns the items of `x`, a list or a string of items separated by spaces or commas. */
+const list = (x: string[] | string): string[] =>
+  (typeof x === 'string' ? x.split(/[\s,]+/) : x).filter((s) => s !== '');
+const shown = list(outputs) as Output[];
+if (shown.length === 0) fail('`outputs` lists nothing to show');
+for (const o of shown) {
+  if (!OUTPUTS.includes(o)) fail(`unknown output '${o}'`);
+}
+if (!OPTIMIZATION_LEVELS.includes(optimization)) {
+  fail(`\`optimization={${optimization}}\` is not one of ${OPTIMIZATION_LEVELS.join(', ')}`);
+}
+if (stopAfter !== undefined && !PHASES.includes(stopAfter)) {
+  fail(`\`stopAfter="${stopAfter}"\` is not one of ${PHASES.join(', ')}`);
+}
+if (expect === undefined) fail(`say what the snippet does with \`expect\`: ${EXPECTATION_FORMS}`);
+if (parseExpectation(expect) === null) {
+  fail(`\`expect="${expect}"\` is not one of ${EXPECTATION_FORMS}`);
+}
+
+if (typeof source !== 'string') fail('no code: use it in an MDX page, where `src/plugins/playground-source.ts` gives it its code');
+const code = await Astro.slots.render('default');
+---
+
+<hylo-playground
+  data-outputs={shown.join(',')}
+  data-focus={list(focus).join(',') || undefined}
+  data-optimization={optimization}
+  data-standard-library={String(standardLibrary)}
+  data-stop-after={stopAfter}
+  data-expect={expect}
+  data-source={source}
+  class="not-content"
+>
+  <div data-part="source"><Fragment set:html={code} /></div>
+  {editable && <div data-part="editor" class="pg-editor" hidden />}
+  <div class="pg-toolbar">
+    <button type="button" data-part="run" class="pg-button pg-primary">
+      <Play class="pg-icon pg-idle-icon" aria-hidden="true" />
+      <LoaderCircle class="pg-icon pg-busy-icon" aria-hidden="true" />
+      {stopAfter ? 'Check' : 'Run'}
+    </button>
+    {
+      editable && (
+        <>
+          <button type="button" data-part="edit" class="pg-button">
+            <Pencil class="pg-icon" aria-hidden="true" />
+            Edit
+          </button>
+          <button type="button" data-part="reset" class="pg-button" hidden>
+            <RotateCcw class="pg-icon" aria-hidden="true" />
+            Reset
+          </button>
+        </>
+      )
+    }
+    <a data-part="open" class="pg-link" href={PLAYGROUND_PATH}>
+      Open in the playground
+      <ExternalLink class="pg-icon" aria-hidden="true" />
+    </a>
+  </div>
+  <p data-part="status" class="sr-only" role="status"></p>
+  <div data-part="output" class="pg-output" hidden>
+    {
+      shown.length > 1 && (
+        <div class="pg-tabs" role="tablist" aria-label="Views">
+          {shown.map((o) => (
+            <button type="button" role="tab" data-output={o}>
+              {OUTPUT_TITLES[o]}
+            </button>
+          ))}
+        </div>
+      )
+    }
+    <div
+      data-part="view"
+      class="pg-view"
+      role={shown.length > 1 ? undefined : 'region'}
+      aria-label={shown.length > 1 ? undefined : OUTPUT_TITLES[shown[0]]}
+    >
+    </div>
+  </div>
+</hylo-playground>
+
+<script>
+  import './playground-element';
+</script>

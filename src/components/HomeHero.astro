@@ -1,0 +1,146 @@
+---
+/**
+ * The home page's hero, rendered in place of Starlight's by `Hero.astro`: the logo as the page's
+ * title, and the tagline and actions of the page's `hero` front matter, as Starlight's own hero
+ * shows them, beside a Hylo program (`home-example.ts`) with a link opening it in the playground.
+ *
+ * Takes no props: it reads the page's front matter from Starlight's route data, so it only works
+ * as a part of a Starlight page. The title's text, the front matter's `hero.title` or else the
+ * page's `title`, is the logo's alternative text.
+ */
+import { Code, LinkButton } from '@astrojs/starlight/components';
+import { Image } from 'astro:assets';
+import darkLogo from '../assets/hylo-green.png';
+import lightLogo from '../assets/hylo-black.png';
+import { Play } from '@lucide/astro';
+import { DEFAULT_STATE, playgroundURL } from './playground/share';
+import { excerpt, program } from './home-example';
+
+const { data } = Astro.locals.starlightRoute.entry;
+const { title = data.title, tagline, actions = [] } = data.hero ?? {};
+const playground = playgroundURL({ source: program, ...DEFAULT_STATE });
+---
+
+<div class="hero">
+  <div class="sl-flex stack">
+    <div class="sl-flex copy">
+      <h1 id="_top" data-page-title>
+        {/* The logo as in the site's header: green on dark, black on light. */}
+        <Image src={darkLogo} alt={title} class="logo light:sl-hidden" widths={[200, 400]} sizes="9rem" loading="eager" />
+        <Image src={lightLogo} alt={title} class="logo dark:sl-hidden" widths={[200, 400]} sizes="9rem" loading="eager" />
+      </h1>
+      {tagline && <div class="tagline" set:html={tagline} />}
+    </div>
+    {
+      actions.length > 0 && (
+        <div class="sl-flex actions">
+          {actions.map(({ icon, link: href, text, variant }) => (
+            <LinkButton {href} {variant} icon={icon?.name}>
+              {text}
+            </LinkButton>
+          ))}
+        </div>
+      )
+    }
+  </div>
+  <figure class="example not-content">
+    <Code code={excerpt} lang="hylo" title="min.hylo" wrap />
+    <div class="try">
+      <LinkButton href={playground} title="Open this program in the playground">
+        <Play size={16} aria-hidden="true" />
+        Run
+      </LinkButton>
+    </div>
+    <figcaption class="sr-only">
+      A subscript projecting the lesser of two variables, which the caller increments in place.
+    </figcaption>
+  </figure>
+</div>
+
+<style>
+  /* Starlight's hero layout (`@astrojs/starlight/components/Hero.astro`), with room for code. */
+  .hero {
+    display: grid;
+    grid-template-columns: 100%;
+    align-items: center;
+    gap: 2.5rem;
+    padding-bottom: 1rem;
+  }
+  .stack {
+    flex-direction: column;
+    gap: clamp(1.5rem, calc(1.5rem + 1vw), 2rem);
+    text-align: center;
+  }
+  .copy {
+    flex-direction: column;
+    gap: 1rem;
+    align-items: center;
+  }
+  .copy > * {
+    max-width: 50ch;
+  }
+  h1 {
+    margin: 0;
+    line-height: 1;
+  }
+  /* About as tall as Starlight's hero title, with its ascenders and descenders. */
+  /* No `display` here: it would override the classes showing only the theme's logo. */
+  .logo {
+    vertical-align: bottom;
+    width: auto;
+    height: clamp(4rem, calc(2.5rem + 5vw), 6.5rem);
+  }
+  .tagline {
+    font-size: clamp(var(--sl-text-base), calc(0.0625rem + 2vw), var(--sl-text-xl));
+    color: var(--sl-color-gray-2);
+  }
+  .actions {
+    gap: 1rem 2rem;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+
+  .example {
+    position: relative;
+    min-width: 0;
+    margin: 0;
+    padding-bottom: 1.25rem;
+  }
+  .example :global(.expressive-code) {
+    box-shadow: 0 1.5rem 3rem -1rem rgb(0 0 0 / 0.35);
+    border-radius: 0.5rem;
+  }
+  .example :global(pre) {
+    font-size: 0.78rem;
+  }
+  /* Room under the code for the link that overlaps its lower edge. */
+  .example :global(pre > code) {
+    padding-bottom: 1.5rem;
+  }
+  /* The playground link, styled by the theme as any other, sits on the code's lower edge. */
+  .try {
+    position: absolute;
+    right: 1rem;
+    bottom: 0;
+  }
+  .try :global(.sl-link-button) {
+    gap: 0.4rem;
+  }
+
+  @media (min-width: 50rem) {
+    .hero {
+      grid-template-columns: minmax(0, 5fr) minmax(0, 6fr);
+      gap: 2.5rem;
+      padding-block: clamp(2.5rem, calc(1rem + 10vmin), 8rem);
+    }
+    .stack {
+      text-align: start;
+    }
+    .copy {
+      align-items: flex-start;
+    }
+    .actions {
+      justify-content: flex-start;
+    }
+  }
+</style>

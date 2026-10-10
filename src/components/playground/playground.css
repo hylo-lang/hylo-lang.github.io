@@ -1,0 +1,329 @@
+/* The playground's look, in Starlight's colour tokens so that it follows the site's theme. Shared
+   by embedded snippets and the full-screen playground. */
+
+hylo-playground {
+  display: block;
+  margin-block: 1rem;
+}
+hylo-playground [data-part='source'] .expressive-code {
+  margin: 0;
+}
+/* Until the element is defined there is nothing for the buttons to do. */
+hylo-playground:not([data-ready]) .pg-toolbar {
+  display: none;
+}
+
+.pg-editor {
+  min-height: 3rem;
+  border: 1px solid var(--sl-color-gray-5);
+  border-radius: 0.5rem;
+  overflow: hidden;
+}
+
+.pg-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+  font-size: var(--sl-text-sm, 0.875rem);
+}
+.pg-button,
+.pg-select {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  height: 2rem;
+  padding: 0 0.8rem;
+  border-radius: 0.5rem;
+  border: 1px solid var(--sl-color-gray-5);
+  background: var(--sl-color-gray-6);
+  color: var(--sl-color-white);
+  font: inherit;
+  font-size: var(--sl-text-sm, 0.875rem);
+  font-weight: 500;
+  line-height: 1;
+  white-space: nowrap;
+  cursor: pointer;
+  transition:
+    background-color 0.15s,
+    border-color 0.15s,
+    color 0.15s;
+}
+/* `display` above would otherwise show a button its script hides. */
+.pg-button[hidden] {
+  display: none;
+}
+.pg-button:hover,
+.pg-select:hover {
+  background: var(--sl-color-gray-5);
+  border-color: var(--sl-color-gray-4);
+}
+.pg-button:active {
+  transform: translateY(1px);
+}
+.pg-select {
+  appearance: none;
+  padding-right: 1.9rem;
+  /* A chevron, in the text's colour. */
+  background-image: linear-gradient(45deg, transparent 50%, currentColor 50%),
+    linear-gradient(135deg, currentColor 50%, transparent 50%);
+  background-position:
+    right 0.95rem center,
+    right 0.65rem center;
+  background-size: 0.3rem 0.3rem;
+  background-repeat: no-repeat;
+}
+.pg-button:focus-visible,
+.pg-select:focus-visible,
+.pg-link:focus-visible,
+.pg-tabs [role='tab']:focus-visible,
+.pg-diagnostics button:focus-visible {
+  outline: 2px solid var(--sl-color-accent);
+  outline-offset: 2px;
+}
+/* As the theme's primary link buttons (starlight-theme-rapide). */
+.pg-primary {
+  background: var(--sl-color-green-low);
+  border-color: var(--sl-color-green);
+  color: var(--sl-color-green-high);
+  font-weight: 600;
+}
+.pg-primary:hover {
+  background: var(--sl-color-green-low);
+  border-color: var(--sl-color-green-high);
+  color: var(--sl-color-green-accent-invert);
+}
+
+/* A button showing only an icon, square. */
+.pg-icon-button {
+  position: relative;
+  justify-content: center;
+  width: 2rem;
+  padding: 0;
+}
+/* A setting behind the button differs from its default. */
+.pg-icon-button[data-modified]::after {
+  content: '';
+  position: absolute;
+  top: 0.2rem;
+  right: 0.2rem;
+  width: 0.4rem;
+  height: 0.4rem;
+  border-radius: 50%;
+  background: var(--sl-color-green);
+}
+
+.pg-icon {
+  width: 1rem;
+  height: 1rem;
+  flex: none;
+}
+/* A button shows its idle icon, or the busy or done one in its place. */
+.pg-busy-icon,
+.pg-done-icon,
+.pg-button[aria-busy] .pg-idle-icon,
+.pg-button[data-done] .pg-idle-icon {
+  display: none;
+}
+.pg-button[aria-busy] .pg-busy-icon,
+.pg-button[data-done] .pg-done-icon {
+  display: block;
+}
+.pg-button[aria-busy] {
+  cursor: progress;
+}
+.pg-busy-icon {
+  animation: pg-spin 0.8s linear infinite;
+}
+@keyframes pg-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .pg-busy-icon {
+    animation: none;
+  }
+}
+.pg-button[data-done] {
+  border-color: var(--sl-color-green);
+  color: var(--sl-color-green-high);
+}
+
+.pg-kbd {
+  font-family: var(--__sl-font-mono, monospace);
+  font-size: 0.7rem;
+  font-weight: 500;
+  padding: 0.1rem 0.3rem;
+  border-radius: 0.25rem;
+  background: color-mix(in srgb, currentColor 15%, transparent);
+}
+
+.pg-checkbox {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: var(--sl-text-sm, 0.875rem);
+  color: var(--sl-color-gray-2);
+  cursor: pointer;
+  user-select: none;
+}
+.pg-checkbox input {
+  appearance: none;
+  display: grid;
+  place-content: center;
+  width: 1rem;
+  height: 1rem;
+  margin: 0;
+  border: 1.5px solid var(--sl-color-gray-3);
+  border-radius: 0.25rem;
+  background: transparent;
+  cursor: pointer;
+}
+/* Outlined in the theme's green, as its primary buttons, with a check mark of the same colour. */
+.pg-checkbox input:checked {
+  border-color: var(--sl-color-green);
+}
+.pg-checkbox input:checked::after {
+  content: '';
+  width: 0.3rem;
+  height: 0.55rem;
+  margin-top: -0.1rem;
+  border: solid var(--sl-color-green-high);
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg);
+}
+.pg-checkbox input:focus-visible {
+  outline: 2px solid var(--sl-color-green);
+  outline-offset: 2px;
+}
+
+.pg-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  margin-left: auto;
+  color: var(--sl-color-gray-2);
+  text-decoration: none;
+}
+.pg-link:hover {
+  color: var(--sl-color-white);
+  text-decoration: underline;
+}
+
+.pg-output {
+  margin-top: 0.5rem;
+  border: 1px solid var(--sl-color-gray-5);
+  border-radius: 0.5rem;
+  overflow: hidden;
+}
+.pg-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+  padding: 0.25rem 0.5rem 0;
+  border-bottom: 1px solid var(--sl-color-gray-5);
+  background: var(--sl-color-gray-6);
+}
+.pg-tabs [role='tab'] {
+  font: inherit;
+  font-size: var(--sl-text-xs, 0.8rem);
+  padding: 0.35rem 0.6rem;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  background: none;
+  color: var(--sl-color-gray-3);
+  cursor: pointer;
+}
+.pg-tabs [role='tab'][aria-selected='true'] {
+  color: var(--sl-color-white);
+  border-bottom-color: var(--sl-color-accent);
+}
+.pg-view {
+  padding: 0.75rem 1rem;
+  max-height: 28rem;
+  overflow: auto;
+}
+.pg-view progress {
+  width: min(20rem, 100%);
+  accent-color: var(--sl-color-accent);
+}
+
+.pg-headline {
+  margin: 0 0 0.25rem;
+  font-weight: 600;
+}
+.pg-ok {
+  color: var(--sl-color-green-high);
+}
+.pg-bad {
+  color: var(--sl-color-red-high);
+}
+.pg-warn {
+  color: var(--sl-color-orange-high);
+}
+.pg-note {
+  margin: 0;
+  color: var(--sl-color-gray-3);
+}
+.pg-label {
+  margin: 0.75rem 0 0.25rem;
+  font-size: var(--sl-text-xs, 0.8rem);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--sl-color-gray-3);
+}
+.pg-pre,
+.pg-code pre {
+  margin: 0;
+  font-family: var(--__sl-font-mono, ui-monospace, monospace);
+  font-size: var(--sl-text-code, 0.875rem);
+  line-height: 1.6;
+  white-space: pre;
+  tab-size: 4;
+  overflow: visible;
+  background: transparent !important;
+}
+
+/* Shiki's two-theme output: the page's theme decides. */
+.pg-code span {
+  color: var(--shiki-dark);
+}
+:root[data-theme='light'] .pg-code span {
+  color: var(--shiki-light);
+}
+
+.pg-diagnostics {
+  list-style: none;
+  margin: 0.5rem 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+.pg-diagnostics li {
+  margin: 0;
+}
+.pg-diagnostics button {
+  display: block;
+  width: 100%;
+  font: inherit;
+  text-align: left;
+  padding: 0 0 0 0.75rem;
+  border: 0;
+  border-left: 3px solid var(--sl-color-gray-4);
+  background: none;
+  color: inherit;
+  cursor: pointer;
+  overflow-x: auto;
+}
+.pg-diagnostics button:disabled {
+  cursor: default;
+}
+.pg-diagnostics li[data-level='error'] button {
+  border-left-color: var(--sl-color-red-high);
+}
+.pg-diagnostics li[data-level='warning'] button {
+  border-left-color: var(--sl-color-orange-high);
+}
