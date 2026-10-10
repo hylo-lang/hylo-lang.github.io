@@ -1,0 +1,16 @@
+/* JetBrains Mono for all code: Starlight's monospace font, which code blocks, inline code and the
+   playground use. Served with the site rather than from a font CDN. */
+@import '@fontsource-variable/jetbrains-mono/wght.css';
+
+:root {
+  --sl-font-mono: 'JetBrains Mono Variable';
+}
+
+/* Code reads as it is typed: `->` and `==` as their characters rather than ligatures. */
+code,
+kbd,
+pre,
+samp,
+.monaco-editor {
+  font-variant-ligatures: none;
+}

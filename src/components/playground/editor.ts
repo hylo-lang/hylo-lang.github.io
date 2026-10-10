@@ -12,10 +12,20 @@ import type { Diagnostic } from '@hylo-lang/hylo-wasm/protocol';
   getWorker: () => new EditorWorker(),
 };
 
-/** Resolves once Monaco highlights through Shiki; done once per page. */
+/** The editor's font, which `src/styles/fonts.css` serves. */
+const FONT = 'JetBrains Mono Variable';
+
+/**
+ * Resolves once Monaco highlights through Shiki and its font is loaded, since Monaco measures the
+ * font once, and a fallback measured in its place misplaces the caret; done once per page.
+ */
 const ready = (async () => {
   for (const id of ['hylo', 'hylo-ir', 'wasm-asm', 'llvm']) monaco.languages.register({ id });
-  shikiToMonaco(await getHighlighter(), monaco as never);
+  await Promise.all([
+    getHighlighter().then((h) => shikiToMonaco(h, monaco as never)),
+    // A font that does not load leaves the fallback, which Monaco then measures correctly.
+    document.fonts.load(`14px "${FONT}"`).catch(() => {}),
+  ]);
 })();
 
 /** The theme matching the page's: Starlight sets `data-theme` on the root element. */
@@ -61,7 +71,7 @@ export async function createEditor(host: HTMLElement, options: EditorOptions): P
     value: options.value,
     language: 'hylo',
     theme: pageTheme(),
-    fontFamily: 'var(--__sl-font-mono, ui-monospace, SFMono-Regular, Menlo, Consolas, monospace)',
+    fontFamily: `'${FONT}', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace`,
     fontSize: 14,
     lineHeight: 21,
     tabSize: 2,

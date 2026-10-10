@@ -10,7 +10,7 @@ import { describeStatus, renderOutput, renderStatus, summarize } from './outputs
 import type { Phase } from '@hylo-lang/hylo-wasm/protocol';
 import type { Result } from './compiler';
 import { snippetRequest, type SnippetSettings } from './snippet';
-import { playgroundURL } from './source-link';
+import { isOptimizationLevel, playgroundURL } from './share';
 import { connectTabs } from './tabs';
 import type { Output } from './views';
 import type { Editor } from './editor';
@@ -22,9 +22,12 @@ class HyloPlayground extends HTMLElement {
   #shown: Output = 'result';
   #select: ((o: Output) => void) | null = null;
   #running = false;
+  /** Whether to run again once the current run is done, the code having changed meanwhile. */
+  #again = false;
   /** Incremented whenever what is shown is invalidated, so that a stale rendering is dropped. */
   #generation = 0;
   #unwatch: (() => void) | null = null;
+  #rerun: ReturnType<typeof setTimeout> | undefined;
 
   get #settings(): SnippetSettings {
     return {
@@ -55,13 +58,19 @@ class HyloPlayground extends HTMLElement {
   }
 
   disconnectedCallback(): void {
+    clearTimeout(this.#rerun);
     this.#unwatch?.();
     void this.#editor?.then((e) => e.dispose());
   }
 
   /** Compiles and runs the code, showing the configured outputs. */
   async run(): Promise<void> {
-    if (this.#running) return;
+    clearTimeout(this.#rerun);
+    if (this.#running) {
+      // Edited while running: run the newer code once this run is done.
+      this.#again = true;
+      return;
+    }
     this.#running = true;
     const generation = ++this.#generation;
     const button = this.#part('run')!;
@@ -82,6 +91,10 @@ class HyloPlayground extends HTMLElement {
     this.#unwatch = null;
     this.#running = false;
     button.removeAttribute('aria-busy');
+    if (this.#again) {
+      this.#again = false;
+      void this.run();
+    }
     if (generation !== this.#generation || result === null) return;
 
     this.#result = result;
@@ -100,7 +113,14 @@ class HyloPlayground extends HTMLElement {
       const editor = await createEditor(host, {
         value: this.#original,
         fitContent: true,
-        onChange: (value) => void this.#updateLink(value),
+        onChange: (value) => {
+          void this.#updateLink(value);
+          // Once the reader has run the snippet, its output follows their edits.
+          if (this.#result !== null) {
+            clearTimeout(this.#rerun);
+            this.#rerun = setTimeout(() => void this.run(), 400);
+          }
+        },
         onRun: () => void this.run(),
       });
       this.#part('source')!.hidden = true;
@@ -116,6 +136,8 @@ class HyloPlayground extends HTMLElement {
   /** Puts the original code block back, and forgets what running it showed. */
   reset(): void {
     ++this.#generation;
+    clearTimeout(this.#rerun);
+    this.#again = false;
     void this.#editor?.then((e) => e.dispose());
     this.#editor = null;
     const host = this.#part('editor');
@@ -138,7 +160,10 @@ class HyloPlayground extends HTMLElement {
   }
 
   async #show(output: Output): Promise<void> {
-    this.#shown = output;
+    if (output !== this.#shown) {
+      this.#shown = output;
+      void this.#source().then((s) => this.#updateLink(s));
+    }
     this.#select?.(output);
     if (!this.#result) return;
     const generation = this.#generation;
@@ -158,7 +183,12 @@ class HyloPlayground extends HTMLElement {
   /** Points the link to the full-screen playground at `source`. */
   async #updateLink(source: string): Promise<void> {
     const link = this.#part('open') as HTMLAnchorElement;
-    const url = await playgroundURL(source, this.#settings.optimization);
+    const level = this.#settings.optimization;
+    const url = await playgroundURL({
+      source,
+      optimization: isOptimizationLevel(level) ? level : 0,
+      view: this.#shown,
+    });
     // Encoding is asynchronous; a later edit may have been encoded first.
     if (source === (await this.#source())) link.href = url;
   }

@@ -35,7 +35,7 @@ export default defineConfig({
             editLink: {
                 baseUrl: 'https://github.com/hylo-lang/hylo-lang.github.io/tree/main/'
             },
-            customCss: ['./src/styles/global.css'],
+            customCss: ['./src/styles/fonts.css', './src/styles/global.css'],
             plugins: [starlightThemeRapide()],
         }),
 

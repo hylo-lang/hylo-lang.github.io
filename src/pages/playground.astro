@@ -5,11 +5,13 @@
  * sidebars; it uses the same colours, theme and fonts all the same.
  */
 import { Image } from 'astro:assets';
+import { Check, LoaderCircle, Play, Share2 } from '@lucide/astro';
 import darkLogo from '../assets/hylo-green-smaller.png';
 import lightLogo from '../assets/hylo-black.png';
 import { url } from '../utils/url';
 import { OUTPUTS, OUTPUT_TITLES } from '../components/playground/views';
 import 'starlight-theme-rapide/styles/theme';
+import '../styles/fonts.css';
 import '../components/playground/playground.css';
 ---
 
@@ -45,20 +47,31 @@ import '../components/playground/playground.css';
         <Image src={lightLogo} alt="" class="logo logo-light" height={28} />
       </a>
       <h1>Playground</h1>
-      <select id="pg-examples" class="control" aria-label="Load an example">
+      <select id="pg-examples" class="pg-select" aria-label="Load an example">
         <option value="">Examples…</option>
       </select>
-      <select id="pg-optimization" class="control" aria-label="Optimization level">
+      <select id="pg-optimization" class="pg-select" aria-label="Optimization level">
         <option value="0">-O0</option>
         <option value="1">-O1</option>
         <option value="2">-O2</option>
         <option value="3">-O3</option>
       </select>
+      <label class="pg-switch" title="Compile and run as you type">
+        <input id="pg-autorun" type="checkbox" role="switch" checked />
+        Auto-run
+      </label>
       <span class="spacer"></span>
       <a class="docs" href={url('docs/')}>Docs</a>
-      <button id="pg-share" type="button" class="pg-button">Share</button>
-      <button id="pg-run" type="button" class="pg-button pg-primary" title="Ctrl/⌘ + Enter">
+      <button id="pg-share" type="button" class="pg-button" title="Copy a link to this code">
+        <Share2 class="pg-icon pg-idle-icon" aria-hidden="true" />
+        <Check class="pg-icon pg-done-icon" aria-hidden="true" />
+        <span id="pg-share-label">Share</span>
+      </button>
+      <button id="pg-run" type="button" class="pg-button pg-primary">
+        <Play class="pg-icon pg-idle-icon" aria-hidden="true" />
+        <LoaderCircle class="pg-icon pg-busy-icon" aria-hidden="true" />
         Run
+        <kbd class="pg-kbd" data-shortcut>Ctrl ↵</kbd>
       </button>
     </header>
     <noscript>
@@ -83,7 +96,10 @@ import '../components/playground/playground.css';
           }
         </div>
         <div id="pg-view" class="pg-view"></div>
-        <p id="pg-status" class="status" role="status"></p>
+        <footer class="status">
+          <p id="pg-status" role="status"></p>
+          <p id="pg-hint" class="hint"></p>
+        </footer>
       </section>
     </main>
     <script>
@@ -132,15 +148,6 @@ import '../components/playground/playground.css';
     font-size: 1.05rem;
     font-weight: 600;
   }
-  .control {
-    font: inherit;
-    font-size: 0.875rem;
-    padding: 0.25rem 0.5rem;
-    border-radius: 0.4rem;
-    border: 1px solid var(--sl-color-gray-5);
-    background: var(--sl-color-black);
-    color: var(--sl-color-white);
-  }
   .spacer {
     flex: 1;
   }
@@ -180,18 +187,34 @@ import '../components/playground/playground.css';
     padding: 1rem;
   }
   .status {
-    margin: 0;
+    display: flex;
+    gap: 1rem;
+    justify-content: space-between;
     padding: 0.35rem 1rem;
     font-size: 0.8rem;
     color: var(--sl-color-gray-3);
     border-top: 1px solid var(--sl-color-gray-5);
   }
-  :global(body[data-compiling]) .pg-view {
-    opacity: 0.7;
+  .status p {
+    margin: 0;
+  }
+  .hint {
+    text-align: right;
+  }
+  /* What is shown no longer matches the code: being recompiled, or edited without auto-run. */
+  :global(body[data-compiling]) .pg-view,
+  :global(body[data-stale]) .pg-view {
+    opacity: 0.6;
+    transition: opacity 0.15s;
   }
   @media (max-width: 50rem) {
+    .bar {
+      flex-wrap: wrap;
+      gap: 0.5rem;
+    }
     .bar h1,
-    .docs {
+    .docs,
+    .pg-kbd {
       display: none;
     }
     main {

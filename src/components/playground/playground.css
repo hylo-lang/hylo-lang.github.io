@@ -1,6 +1,15 @@
 /* The playground's look, in Starlight's colour tokens so that it follows the site's theme. Shared
    by embedded snippets and the full-screen playground. */
 
+/* The accent that contrasts with the page, as Starlight's own primary buttons use; spelled out for
+   the full-screen playground, which does not load Starlight's base styles that define it. */
+:root {
+  --pg-accent: var(--sl-color-text-accent, var(--sl-color-accent-high));
+}
+:root[data-theme='light'] {
+  --pg-accent: var(--sl-color-text-accent, var(--sl-color-accent));
+}
+
 hylo-playground {
   display: block;
   margin-block: 1rem;
@@ -28,41 +37,170 @@ hylo-playground:not([data-ready]) .pg-toolbar {
   margin-top: 0.5rem;
   font-size: var(--sl-text-sm, 0.875rem);
 }
-.pg-button {
-  font: inherit;
-  padding: 0.25rem 0.85rem;
-  border-radius: 0.4rem;
+.pg-button,
+.pg-select {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  height: 2rem;
+  padding: 0 0.8rem;
+  border-radius: 0.5rem;
   border: 1px solid var(--sl-color-gray-5);
-  background: transparent;
+  background: var(--sl-color-gray-6);
   color: var(--sl-color-white);
+  font: inherit;
+  font-size: var(--sl-text-sm, 0.875rem);
+  font-weight: 500;
+  line-height: 1;
+  white-space: nowrap;
   cursor: pointer;
+  transition:
+    background-color 0.15s,
+    border-color 0.15s,
+    color 0.15s;
 }
-.pg-button:hover {
-  border-color: var(--sl-color-gray-3);
+/* `display` above would otherwise show a button its script hides. */
+.pg-button[hidden] {
+  display: none;
+}
+.pg-button:hover,
+.pg-select:hover {
+  background: var(--sl-color-gray-5);
+  border-color: var(--sl-color-gray-4);
+}
+.pg-button:active {
+  transform: translateY(1px);
+}
+.pg-select {
+  appearance: none;
+  padding-right: 1.9rem;
+  /* A chevron, in the text's colour. */
+  background-image: linear-gradient(45deg, transparent 50%, currentColor 50%),
+    linear-gradient(135deg, currentColor 50%, transparent 50%);
+  background-position:
+    right 0.95rem center,
+    right 0.65rem center;
+  background-size: 0.3rem 0.3rem;
+  background-repeat: no-repeat;
 }
 .pg-button:focus-visible,
+.pg-select:focus-visible,
+.pg-switch:has(:focus-visible),
 .pg-link:focus-visible,
 .pg-tabs [role='tab']:focus-visible,
 .pg-diagnostics button:focus-visible {
   outline: 2px solid var(--sl-color-accent);
-  outline-offset: 1px;
+  outline-offset: 2px;
 }
 .pg-primary {
-  background: var(--sl-color-accent);
-  border-color: var(--sl-color-accent);
+  background: var(--pg-accent);
+  border-color: var(--pg-accent);
   color: var(--sl-color-black);
   font-weight: 600;
 }
 .pg-primary:hover {
-  border-color: var(--sl-color-accent-high);
+  background: var(--pg-accent);
+  border-color: var(--pg-accent);
+  filter: brightness(1.1);
+}
+.pg-icon {
+  width: 1rem;
+  height: 1rem;
+  flex: none;
+}
+/* A button shows its idle icon, or the busy or done one in its place. */
+.pg-busy-icon,
+.pg-done-icon,
+.pg-button[aria-busy] .pg-idle-icon,
+.pg-button[data-done] .pg-idle-icon {
+  display: none;
+}
+.pg-button[aria-busy] .pg-busy-icon,
+.pg-button[data-done] .pg-done-icon {
+  display: block;
 }
 .pg-button[aria-busy] {
-  opacity: 0.6;
   cursor: progress;
 }
+.pg-busy-icon {
+  animation: pg-spin 0.8s linear infinite;
+}
+@keyframes pg-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .pg-busy-icon {
+    animation: none;
+  }
+}
+.pg-button[data-done] {
+  border-color: var(--sl-color-green);
+  color: var(--sl-color-green-high);
+}
+
+.pg-kbd {
+  font-family: var(--__sl-font-mono, monospace);
+  font-size: 0.7rem;
+  font-weight: 500;
+  padding: 0.1rem 0.3rem;
+  border-radius: 0.25rem;
+  background: color-mix(in srgb, currentColor 15%, transparent);
+}
+
+.pg-switch {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  font-size: var(--sl-text-sm, 0.875rem);
+  color: var(--sl-color-gray-2);
+  cursor: pointer;
+  user-select: none;
+  border-radius: 1rem;
+}
+.pg-switch input {
+  appearance: none;
+  position: relative;
+  width: 2rem;
+  height: 1.125rem;
+  margin: 0;
+  border-radius: 1rem;
+  background: var(--sl-color-gray-5);
+  cursor: pointer;
+  transition: background-color 0.15s;
+}
+.pg-switch input::before {
+  content: '';
+  position: absolute;
+  top: 0.125rem;
+  left: 0.125rem;
+  width: 0.875rem;
+  height: 0.875rem;
+  border-radius: 50%;
+  background: var(--sl-color-white);
+  transition: transform 0.15s;
+}
+.pg-switch input:checked {
+  background: var(--pg-accent);
+}
+.pg-switch input:checked::before {
+  transform: translateX(0.875rem);
+  /* The page's background colour, in either theme. */
+  background: var(--sl-color-black);
+}
+
 .pg-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
   margin-left: auto;
   color: var(--sl-color-gray-2);
+  text-decoration: none;
+}
+.pg-link:hover {
+  color: var(--sl-color-white);
+  text-decoration: underline;
 }
 
 .pg-output {

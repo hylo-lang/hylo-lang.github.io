@@ -22,6 +22,7 @@
  * The compiler is only downloaded when a reader runs a snippet, and is shared by every snippet on
  * the page.
  */
+import { ExternalLink, LoaderCircle, Pencil, Play, RotateCcw } from '@lucide/astro';
 import { PLAYGROUND_PATH } from './site';
 import { EXPECTATION_FORMS, parseExpectation } from './snippet';
 import { OUTPUTS, OUTPUT_TITLES, type Output } from './views';
@@ -98,11 +99,30 @@ if (!/<pre\b[^>]*\bdata-language="hylo"/.test(code)) fail('wrap exactly one `hyl
   {editable && <div data-part="editor" class="pg-editor" hidden />}
   <div class="pg-toolbar">
     <button type="button" data-part="run" class="pg-button pg-primary">
+      <Play class="pg-icon pg-idle-icon" aria-hidden="true" />
+      <LoaderCircle class="pg-icon pg-busy-icon" aria-hidden="true" />
       {stopAfter ? 'Check' : 'Run'}
     </button>
-    {editable && <button type="button" data-part="edit" class="pg-button">Edit</button>}
-    {editable && <button type="button" data-part="reset" class="pg-button" hidden>Reset</button>}
-    <a data-part="open" class="pg-link" href={PLAYGROUND_PATH}>Open in the playground</a>
+    {
+      editable && (
+        <button type="button" data-part="edit" class="pg-button">
+          <Pencil class="pg-icon" aria-hidden="true" />
+          Edit
+        </button>
+      )
+    }
+    {
+      editable && (
+        <button type="button" data-part="reset" class="pg-button" hidden>
+          <RotateCcw class="pg-icon" aria-hidden="true" />
+          Reset
+        </button>
+      )
+    }
+    <a data-part="open" class="pg-link" href={PLAYGROUND_PATH}>
+      Open in the playground
+      <ExternalLink class="pg-icon" aria-hidden="true" />
+    </a>
   </div>
   <p data-part="status" class="pg-visually-hidden" role="status"></p>
   <div data-part="output" class="pg-output" hidden>
