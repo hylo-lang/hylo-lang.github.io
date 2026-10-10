@@ -1,0 +1,158 @@
+---
+/**
+ * The home page's hero: the title, tagline and actions of the page's `hero` front matter, as
+ * Starlight's own hero shows them, beside a Hylo program the reader can open in the playground.
+ */
+import { Code, LinkButton } from '@astrojs/starlight/components';
+import { Play } from '@lucide/astro';
+import { playgroundURL } from './playground/share';
+import { excerpt, program } from './home-example';
+
+const { data } = Astro.locals.starlightRoute.entry;
+const { title = data.title, tagline, actions = [] } = data.hero ?? {};
+const playground = await playgroundURL({ source: program, optimization: 0, view: 'result' });
+---
+
+<div class="hero">
+  <div class="sl-flex stack">
+    <div class="sl-flex copy">
+      <h1 id="_top" data-page-title set:html={title} />
+      {tagline && <div class="tagline" set:html={tagline} />}
+    </div>
+    {
+      actions.length > 0 && (
+        <div class="sl-flex actions">
+          {actions.map(({ icon, link: href, text, variant }) => (
+            <LinkButton {href} {variant} icon={icon?.name}>
+              {text}
+            </LinkButton>
+          ))}
+        </div>
+      )
+    }
+  </div>
+  <figure class="example not-content">
+    <Code code={excerpt} lang="hylo" title="min.hylo" wrap />
+    <a class="try" href={playground} title="Open this program in the playground">
+      <Play size={16} aria-hidden="true" />
+      Run
+    </a>
+    <figcaption class="sr-only">
+      A subscript projecting the lesser of two variables, which the caller increments in place.
+    </figcaption>
+  </figure>
+</div>
+
+<style>
+  /* Starlight's hero layout (`@astrojs/starlight/components/Hero.astro`), with room for code. */
+  .hero {
+    display: grid;
+    grid-template-columns: 100%;
+    align-items: center;
+    gap: 2.5rem;
+    padding-bottom: 1rem;
+  }
+  .stack {
+    flex-direction: column;
+    gap: clamp(1.5rem, calc(1.5rem + 1vw), 2rem);
+    text-align: center;
+  }
+  .copy {
+    flex-direction: column;
+    gap: 1rem;
+    align-items: center;
+  }
+  .copy > * {
+    max-width: 50ch;
+  }
+  h1 {
+    font-size: clamp(var(--sl-text-3xl), calc(0.25rem + 5vw), var(--sl-text-6xl));
+    line-height: var(--sl-line-height-headings);
+    font-weight: 600;
+    color: var(--sl-color-white);
+  }
+  .tagline {
+    font-size: clamp(var(--sl-text-base), calc(0.0625rem + 2vw), var(--sl-text-xl));
+    color: var(--sl-color-gray-2);
+  }
+  .actions {
+    gap: 1rem 2rem;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+
+  .example {
+    position: relative;
+    min-width: 0;
+    margin: 0;
+    padding-bottom: 1.25rem;
+  }
+  .example :global(.expressive-code) {
+    box-shadow: 0 1.5rem 3rem -1rem rgb(0 0 0 / 0.35);
+    border-radius: 0.5rem;
+  }
+  .example :global(pre) {
+    font-size: 0.78rem;
+  }
+  /* Room under the code for the link that overlaps its lower edge. */
+  .example :global(pre > code) {
+    padding-bottom: 1.5rem;
+  }
+  /* The playground link sits on the code's lower edge, as a call to action. */
+  .try {
+    position: absolute;
+    right: 1rem;
+    bottom: 0;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.55rem 1.1rem 0.55rem 0.8rem;
+    border: 1.5px solid var(--sl-color-green);
+    border-radius: 999rem;
+    /* The page's background, so that the code under the link's edge does not show through. */
+    background: var(--sl-color-bg);
+    color: var(--sl-color-green-high);
+    font-weight: 600;
+    font-size: var(--sl-text-sm);
+    text-decoration: none;
+    box-shadow: 0 0.5rem 1.25rem -0.5rem rgb(0 0 0 / 0.5);
+    transition:
+      background-color 0.15s,
+      transform 0.15s,
+      box-shadow 0.15s;
+  }
+  .try:hover {
+    background: var(--sl-color-green-low);
+    transform: translateY(-2px);
+    box-shadow: 0 0.75rem 1.5rem -0.5rem rgb(0 0 0 / 0.5);
+  }
+  .try:focus-visible {
+    outline: 2px solid var(--sl-color-green);
+    outline-offset: 3px;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .try {
+      transition: none;
+    }
+    .try:hover {
+      transform: none;
+    }
+  }
+
+  @media (min-width: 50rem) {
+    .hero {
+      grid-template-columns: minmax(0, 5fr) minmax(0, 6fr);
+      gap: 2.5rem;
+      padding-block: clamp(2.5rem, calc(1rem + 10vmin), 8rem);
+    }
+    .stack {
+      text-align: start;
+    }
+    .copy {
+      align-items: flex-start;
+    }
+    .actions {
+      justify-content: flex-start;
+    }
+  }
+</style>
