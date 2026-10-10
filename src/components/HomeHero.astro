@@ -4,6 +4,9 @@
  * Starlight's own hero shows them, beside a Hylo program the reader can open in the playground.
  */
 import { Code, LinkButton } from '@astrojs/starlight/components';
+import { Image } from 'astro:assets';
+import darkLogo from '../assets/hylo-green.png';
+import lightLogo from '../assets/hylo-black.png';
 import { Play } from '@lucide/astro';
 import { playgroundURL } from './playground/share';
 import { excerpt, program } from './home-example';
@@ -16,7 +19,11 @@ const playground = await playgroundURL({ source: program, optimization: 0, view:
 <div class="hero">
   <div class="sl-flex stack">
     <div class="sl-flex copy">
-      <h1 id="_top" data-page-title set:html={title} />
+      <h1 id="_top" data-page-title>
+        {/* The logo as in the site's header: green on dark, black on light. */}
+        <Image src={darkLogo} alt={title} class="logo light:sl-hidden" widths={[200, 400]} sizes="9rem" loading="eager" />
+        <Image src={lightLogo} alt={title} class="logo dark:sl-hidden" widths={[200, 400]} sizes="9rem" loading="eager" />
+      </h1>
       {tagline && <div class="tagline" set:html={tagline} />}
     </div>
     {
@@ -68,10 +75,15 @@ const playground = await playgroundURL({ source: program, optimization: 0, view:
     max-width: 50ch;
   }
   h1 {
-    font-size: clamp(var(--sl-text-3xl), calc(0.25rem + 5vw), var(--sl-text-6xl));
-    line-height: var(--sl-line-height-headings);
-    font-weight: 600;
-    color: var(--sl-color-white);
+    margin: 0;
+    line-height: 1;
+  }
+  /* About as tall as Starlight's hero title, with its ascenders and descenders. */
+  /* No `display` here: it would override the classes showing only the theme's logo. */
+  .logo {
+    vertical-align: bottom;
+    width: auto;
+    height: clamp(4rem, calc(2.5rem + 5vw), 6.5rem);
   }
   .tagline {
     font-size: clamp(var(--sl-text-base), calc(0.0625rem + 2vw), var(--sl-text-xl));
