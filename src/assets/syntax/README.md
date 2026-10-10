@@ -13,8 +13,7 @@ LLVM IR needs no grammar here: Shiki and most editors have one.
 `syntax.test.ts` checks them through the highlighter the site uses: it highlights the IR and
 assembly that the playground's compiler prints for the examples, and fails if any word is left
 without a scope, so a construct the compiler learns shows up there first. It also checks both
-grammars line by line. `pnpm test` runs it; the compiler part needs `scripts/fetch-compiler.ts` to
-have run.
+grammars line by line. `pnpm test` runs it, with the compiler from `@hylo-lang/hylo-wasm`.
 
 The scopes are the conventional TextMate ones, so any theme colours them. For Hylo IR:
 

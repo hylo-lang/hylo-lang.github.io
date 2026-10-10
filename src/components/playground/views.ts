@@ -1,7 +1,7 @@
 /**
  * The views of a compilation that a playground can show, and how they are presented.
  */
-import type { Artifact } from './protocol';
+import type { Artifact } from '@hylo-lang/hylo-wasm/protocol';
 
 /** A view of a compilation. */
 export type Output = 'result' | 'diagnostics' | Artifact;

@@ -159,33 +159,26 @@ hylo-playground:not([data-ready]) .pg-toolbar {
   margin: 0;
 }
 .pg-diagnostics button {
-  display: flex;
-  gap: 0.75rem;
+  display: block;
   width: 100%;
   font: inherit;
   text-align: left;
-  padding: 0;
+  padding: 0 0 0 0.75rem;
   border: 0;
+  border-left: 3px solid var(--sl-color-gray-4);
   background: none;
   color: inherit;
   cursor: pointer;
+  overflow-x: auto;
 }
 .pg-diagnostics button:disabled {
   cursor: default;
 }
-.pg-diagnostics li[data-level='error'] .pg-site {
-  color: var(--sl-color-red-high);
+.pg-diagnostics li[data-level='error'] button {
+  border-left-color: var(--sl-color-red-high);
 }
-.pg-diagnostics li[data-level='warning'] .pg-site {
-  color: var(--sl-color-orange-high);
-}
-.pg-site {
-  font-family: var(--__sl-font-mono, ui-monospace, monospace);
-  color: var(--sl-color-gray-3);
-}
-.pg-diagnostics .pg-pre {
-  margin-top: 0.25rem;
-  color: var(--sl-color-gray-2);
+.pg-diagnostics li[data-level='warning'] button {
+  border-left-color: var(--sl-color-orange-high);
 }
 
 /* Announced by screen readers, not shown. */

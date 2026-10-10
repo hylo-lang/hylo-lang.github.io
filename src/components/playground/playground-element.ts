@@ -7,7 +7,8 @@
  */
 import { compiler } from './compiler';
 import { describeStatus, renderOutput, renderStatus, summarize } from './outputs';
-import type { Phase, Result } from './protocol';
+import type { Phase } from '@hylo-lang/hylo-wasm/protocol';
+import type { Result } from './compiler';
 import { snippetRequest, type SnippetSettings } from './snippet';
 import { playgroundURL } from './source-link';
 import { connectTabs } from './tabs';
@@ -85,7 +86,7 @@ class HyloPlayground extends HTMLElement {
 
     this.#result = result;
     status.textContent = summarize(result);
-    (await this.#editor)?.showDiagnostics(result.compile.diagnostics ?? []);
+    (await this.#editor)?.showDiagnostics(result.compile.diagnostics);
     await this.#show(this.#shown);
   }
 
@@ -105,7 +106,7 @@ class HyloPlayground extends HTMLElement {
       this.#part('source')!.hidden = true;
       this.#part('edit')!.hidden = true;
       this.#part('reset')!.hidden = false;
-      if (this.#result) editor.showDiagnostics(this.#result.compile.diagnostics ?? []);
+      if (this.#result) editor.showDiagnostics(this.#result.compile.diagnostics);
       return editor;
     })();
     void this.#editor.then((e) => e.focus());

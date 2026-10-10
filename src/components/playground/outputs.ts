@@ -2,7 +2,8 @@
  * How a playground shows what the compiler did: one function per view, each filling a container
  * from a `Result`, so that an embedded playground and the full-screen one show the same things.
  */
-import type { CompilerStatus, Diagnostic, Result } from './protocol';
+import type { Diagnostic } from '@hylo-lang/hylo-wasm/protocol';
+import type { CompilerStatus, Result } from './compiler';
 import { OUTPUT_LANGUAGES, type Output } from './views';
 
 export interface RenderOptions {
@@ -25,12 +26,12 @@ export async function renderOutput(
   if (output === 'result') {
     container.replaceChildren(...resultView(result, options));
   } else if (output === 'diagnostics') {
-    const ds = result.compile.diagnostics ?? [];
+    const ds = result.compile.diagnostics;
     container.replaceChildren(
       ds.length > 0 ? diagnosticList(ds, options) : note('No diagnostics.'),
     );
   } else {
-    const text = result.compile.artifacts?.[output];
+    const text = result.compile.artifacts[output];
     if (text === undefined) {
       container.replaceChildren(note(notProducedReason(result)));
       return;
@@ -80,7 +81,7 @@ export function summarize(r: Result): string {
   const c = r.compile;
   if (r.gaveUp) return r.gaveUp;
   if (c.error) return 'The compiler failed.';
-  const errors = (c.diagnostics ?? []).filter((d) => d.level === 'error').length;
+  const errors = c.diagnostics.filter((d) => d.level === 'error').length;
   if (r.run === null) {
     return errors > 0 ? `Does not compile: ${errors} error${errors > 1 ? 's' : ''}.` : 'Compiles.';
   }
@@ -107,7 +108,7 @@ function resultView(r: Result, options: RenderOptions): Node[] {
   }
   if (c.error) return [headline('bad', 'Internal error'), pre(c.error)];
 
-  const errors = (c.diagnostics ?? []).filter((d) => d.level === 'error');
+  const errors = c.diagnostics.filter((d) => d.level === 'error');
   const nodes: Node[] = [];
   if (r.run === null) {
     nodes.push(
@@ -115,7 +116,7 @@ function resultView(r: Result, options: RenderOptions): Node[] {
         ? headline('bad', 'Does not compile')
         : headline('ok', 'Compiles'),
     );
-    if ((c.diagnostics ?? []).length > 0) nodes.push(diagnosticList(c.diagnostics!, options));
+    if (c.diagnostics.length > 0) nodes.push(diagnosticList(c.diagnostics, options));
     return nodes;
   }
   if (r.run.trap !== undefined) {
@@ -125,12 +126,15 @@ function resultView(r: Result, options: RenderOptions): Node[] {
   }
   if (r.run.stdout) nodes.push(labelled('Standard output', pre(r.run.stdout)));
   if (r.run.stderr) nodes.push(labelled('Standard error', pre(r.run.stderr)));
-  if ((c.diagnostics ?? []).length > 0) nodes.push(diagnosticList(c.diagnostics!, options));
+  if (c.diagnostics.length > 0) nodes.push(diagnosticList(c.diagnostics, options));
   return nodes;
 }
 
-/** A list of diagnostics, each taking the reader to its site when clicked. */
-function diagnosticList(ds: Diagnostic[], options: RenderOptions): HTMLElement {
+/**
+ * A list of diagnostics, each shown as the compiler renders it, and taking the reader to its site
+ * when clicked.
+ */
+function diagnosticList(ds: readonly Diagnostic[], options: RenderOptions): HTMLElement {
   const list = document.createElement('ul');
   list.className = 'pg-diagnostics';
   for (const d of ds) {
@@ -138,20 +142,13 @@ function diagnosticList(ds: Diagnostic[], options: RenderOptions): HTMLElement {
     item.dataset.level = d.level;
     const button = document.createElement('button');
     button.type = 'button';
-    // The compiler names the file; in a snippet there is only one.
-    const [first, ...window] = d.rendered.split('\n');
-    const where = document.createElement('span');
-    where.className = 'pg-site';
-    where.textContent = `${d.site.line}:${d.site.column}`;
-    const what = document.createElement('span');
-    what.textContent = first.replace(/^.*?\d+\.\d+(?:-[\d.:]+)?: /, '');
-    button.append(where, what);
+    button.append(pre(d.rendered.replace(/\n$/, '')));
     if (options.onReveal) {
       button.addEventListener('click', () => options.onReveal!(d.site.line, d.site.column));
     } else {
       button.disabled = true;
     }
-    item.append(button, pre(window.join('\n').trimEnd()));
+    item.append(button);
     list.append(item);
   }
   return list;
@@ -161,7 +158,7 @@ function diagnosticList(ds: Diagnostic[], options: RenderOptions): HTMLElement {
 function notProducedReason(r: Result): string {
   if (r.gaveUp) return `Not produced: ${r.gaveUp.toLowerCase()}`;
   if (r.compile.error) return 'Not produced: the compiler failed.';
-  const failed = (r.compile.diagnostics ?? []).some((d) => d.level === 'error');
+  const failed = r.compile.diagnostics.some((d) => d.level === 'error');
   return failed ? 'Not produced: the program does not compile.' : 'Not produced.';
 }
 

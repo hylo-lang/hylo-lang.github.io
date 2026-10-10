@@ -6,7 +6,7 @@ import { shikiToMonaco } from '@shikijs/monaco';
 import * as monaco from './monaco';
 import EditorWorker from 'monaco-editor/editor/editor.worker.js?worker';
 import { getHighlighter, THEMES } from './highlight';
-import type { Diagnostic } from './protocol';
+import type { Diagnostic } from '@hylo-lang/hylo-wasm/protocol';
 
 (self as unknown as { MonacoEnvironment: unknown }).MonacoEnvironment = {
   getWorker: () => new EditorWorker(),
@@ -127,7 +127,8 @@ export async function createEditor(host: HTMLElement, options: EditorOptions): P
         'hylo',
         diagnostics.map((d) => ({
           severity: severity[d.level],
-          message: d.message,
+          // The whole diagnostic, as the compiler renders it.
+          message: d.rendered.replace(/\n$/, ''),
           startLineNumber: d.site.line,
           startColumn: d.site.column,
           endLineNumber: d.site.endLine,

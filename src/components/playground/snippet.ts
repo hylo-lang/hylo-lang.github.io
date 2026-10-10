@@ -2,7 +2,7 @@
  * What a runnable snippet asks of the compiler and promises to do, shared by the snippets
  * themselves, the component checking them as the site builds, and the test running them.
  */
-import type { CompileRequest, Phase } from './protocol';
+import type { CompileRequest, Phase } from '@hylo-lang/hylo-wasm/protocol';
 import { isArtifact, type Output } from './views';
 
 /** The settings of a snippet, as `Playground.astro` takes them. */

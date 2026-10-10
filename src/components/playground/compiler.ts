@@ -6,8 +6,26 @@
  * that never returns, can be told apart from those waiting behind it: the worker is then
  * terminated, the request answered with an error, and a new worker started for the next one.
  */
+import type {
+  CompileRequest,
+  WorkerMessage,
+  WorkerRequest,
+  WorkerResult,
+} from '@hylo-lang/hylo-wasm/protocol';
 import HyloWorker from '@hylo-lang/hylo-wasm/worker?worker';
-import type { CompileRequest, CompilerStatus, Result } from './protocol';
+
+/** The answer to a request: what compiling did, and what running did if it ran. */
+export interface Result extends Pick<WorkerResult, 'compile' | 'run'> {
+  /** Set iff the page stopped waiting for the answer, to a sentence saying so. */
+  gaveUp?: string;
+}
+
+/** The state of the compiler a page is using. */
+export type CompilerStatus =
+  | { kind: 'idle' }
+  | { kind: 'loading'; loaded: number; total: number }
+  | { kind: 'ready'; standardLibraryMilliseconds: number }
+  | { kind: 'failed'; error: string };
 
 type Listener = (status: CompilerStatus) => void;
 
@@ -23,8 +41,11 @@ interface Pending {
   resolve: (r: Result | null) => void;
 }
 
-/** Returns a result reporting `error`. */
-const failure = (error: string): Result => ({ compile: { error }, run: null });
+/** Returns a result with nothing compiled, reporting `error` if given. */
+const nothing = (error?: string): Result => ({
+  compile: { diagnostics: [], artifacts: {}, error, milliseconds: 0 },
+  run: null,
+});
 
 class Compiler {
   #worker: Worker | null = null;
@@ -67,7 +88,8 @@ class Compiler {
     if (this.#serving !== null || this.#waiting.length === 0) return;
     const worker = this.#start();
     this.#serving = this.#waiting.shift()!;
-    worker.postMessage({ id: 0, request: this.#serving.request, run: true });
+    const message: WorkerRequest = { id: 0, request: this.#serving.request, run: true };
+    worker.postMessage(message);
     if (this.#status.kind === 'ready') this.#arm();
   }
 
@@ -77,7 +99,7 @@ class Compiler {
     this.#timer = setTimeout(() => {
       this.#stop();
       const gaveUp = `Gave up after ${REQUEST_TIMEOUT_MILLISECONDS / 1000} seconds.`;
-      this.#answer({ compile: {}, run: null, gaveUp });
+      this.#answer({ ...nothing(), gaveUp });
     }, REQUEST_TIMEOUT_MILLISECONDS);
   }
 
@@ -93,7 +115,7 @@ class Compiler {
   #start(): Worker {
     if (this.#worker) return this.#worker;
     const w = new HyloWorker();
-    w.onmessage = ({ data }) => {
+    w.onmessage = ({ data }: MessageEvent<WorkerMessage>) => {
       switch (data.type) {
         case 'progress':
           this.#set({ kind: 'loading', loaded: data.loaded, total: data.total });
@@ -116,9 +138,9 @@ class Compiler {
       const error = 'The compiler is not available on this site.';
       this.#stop();
       this.#set({ kind: 'failed', error });
-      for (const p of this.#waiting) p.resolve(failure(error));
+      for (const p of this.#waiting) p.resolve(nothing(error));
       this.#waiting = [];
-      this.#answer(failure(error));
+      this.#answer(nothing(error));
     };
     this.#set({ kind: 'loading', loaded: 0, total: 0 });
     this.#worker = w;

@@ -10,7 +10,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { type Compiler, load } from '@hylo-lang/hylo-wasm';
 import { beforeAll, describe, expect, test } from 'vitest';
-import type { Phase } from './protocol';
+import type { Phase } from '@hylo-lang/hylo-wasm/protocol';
 import { parseExpectation, snippetRequest } from './snippet';
 import type { Output } from './views';
 

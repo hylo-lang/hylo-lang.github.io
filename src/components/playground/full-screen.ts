@@ -6,7 +6,7 @@ import { compiler } from './compiler';
 import { createEditor, type Editor } from './editor';
 import { EXAMPLES } from './examples';
 import { describeStatus, renderOutput, renderStatus, summarize } from './outputs';
-import type { Result } from './protocol';
+import type { Result } from './compiler';
 import { decodeOptimization, decodeSource, playgroundURL } from './source-link';
 import { connectTabs } from './tabs';
 import type { Output } from './views';
@@ -89,10 +89,10 @@ async function compile(): Promise<void> {
   if (r === null) return;
   document.body.removeAttribute('data-compiling');
   result = r;
-  editor.showDiagnostics(r.compile.diagnostics ?? []);
-  const errors = (r.compile.diagnostics ?? []).filter((d) => d.level === 'error').length;
+  editor.showDiagnostics(r.compile.diagnostics);
+  const errors = r.compile.diagnostics.filter((d) => d.level === 'error').length;
   $('pg-error-count').textContent = errors > 0 ? String(errors) : '';
-  const timing = r.compile.milliseconds !== undefined ? ` Compiled in ${r.compile.milliseconds.toFixed(0)} ms.` : '';
+  const timing = r.gaveUp || r.compile.error ? '' : ` Compiled in ${r.compile.milliseconds.toFixed(0)} ms.`;
   status.textContent = summarize(r) + timing;
   await show(shown);
 }
