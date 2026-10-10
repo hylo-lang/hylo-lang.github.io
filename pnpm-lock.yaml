@@ -17,6 +17,12 @@ importers:
       '@expressive-code/core':
         specifier: ^0.44.2
         version: 0.44.2
+      '@fontsource-variable/jetbrains-mono':
+        specifier: ^5.3.0
+        version: 5.3.0
+      '@hylo-lang/hylo-wasm':
+        specifier: ^0.0.6
+        version: 0.0.6
       '@lucide/astro':
         specifier: ^1.48.0
         version: 1.48.0(astro@7.3.5(@types/node@24.12.4)(jiti@2.7.0))
@@ -190,6 +196,9 @@ packages:
   '@babel/types@7.29.0':
     resolution: {integrity: sha512-LwdZHpScM4Qz8Xw2iKSzS+cfglZzJGvofQICy7W7v4caru4EaAmyUuO6BGrbyQ2mYV11W0U8j5mBhd14dd3B0A==}
     engines: {node: '>=6.9.0'}
+
+  '@bjorn3/browser_wasi_shim@0.4.2':
+    resolution: {integrity: sha512-/iHkCVUG3VbcbmEHn5iIUpIrh7a7WPiwZ3sHy4HZKZzBdSadwdddYDZAII2zBvQYV0Lfi8naZngPCN7WPHI/hA==}
 
   '@bruits/satteri-darwin-arm64@0.10.5':
     resolution: {integrity: sha512-27KTVl4TJkVahMy/ohyA7qd4938G5UNneFUz/PsScYfpIhj0IVAS23mpcJXdPF44sa6nva198lmV/cKIb2YPyA==}
@@ -441,6 +450,12 @@ packages:
 
   '@expressive-code/plugin-text-markers@0.44.2':
     resolution: {integrity: sha512-SNI7EgUSiADqbqUzzMbj1ZeC/r2pa5eg3KyFOGAd3a7EsIA4qzjXQLp+ODWQtHVDKFCdGs4J3ovSJUqvKIK96g==}
+
+  '@fontsource-variable/jetbrains-mono@5.3.0':
+    resolution: {integrity: sha512-F32xpS2NsGYoQi2ADSkKTgpJj7ozajsGgDJ8woTnqjmIB+dxDIqImjl4pXZVEExu8UFZ2ndhmX18EBS/hdz3Lw==}
+
+  '@hylo-lang/hylo-wasm@0.0.6':
+    resolution: {integrity: sha512-8KGFBJsIRkT4j5tar4mva7VhcLbP5u5B0MWq5EFFQTJ8Gzh8UciE28gzUNw/CTnQ7XYSh9ZVC04iF7FZ5Fhkew==}
 
   '@img/colour@1.1.0':
     resolution: {integrity: sha512-Td76q7j57o/tLVdgS746cYARfSyxk8iEfRxewL9h4OMzYhbW4TAcppl0mT4eyqXddh6L/jwoM75mo7ixa/pCeQ==}
@@ -2269,6 +2284,8 @@ snapshots:
       '@babel/helper-string-parser': 7.27.1
       '@babel/helper-validator-identifier': 7.28.5
 
+  '@bjorn3/browser_wasi_shim@0.4.2': {}
+
   '@bruits/satteri-darwin-arm64@0.10.5':
     optional: true
 
@@ -2452,6 +2469,12 @@ snapshots:
   '@expressive-code/plugin-text-markers@0.44.2':
     dependencies:
       '@expressive-code/core': 0.44.2
+
+  '@fontsource-variable/jetbrains-mono@5.3.0': {}
+
+  '@hylo-lang/hylo-wasm@0.0.6':
+    dependencies:
+      '@bjorn3/browser_wasi_shim': 0.4.2
 
   '@img/colour@1.1.0': {}
 
