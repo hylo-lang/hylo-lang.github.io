@@ -5,15 +5,22 @@
  * builds, and sets the code as `data-source`. The code block inside is whatever Expressive Code
  * rendered for the author's fence, and stays on the page until the reader edits it, so a snippet
  * looks like every other code block and works without JavaScript.
+ *
+ * The element is set up when first connected, once: every listener it adds is on its own
+ * children, which move with it, so none needs removing. Moving it elsewhere in the page (which
+ * disconnects and connects it at once) keeps its editor and results; removing it resets it,
+ * stopping its run and releasing its editor, as `reset` does.
  */
-import { compiler, type Result } from './compiler';
+import type { Result } from './compiler';
 import type { Editor } from './editor';
-import { note, renderOutput, summarize, watchStatus } from './outputs';
+import { compiler } from './page-compiler';
+import { ResultPane } from './pane';
+import { renderView, showCompilerStatus, summarize } from './rendering';
 import { DEFAULT_SETTINGS, parseOptimizationLevel, parsePhase } from './settings';
 import { playgroundURL } from './share';
 import { snippetRequest, type SnippetSettings } from './snippet';
 import { connectTabs } from './tabs';
-import { OUTPUTS, type Output } from './views';
+import { VIEWS, type View } from './views';
 
 /** How long the reader's edits must pause before a snippet that has been run runs again. */
 const RERUN_DELAY_MILLISECONDS = 400;
@@ -24,11 +31,11 @@ const RERUN_DELAY_MILLISECONDS = 400;
  * Throws a `RangeError` if one is not a value it sets, which only a page not rendered by it has.
  */
 function readSettings(dataset: DOMStringMap): SnippetSettings {
-  const outputs = (dataset.outputs ?? 'result').split(',');
-  const unknown = outputs.find((o) => !OUTPUTS.includes(o as Output));
+  const views = (dataset.views ?? 'result').split(',');
+  const unknown = views.find((view) => !VIEWS.includes(view as View));
   if (unknown !== undefined) throw new RangeError(`'${unknown}' is not a view of a snippet`);
   return {
-    outputs: outputs as Output[],
+    views: views as View[],
     optimization:
       dataset.optimization === undefined
         ? DEFAULT_SETTINGS.optimization
@@ -46,102 +53,130 @@ class HyloPlayground extends HTMLElement {
   /** The settings, read from the attributes once connected. */
   #settings!: SnippetSettings;
   /** The code as the author wrote it, which `Playground.astro` sets as `data-source`. */
-  #original = '';
+  #originalSource = '';
   /** The editor, from the moment the reader asks to edit, while it loads and after. */
-  #editor: Promise<Editor> | null = null;
+  #editorLoading: Promise<Editor> | null = null;
   /** The editor, once it is loaded. */
-  #loadedEditor: Editor | null = null;
+  #editor: Editor | null = null;
   /** Incremented whenever an editor that is loading should no longer be shown. */
   #editorGeneration = 0;
   /** What the code did the last time it ran, if it ran since it was last reset. */
-  #result: Result | null = null;
-  /** The view shown, or to be shown once the code has run. */
-  #shown: Output = 'result';
-  /** Marks a view as the selected tab, if the snippet has more than one view. */
-  #select: ((o: Output) => void) | null = null;
-  /** Whether the code is being compiled and run. */
-  #running = false;
-  /** Whether to run again once the current run is done, the code having changed meanwhile. */
-  #again = false;
-  /** Incremented whenever what is shown is invalidated, so that a stale rendering is dropped. */
-  #generation = 0;
-  /** Stops showing the compiler's progress, while a run waits for it. */
-  #unwatch: (() => void) | null = null;
+  #lastResult: Result | null = null;
+  /** What running the code produced, shown as it is produced. */
+  #pane!: ResultPane;
+  /** Marks a view's tab as the selected one, if the snippet has more than one view. */
+  #markSelectedTab: ((view: View) => void) | null = null;
+  /** Aborts the run under way, if any, whose results are wanted until it is aborted. */
+  #currentRun: AbortController | null = null;
+  /** Stops showing the compiler's loading, while a run waits for it. */
+  #stopShowingLoading: (() => void) | null = null;
   /** The run the reader's last edits scheduled, if it has not started. */
-  #rerun: ReturnType<typeof setTimeout> | undefined;
+  #scheduledRun: ReturnType<typeof setTimeout> | undefined;
+
+  /** Whether the element has been set up, which happens when it is first connected. */
+  #setUp = false;
+
+  /** Sets the element up, unless it is set up already. */
+  connectedCallback(): void {
+    if (this.#setUp) return;
+    this.#setUp = true;
+    this.#setUpOnce();
+  }
+
+  /**
+   * Resets the element once the current task's microtasks are done, if it has not been connected
+   * again by then: a move disconnects and connects it within one task.
+   */
+  disconnectedCallback(): void {
+    queueMicrotask(() => {
+      if (!this.isConnected) this.reset();
+    });
+  }
 
   /** Reads the settings and the code, and makes the buttons work. */
-  connectedCallback(): void {
+  #setUpOnce(): void {
     this.#settings = readSettings(this.dataset);
-    this.#original = this.dataset.source ?? '';
-    this.#shown = this.#settings.outputs[0];
-    this.#part('run')!.addEventListener('click', () => void this.run());
+    this.#originalSource = this.dataset.source ?? '';
+    this.#part('run')!.addEventListener('click', () => void this.compileAndRun());
     this.#part('edit')?.addEventListener('click', () => void this.edit()?.catch(() => {}));
     this.#part('reset')?.addEventListener('click', () => this.reset());
     // The link is pointed at the code when it is about to be used, rather than on every edit:
     // a pointer enters it before clicking or tapping it, and the keyboard focuses it.
     const link = this.#part('open')!;
-    link.addEventListener('pointerenter', () => this.#updateLink());
-    link.addEventListener('focus', () => this.#updateLink());
+    link.addEventListener('pointerenter', () => this.#pointLinkAtCurrentCode());
+    link.addEventListener('focus', () => this.#pointLinkAtCurrentCode());
     const tablist = this.querySelector<HTMLElement>('[role="tablist"]');
+    const irFunctions = this.dataset.irFunctions ? this.dataset.irFunctions.split(',') : [];
+    this.#pane = new ResultPane(
+      {
+        panel: this.#part('panel')!,
+        tabs: tablist ? [...tablist.querySelectorAll<HTMLElement>('[role="tab"]')] : [],
+        stageStrip: this.#part('stages')!,
+        renderView: (container, view, result) =>
+          renderView(container, view, result, {
+            irFunctions,
+            // Taking the reader to a diagnostic means editing the code.
+            onReveal:
+              this.#part('edit') !== null
+                ? (line, column) =>
+                    void this.edit()?.then((editor) => editor.reveal(line, column), () => {})
+                : undefined,
+          }),
+      },
+      this.#settings.views[0],
+    );
     if (tablist) {
-      this.#select = connectTabs(tablist, this.#part('view')!, (o) => void this.#show(o));
-      this.#select(this.#shown);
+      this.#markSelectedTab = connectTabs(tablist, this.#part('panel')!, (view) => {
+        void this.#selectView(view);
+      });
+      this.#markSelectedTab(this.#pane.selectedView);
     }
     this.toggleAttribute('data-ready', true);
   }
 
-  /** Stops what is pending, and releases the editor. */
-  disconnectedCallback(): void {
-    clearTimeout(this.#rerun);
-    this.#unwatch?.();
-    ++this.#editorGeneration;
-    this.#loadedEditor?.dispose();
-  }
-
   /**
    * Compiles the code as it is now, runs it if it is a program, and shows the configured views of
-   * what it did, starting the page's compiler if needed.
+   * what it did, each as soon as the stage producing it ends, starting the page's compiler if
+   * needed.
    *
-   * Called while a run is in progress, runs again once it is done, with the code as it is then.
-   * Never rejects.
+   * Called while a run is under way, aborts it: nothing it reports is shown. Never rejects.
    */
-  async run(): Promise<void> {
-    clearTimeout(this.#rerun);
-    if (this.#running) {
-      this.#again = true;
-      return;
-    }
-    this.#running = true;
-    const generation = ++this.#generation;
-    const button = this.#part('run')!;
-    const view = this.#part('view')!;
-    const status = this.#part('status')!;
-    button.toggleAttribute('aria-busy', true);
-    this.#part('output')!.hidden = false;
+  async compileAndRun(): Promise<void> {
+    this.#abortRun();
+    const thisRun = new AbortController();
+    this.#currentRun = thisRun;
+    const statusLine = this.#part('status-line')!;
+    this.#part('run')!.toggleAttribute('aria-busy', true);
+    this.#part('results')!.hidden = false;
+    // The compiler's loading, until there is a result to show instead.
+    this.#stopShowingLoading = showCompilerStatus(compiler, this.#pane, statusLine);
+    const result = await compiler.compileAndRun(snippetRequest(this.#source, this.#settings), {
+      signal: thisRun.signal,
+      onProgress: (progress) => void this.#pane.showProgress(progress),
+    });
+    // Aborted: by a newer run, a reset, or the snippet leaving the page.
+    if (result === null) return;
+    // Not a run the reader's latest edits scheduled meanwhile: that one is still to come.
+    this.#endRun();
+    this.#lastResult = result;
+    statusLine.textContent = summarize(result);
+    this.#editor?.showDiagnostics(result.compilation.diagnostics);
+    await this.#pane.showAnswer(result);
+  }
 
-    let result: Result | null;
-    try {
-      // Progress, until the compiler has answered.
-      this.#unwatch = watchStatus(compiler, view, status);
-      result = await compiler.compile(snippetRequest(this.#source, this.#settings));
-    } finally {
-      this.#unwatch?.();
-      this.#unwatch = null;
-      this.#running = false;
-      button.removeAttribute('aria-busy');
-    }
-    if (this.#again) {
-      this.#again = false;
-      void this.run();
-    }
-    // Reset, or run again, while this ran.
-    if (generation !== this.#generation || result === null) return;
+  /** Aborts the run under way and the one scheduled, if any. */
+  #abortRun(): void {
+    clearTimeout(this.#scheduledRun);
+    this.#currentRun?.abort();
+    this.#endRun();
+  }
 
-    this.#result = result;
-    status.textContent = summarize(result);
-    this.#loadedEditor?.showDiagnostics(result.compile.diagnostics);
-    await this.#show(this.#shown);
+  /** Forgets the run under way, if any, and stops showing its progress. */
+  #endRun(): void {
+    this.#currentRun = null;
+    this.#stopShowingLoading?.();
+    this.#stopShowingLoading = null;
+    this.#part('run')?.removeAttribute('aria-busy');
   }
 
   /**
@@ -153,8 +188,8 @@ class HyloPlayground extends HTMLElement {
    */
   edit(): Promise<Editor> | null {
     if (this.#part('edit') === null) return null;
-    this.#editor ??= this.#createEditor();
-    return this.#editor;
+    this.#editorLoading ??= this.#createEditor();
+    return this.#editorLoading;
   }
 
   /**
@@ -162,13 +197,11 @@ class HyloPlayground extends HTMLElement {
    * showed.
    */
   reset(): void {
-    ++this.#generation;
+    this.#abortRun();
     ++this.#editorGeneration;
-    clearTimeout(this.#rerun);
-    this.#again = false;
-    this.#loadedEditor?.dispose();
-    this.#loadedEditor = null;
+    this.#editor?.dispose();
     this.#editor = null;
+    this.#editorLoading = null;
     const host = this.#part('editor');
     if (host) {
       host.hidden = true;
@@ -177,14 +210,15 @@ class HyloPlayground extends HTMLElement {
     this.#part('source')!.hidden = false;
     this.#part('edit')?.removeAttribute('hidden');
     this.#part('reset')?.setAttribute('hidden', '');
-    this.#part('output')!.hidden = true;
-    this.#part('status')!.textContent = '';
-    this.#result = null;
+    this.#part('results')!.hidden = true;
+    this.#part('status-line')!.textContent = '';
+    this.#lastResult = null;
+    this.#pane.clear();
   }
 
   /** The code as the reader sees it now. */
   get #source(): string {
-    return this.#loadedEditor?.value ?? this.#original;
+    return this.#editor?.value ?? this.#originalSource;
   }
 
   /**
@@ -193,77 +227,69 @@ class HyloPlayground extends HTMLElement {
    * Rejects without showing anything if the snippet is reset or disconnected while it loads.
    */
   async #createEditor(): Promise<Editor> {
-    const mine = ++this.#editorGeneration;
+    const thisEditor = ++this.#editorGeneration;
     const host = this.#part('editor')!;
     try {
       const { createEditor } = await import('./editor');
       host.hidden = false;
       const editor = await createEditor(host, {
-        value: this.#original,
+        value: this.#originalSource,
         fitContent: true,
         onChange: () => {
-          // Once the reader has run the snippet, its output follows their edits.
-          if (this.#result !== null) {
-            clearTimeout(this.#rerun);
-            this.#rerun = setTimeout(() => void this.run(), RERUN_DELAY_MILLISECONDS);
+          // Once the reader has run the snippet, its results follow their edits.
+          if (this.#lastResult !== null) {
+            clearTimeout(this.#scheduledRun);
+            this.#scheduledRun = setTimeout(
+              () => void this.compileAndRun(),
+              RERUN_DELAY_MILLISECONDS,
+            );
           }
         },
-        onRun: () => void this.run(),
+        onRun: () => void this.compileAndRun(),
       });
-      if (mine !== this.#editorGeneration) {
+      if (thisEditor !== this.#editorGeneration) {
         editor.dispose();
         throw new Error('the snippet was reset while its editor loaded');
       }
-      this.#loadedEditor = editor;
+      this.#editor = editor;
       this.#part('source')!.hidden = true;
       this.#part('edit')!.hidden = true;
       this.#part('reset')!.hidden = false;
-      if (this.#result) editor.showDiagnostics(this.#result.compile.diagnostics);
+      if (this.#lastResult) editor.showDiagnostics(this.#lastResult.compilation.diagnostics);
       editor.focus();
       return editor;
-    } catch (e) {
-      if (mine === this.#editorGeneration) {
+    } catch (error) {
+      if (thisEditor === this.#editorGeneration) {
         host.hidden = true;
         host.replaceChildren();
-        this.#editor = null;
-        this.#say('The editor failed to load. Check your connection, and press Edit to try again.');
+        this.#editorLoading = null;
+        this.#showMessage(
+          'The editor failed to load. Check your connection, and press Edit to try again.',
+        );
       }
-      throw e;
+      throw error;
     }
   }
 
-  /** Shows `sentence` in place of the views, and announces it. */
-  #say(sentence: string): void {
-    this.#part('output')!.hidden = false;
-    this.#part('view')!.replaceChildren(note(sentence));
-    this.#part('status')!.textContent = sentence;
+  /** Shows `sentence` in place of the views, forgetting what they showed, and announces it. */
+  #showMessage(sentence: string): void {
+    this.#part('results')!.hidden = false;
+    this.#pane.showMessage(sentence);
+    this.#part('status-line')!.textContent = sentence;
   }
 
-  /** Selects the `output` view, and shows it if the code has run. */
-  async #show(output: Output): Promise<void> {
-    this.#shown = output;
-    this.#select?.(output);
-    if (!this.#result) return;
-    const generation = this.#generation;
-    const view = document.createElement('div');
-    await renderOutput(view, output, this.#result, {
-      focus: this.dataset.focus ? this.dataset.focus.split(',') : [],
-      // Taking the reader to a diagnostic means editing the code.
-      onReveal:
-        this.#part('edit') !== null
-          ? (line, column) => void this.edit()?.then((e) => e.reveal(line, column), () => {})
-          : undefined,
-    });
-    // Another view may have been asked for, or the code run again, while this one rendered.
-    if (generation !== this.#generation || output !== this.#shown) return;
-    this.#part('view')!.replaceChildren(...view.childNodes);
+  /** Selects `view`, and shows the latest results it has. */
+  async #selectView(view: View): Promise<void> {
+    this.#markSelectedTab?.(view);
+    await this.#pane.selectView(view);
   }
 
   /**
    * Points the link to the full-screen playground at the code as it is now, with the snippet's
-   * settings and the view shown. (Not `focus`: the full-screen playground shows all of the IR.)
+   * settings and the view selected. (Not the IR functions shown: the full-screen playground shows
+   * all of the IR.)
    */
-  #updateLink(): void {
+  #pointLinkAtCurrentCode(): void {
     const { optimization, standardLibrary, stopAfter } = this.#settings;
     const link = this.#part('open') as HTMLAnchorElement;
     link.href = playgroundURL({
@@ -271,7 +297,7 @@ class HyloPlayground extends HTMLElement {
       optimization,
       standardLibrary,
       stopAfter,
-      view: this.#shown,
+      view: this.#pane.selectedView,
     });
   }
 

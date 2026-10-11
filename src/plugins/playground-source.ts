@@ -29,7 +29,10 @@ export const playgroundSource: MdastPlugin = {
     if (fence?.type !== 'code' || fence.lang !== 'hylo' || rest.length > 0) {
       throw new Error(`<${COMPONENT}> in ${where}: wrap exactly one \`hylo\` code fence`);
     }
-    if (element.attributes.some((a) => a.type === 'mdxJsxAttribute' && a.name === 'source')) {
+    const setsSource = element.attributes.some(
+      (attribute) => attribute.type === 'mdxJsxAttribute' && attribute.name === 'source',
+    );
+    if (setsSource) {
       throw new Error(`<${COMPONENT}> in ${where}: \`source\` is set from the code fence`);
     }
     // Replaced, keeping its children: Sätteri does not set the attributes of an element.

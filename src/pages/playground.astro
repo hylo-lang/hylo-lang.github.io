@@ -5,17 +5,28 @@
  * sidebars; it uses the same colours, theme and fonts all the same.
  *
  * The markup is static; `full-screen.ts` makes it work, finding its elements by the `pg-` ids
- * below, which it relies on. A link to the page may hold a state in its fragment (see
+ * below, which it relies on. The header keeps to one line by moving its items into the "More
+ * options" menu as the window narrows (`header.ts`), in the order of their `data-collapse`: the
+ * least needed first, the controls most used last; Share and Run always stay. A link to the page may hold a state in its fragment (see
  * `share.ts`'s `playgroundURL`).
  */
+import { Icon } from '@astrojs/starlight/components';
 import ThemeProvider from '@astrojs/starlight/components/ThemeProvider.astro';
+import ThemeSelect from 'starlight-theme-rapide/overrides/ThemeSelect.astro';
 import { Image } from 'astro:assets';
 import { Check, Ellipsis, LoaderCircle, Play, Share2 } from '@lucide/astro';
 import darkLogo from '../assets/hylo-green-smaller.png';
 import lightLogo from '../assets/hylo-black.png';
+import { compilerRepoLink } from '../links';
 import { url } from '../utils/url';
-import { OPTIMIZATION_LEVELS, PHASES } from '../components/playground/settings';
-import { OUTPUTS, OUTPUT_TITLES } from '../components/playground/views';
+import {
+  DEFAULT_TIME_LIMIT,
+  OPTIMIZATION_LEVELS,
+  PHASES,
+  TIME_LIMITS,
+} from '../components/playground/settings';
+import { VIEWS, VIEW_TITLES } from '../components/playground/views';
+import Stages from '../components/playground/Stages.astro';
 import 'starlight-theme-rapide/styles/theme';
 import '../styles/fonts.css';
 import '../components/playground/playground.css';
@@ -39,16 +50,19 @@ import '../components/playground/playground.css';
   <body>
     <header class="bar">
       <a class="home" href={url('')} aria-label="Hylo home">
-        <Image src={darkLogo} alt="" class="logo logo-dark" height={28} />
-        <Image src={lightLogo} alt="" class="logo logo-light" height={28} />
+        <Image src={darkLogo} alt="" class="logo logo-dark" height={80} />
+        <Image src={lightLogo} alt="" class="logo logo-light" height={80} />
       </a>
-      <h1>Playground</h1>
-      <select id="pg-examples" class="pg-select" aria-label="Load an example">
+      <h1 data-collapse="1" data-collapse-hide>Playground</h1>
+      <select id="pg-examples" class="pg-select" aria-label="Load an example" data-collapse="8">
         <option value="">Examples…</option>
       </select>
-      <select id="pg-optimization" class="pg-select" aria-label="Optimization level">
-        {OPTIMIZATION_LEVELS.map((l) => <option value={l}>-O{l}</option>)}
-      </select>
+      <label class="item" data-collapse="6">
+        <span class="item-label">Optimization</span>
+        <select id="pg-optimization" class="pg-select" aria-label="Optimization level">
+          {OPTIMIZATION_LEVELS.map((level) => <option value={level}>-O{level}</option>)}
+        </select>
+      </label>
       <button
         id="pg-more-button"
         type="button"
@@ -60,13 +74,26 @@ import '../components/playground/playground.css';
         <Ellipsis class="pg-icon" aria-hidden="true" />
       </button>
       <div id="pg-more" class="menu" popover aria-label="More options">
+        <div id="pg-collapsed" class="collapsed" hidden></div>
         <label class="field" title="The phase after which compilation stops">
           Final phase
           <select id="pg-stop-after" class="pg-select">
             <option value="">Execution</option>
             {
-              [...PHASES].reverse().map((p) => (
-                <option value={p}>{p[0].toUpperCase() + p.slice(1)}</option>
+              [...PHASES].reverse().map((phase) => (
+                <option value={phase}>{phase[0].toUpperCase() + phase.slice(1)}</option>
+              ))
+            }
+          </select>
+        </label>
+        <label class="field" title="How long each stage may run before it is stopped">
+          Time limit
+          <select id="pg-time-limit" class="pg-select">
+            {
+              TIME_LIMITS.map((limit) => (
+                <option value={limit} selected={limit === DEFAULT_TIME_LIMIT}>
+                  {limit} s
+                </option>
               ))
             }
           </select>
@@ -75,13 +102,27 @@ import '../components/playground/playground.css';
           <input id="pg-standard-library" type="checkbox" checked />
           Standard library
         </label>
+        <div id="pg-collapsed-links" class="collapsed-links" hidden></div>
       </div>
-      <label class="pg-checkbox" title="Compile and run as you type">
+      <label class="pg-checkbox" title="Compile and run as you type" data-collapse="7">
         <input id="pg-autorun" type="checkbox" checked />
         Auto-run
       </label>
       <span class="spacer"></span>
-      <a class="docs" href={url('docs/')}>Docs</a>
+      <a class="nav-link" href={url('docs/')} data-collapse="3" data-collapse-to="links">Docs</a>
+      <a
+        class="nav-link"
+        href={compilerRepoLink}
+        aria-label="GitHub"
+        title="GitHub"
+        data-collapse="2"
+        data-collapse-to="links"
+      >
+        <Icon name="github" size="1rem" />
+      </a>
+      <div class="item" data-collapse="4" data-collapse-to="links">
+        <ThemeSelect />
+      </div>
       <button id="pg-share" type="button" class="pg-button" title="Copy a link to this code">
         <Share2 class="pg-icon pg-idle-icon" aria-hidden="true" />
         <Check class="pg-icon pg-done-icon" aria-hidden="true" />
@@ -91,7 +132,7 @@ import '../components/playground/playground.css';
         <Play class="pg-icon pg-idle-icon" aria-hidden="true" />
         <LoaderCircle class="pg-icon pg-busy-icon" aria-hidden="true" />
         Run
-        <kbd class="pg-kbd" data-shortcut>Ctrl ↵</kbd>
+        <kbd class="pg-kbd" data-shortcut data-collapse="5" data-collapse-hide>Ctrl ↵</kbd>
       </button>
     </header>
     <noscript>
@@ -104,25 +145,27 @@ import '../components/playground/playground.css';
       <section class="pane source" aria-label="Source">
         <div id="pg-editor" class="editor"></div>
       </section>
-      <section class="pane outputs" aria-label="Output">
+      <section class="pane results" aria-label="Results">
         <div id="pg-tabs" class="pg-tabs" role="tablist" aria-label="Views">
           {
-            OUTPUTS.map((o) => (
-              <button type="button" role="tab" data-output={o}>
-                {OUTPUT_TITLES[o]}
-                {o === 'diagnostics' && <span id="pg-error-count" class="count" />}
+            VIEWS.map((view) => (
+              <button type="button" role="tab" data-view={view}>
+                {VIEW_TITLES[view]}
+                {view === 'diagnostics' && <span id="pg-error-count" class="count" />}
               </button>
             ))
           }
         </div>
-        <div id="pg-view" class="pg-view"></div>
-        <footer class="status">
-          <p id="pg-status" role="status"></p>
-          <p id="pg-hint" class="hint"></p>
+        <div id="pg-panel" class="pg-panel"></div>
+        <footer class="status-bar">
+          <p id="pg-status-line" role="status"></p>
+          <Stages id="pg-stages" />
+          <p id="pg-hint-line" class="hint"></p>
         </footer>
       </section>
     </main>
     <script>
+      import '../components/playground/header';
       import '../components/playground/full-screen';
     </script>
   </body>
@@ -130,7 +173,19 @@ import '../components/playground/playground.css';
 
 <style>
   :root {
-    --font: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+    /* Starlight's `--sl-font`, which this page does not load. */
+    --font: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', 'Noto Sans',
+      Arial, sans-serif;
+    /* The size of the site's header, as Starlight's `--sl-nav-*` sets it on every other page. */
+    --nav-height: 3.5rem;
+    --nav-pad-x: 1rem;
+    --nav-pad-y: 0.75rem;
+  }
+  @media (min-width: 50em) {
+    :root {
+      --nav-height: 4rem;
+      --nav-pad-x: 1.5rem;
+    }
   }
   html,
   body {
@@ -144,20 +199,32 @@ import '../components/playground/playground.css';
     color: var(--sl-color-white);
     font: 15px/1.5 var(--font);
   }
+  /* Styled as the site's header (starlight-theme-rapide's `header.header`). */
   .bar {
     display: flex;
     align-items: center;
     gap: 0.75rem;
-    padding: 0.5rem 1rem;
+    min-height: var(--nav-height);
+    box-sizing: border-box;
+    padding: 0 var(--nav-pad-x);
     border-bottom: 1px solid var(--sl-color-gray-5);
-    background: var(--sl-color-gray-7, var(--sl-color-black));
+    background: var(--sl-rapide-ui-header-bg-color);
+    backdrop-filter: blur(0.5rem);
+  }
+  @media (prefers-reduced-transparency) {
+    .bar,
+    .menu {
+      backdrop-filter: initial;
+      background: var(--sl-color-black);
+    }
   }
   .home {
     display: flex;
   }
+  /* As tall as the site's logo: the header, less its padding. */
   .logo {
     width: auto;
-    height: 28px;
+    height: calc(var(--nav-height) - 2 * var(--nav-pad-y));
   }
   :root[data-theme='light'] .logo-dark,
   :root[data-theme='dark'] .logo-light {
@@ -183,7 +250,9 @@ import '../components/playground/playground.css';
     padding: 0.85rem 1rem;
     border: 1px solid var(--sl-color-gray-5);
     border-radius: 0.6rem;
-    background: var(--sl-color-gray-6, var(--sl-color-black));
+    /* The header's background, which the menu drops from. */
+    background: var(--sl-rapide-ui-header-bg-color);
+    backdrop-filter: blur(0.5rem);
     color: var(--sl-color-white);
     box-shadow: 0 0.75rem 2rem -0.5rem rgb(0 0 0 / 0.4);
     font-size: 0.875rem;
@@ -197,9 +266,78 @@ import '../components/playground/playground.css';
     gap: 0.35rem;
     color: var(--sl-color-gray-2);
   }
-  .docs {
+  /* As the site header's links (`src/layouts/Header.astro`). */
+  .nav-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.25rem 0.5rem;
+    border-radius: 0.25rem;
     color: var(--sl-color-gray-2);
-    font-size: 0.875rem;
+    text-decoration: none;
+    white-space: nowrap;
+  }
+  .nav-link:hover,
+  .nav-link:focus-visible {
+    background: var(--sl-color-gray-6, var(--sl-color-gray-5));
+    color: var(--sl-color-white);
+  }
+
+  /*
+   * The header's items keep their width, so that `header.ts` sees when they no longer fit, and
+   * leave it rather than overflow; their labels show only in the menu.
+   */
+  .bar {
+    overflow: hidden;
+  }
+  .bar > :not(.spacer) {
+    flex-shrink: 0;
+  }
+  .item {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+  }
+  /* The menu is in the header too, so only the header's own children. */
+  .bar > * > .item-label {
+    display: none;
+  }
+  /* The items moved into the menu, above its own settings. */
+  .collapsed {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    padding-bottom: 0.85rem;
+    border-bottom: 1px solid var(--sl-color-gray-5);
+    color: var(--sl-color-gray-2);
+  }
+  .collapsed[hidden] {
+    display: none;
+  }
+  .collapsed .item {
+    justify-content: space-between;
+  }
+  /* The links and the theme switch, in a row at the foot of the menu, as in the site's own. */
+  .collapsed-links {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    padding-top: 0.6rem;
+    border-top: 1px solid var(--sl-color-gray-5);
+  }
+  .collapsed-links[hidden] {
+    display: none;
+  }
+  /* Each item's own padding aligned with the menu's edges. */
+  .collapsed-links > :first-child {
+    margin-inline: -0.5rem auto;
+  }
+  .collapsed-links > :last-child {
+    margin-inline-end: -0.5rem;
+  }
+  .collapsed-links :global(starlight-rapide-theme-select button) {
+    margin: 0;
+    padding: 0.25rem 0.5rem;
   }
   main {
     flex: 1;
@@ -220,7 +358,7 @@ import '../components/playground/playground.css';
     flex: 1;
     min-height: 0;
   }
-  .outputs .pg-view {
+  .results .pg-panel {
     flex: 1;
     max-height: none;
   }
@@ -232,7 +370,7 @@ import '../components/playground/playground.css';
     margin: 0;
     padding: 1rem;
   }
-  .status {
+  .status-bar {
     display: flex;
     gap: 1rem;
     justify-content: space-between;
@@ -241,27 +379,29 @@ import '../components/playground/playground.css';
     color: var(--sl-color-gray-3);
     border-top: 1px solid var(--sl-color-gray-5);
   }
-  .status p {
+  .status-bar p {
     margin: 0;
+  }
+  #pg-status-line {
+    flex: 1;
+    transition: opacity 0.15s;
+  }
+  /* The summary is the previous answer's while a request is under way, as the view is. */
+  .status-bar:has([data-state='running'], [data-state='waiting']) #pg-status-line {
+    opacity: 0.55;
+    transition: opacity 0.15s 0.3s;
   }
   .hint {
     text-align: right;
   }
-  /* What is shown no longer matches the code: being recompiled, or edited without auto-run. */
-  :global(body[data-compiling]) .pg-view,
-  :global(body[data-stale]) .pg-view {
+  /* What is shown no longer matches the code, edited without auto-run. */
+  :global(body[data-stale]) .pg-panel {
     opacity: 0.6;
     transition: opacity 0.15s;
   }
   @media (max-width: 50rem) {
     .bar {
-      flex-wrap: wrap;
       gap: 0.5rem;
-    }
-    .bar h1,
-    .docs,
-    .pg-kbd {
-      display: none;
     }
     main {
       grid-template-columns: 1fr;

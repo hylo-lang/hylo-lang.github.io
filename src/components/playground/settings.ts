@@ -1,16 +1,8 @@
 /**
  * How a playground asks the compiler to compile code: the settings a snippet or the full-screen
- * playground compiles with, the request they make of the compiler, and where the compiler says
- * the code is.
+ * playground compiles with, and the request they make of the compiler.
  */
 import type { Artifact, CompileRequest, Phase } from '@hylo-lang/hylo-wasm/protocol';
-
-/**
- * The file the compiler reports the code it compiles as being in, as `Diagnostic.file` names it:
- * hylo-new's `CompilerSession` names a request's source `hylo:///main.hylo`. A diagnostic in any
- * other file is about the standard library.
- */
-export const MAIN_FILE = '/main.hylo';
 
 /** LLVM's optimization levels, from none to the most. */
 export const OPTIMIZATION_LEVELS = [0, 1, 2, 3] as const;
@@ -71,7 +63,7 @@ export function compileRequest(
  * attribute `Playground.astro` checked) can only name one unless the page itself is wrong.
  */
 export function parseOptimizationLevel(text: string): OptimizationLevel {
-  const level = OPTIMIZATION_LEVELS.find((l) => String(l) === text);
+  const level = OPTIMIZATION_LEVELS.find((level) => String(level) === text);
   if (level === undefined) throw new RangeError(`'${text}' is not an optimization level`);
   return level;
 }
@@ -83,7 +75,24 @@ export function parseOptimizationLevel(text: string): OptimizationLevel {
  */
 export function parsePhase(text: string): Phase | null {
   if (text === '') return null;
-  const phase = PHASES.find((p) => p === text);
+  const phase = PHASES.find((phase) => phase === text);
   if (phase === undefined) throw new RangeError(`'${text}' is not a phase of compilation`);
   return phase;
+}
+
+/** The time limits a reader can choose, in seconds, for each stage of a request. */
+export const TIME_LIMITS = [5, 10, 20, 30, 60] as const;
+
+/** A time limit a reader can choose, in seconds. */
+export type TimeLimit = (typeof TIME_LIMITS)[number];
+
+/** The time limit of each stage of a request, in seconds, unless the reader chooses another. */
+export const DEFAULT_TIME_LIMIT: TimeLimit = 20;
+
+/**
+ * Returns the time limit `text` names, such as `"20"`, or `DEFAULT_TIME_LIMIT` if it names none,
+ * which a value remembered from an older page or tampered with may.
+ */
+export function parseTimeLimit(text: string | null): TimeLimit {
+  return TIME_LIMITS.find((limit) => String(limit) === text) ?? DEFAULT_TIME_LIMIT;
 }

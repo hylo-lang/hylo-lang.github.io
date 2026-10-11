@@ -5,17 +5,17 @@
  */
 import type { CompileRequest } from '@hylo-lang/hylo-wasm/protocol';
 import { compileRequest, type CompileSettings } from './settings';
-import { isArtifact, type Output } from './views';
+import { isArtifactView, type View } from './views';
 
 /** The settings of a snippet, as `Playground.astro` takes them. */
 export interface SnippetSettings extends CompileSettings {
   /** The views the snippet offers, in order; the first is shown first. Never empty. */
-  outputs: readonly Output[];
+  views: readonly View[];
 }
 
 /** Returns the request compiling `source` as a snippet with `settings` does. */
 export function snippetRequest(source: string, settings: SnippetSettings): CompileRequest {
-  return compileRequest(source, settings.outputs.filter(isArtifact), settings);
+  return compileRequest(source, settings.views.filter(isArtifactView), settings);
 }
 
 /** What a snippet does: its `expect` attribute. */
@@ -34,10 +34,11 @@ export type Expectation =
  * whitespace, or `null` if it describes none.
  */
 export function parseExpectation(text: string): Expectation | null {
-  const m = /^\s*(?:exit\s+(-?\d+)|(trap|error|ok))\s*$/.exec(text);
-  if (!m) return null;
-  if (m[1] !== undefined) return { kind: 'exit', status: Number(m[1]) };
-  return { kind: m[2] as 'trap' | 'error' | 'ok' };
+  const match = /^\s*(?:exit\s+(-?\d+)|(trap|error|ok))\s*$/.exec(text);
+  if (!match) return null;
+  const [, status, kind] = match;
+  if (status !== undefined) return { kind: 'exit', status: Number(status) };
+  return { kind: kind as 'trap' | 'error' | 'ok' };
 }
 
 /** The forms an `expect` attribute takes, for error messages. */

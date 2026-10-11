@@ -12,7 +12,7 @@ import { type Compiler, load } from '@hylo-lang/hylo-wasm';
 import { beforeAll, describe, expect, test } from 'vitest';
 import { parseOptimizationLevel, PHASES } from './settings';
 import { parseExpectation, snippetRequest } from './snippet';
-import type { Output } from './views';
+import type { View } from './views';
 
 const root = fileURLToPath(new URL('../../..', import.meta.url));
 
@@ -87,28 +87,30 @@ test.each(all.map((s) => [`${s.file}:${s.line}`, s] as const))('%s is well forme
 });
 
 describe('snippets, with the compiler', () => {
-  let hylo: Compiler;
+  let compiler: Compiler;
   beforeAll(async () => {
-    hylo = await load();
+    compiler = await load();
   }, 120_000);
 
-  test.each(all.map((s) => [`${s.file}:${s.line}`, s] as const))('%s', async (_, s) => {
-    const a = s.attributes;
-    const expectation = parseExpectation(a.expect ?? '');
-    if (expectation === null) throw new Error(`\`expect="${a.expect}"\` says nothing`);
+  test.each(all.map((s) => [`${s.file}:${s.line}`, s] as const))('%s', async (_, snippet) => {
+    const attributes = snippet.attributes;
+    const expectation = parseExpectation(attributes.expect ?? '');
+    if (expectation === null) throw new Error(`\`expect="${attributes.expect}"\` says nothing`);
 
     // The request the snippet makes in the browser.
-    const r = hylo.compile(
-      snippetRequest(s.source, {
-        outputs: (a.outputs ?? 'result').split(/[\s,]+/).filter((o) => o !== '') as Output[],
-        optimization: parseOptimizationLevel(a.optimization ?? '0'),
-        standardLibrary: a.standardLibrary !== 'false',
-        stopAfter: PHASES.find((p) => p === a.stopAfter) ?? null,
+    const response = compiler.compile(
+      snippetRequest(snippet.source, {
+        views: (attributes.outputs ?? 'result').split(/[\s,]+/).filter((view) => view !== '') as View[],
+        optimization: parseOptimizationLevel(attributes.optimization ?? '0'),
+        standardLibrary: attributes.standardLibrary !== 'false',
+        stopAfter: PHASES.find((phase) => phase === attributes.stopAfter) ?? null,
       }),
     );
-    expect(r.error).toBeUndefined();
-    const errors = (r.diagnostics ?? []).filter((d) => d.level === 'error').map((d) => d.rendered);
-    const run = r.executable ? await hylo.run(r.executable) : null;
+    expect(response.error).toBeUndefined();
+    const errors = (response.diagnostics ?? [])
+      .filter((diagnostic) => diagnostic.level === 'error')
+      .map((diagnostic) => diagnostic.rendered);
+    const run = response.executable ? await compiler.run(response.executable) : null;
 
     switch (expectation.kind) {
       case 'error':

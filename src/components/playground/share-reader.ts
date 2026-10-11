@@ -5,10 +5,10 @@
 import * as v from 'valibot';
 import { OPTIMIZATION_LEVELS, PHASES } from './settings';
 import { CURRENT_VERSION, DEFAULT_STATE, type PlaygroundState } from './share';
-import { OUTPUTS } from './views';
+import { VIEWS } from './views';
 
 /** What reading a state found. */
-export type Decoded =
+export type DecodedState =
   | { state: PlaygroundState }
   /** A state that could not be read, and why, in a sentence for the reader. */
   | { problem: string };
@@ -20,7 +20,7 @@ const Version1 = v.object({
   optimization: v.optional(v.picklist(OPTIMIZATION_LEVELS), DEFAULT_STATE.optimization),
   standardLibrary: v.optional(v.boolean(), DEFAULT_STATE.standardLibrary),
   stopAfter: v.optional(v.nullable(v.picklist(PHASES)), DEFAULT_STATE.stopAfter),
-  view: v.optional(v.picklist(OUTPUTS), DEFAULT_STATE.view),
+  view: v.optional(v.picklist(VIEWS), DEFAULT_STATE.view),
 });
 
 /** A state of any version, read as the current state. */
@@ -34,12 +34,14 @@ const State: v.GenericSchema<unknown, PlaygroundState> = v.pipe(
 const Versioned = v.looseObject({ version: v.pipe(v.number(), v.integer(), v.minValue(1)) });
 
 /** What reading a state that is not one finds. */
-const damaged: Decoded = {
+const damaged: DecodedState = {
   problem: 'The link is damaged: it does not hold code the playground can read.',
 };
 
-/** Returns the state `json` holds, as `serialize` writes it in any version, or why it holds none. */
-export function deserialize(json: string): Decoded {
+/**
+ * Returns the state `json` holds, as `serialize` writes it in any version, or why it holds none.
+ */
+export function deserialize(json: string): DecodedState {
   let value: unknown;
   try {
     value = JSON.parse(json);
@@ -58,7 +60,7 @@ export function deserialize(json: string): Decoded {
  * Returns the state in `fragment`, a link's fragment with or without its `#`, or why it holds
  * none; `null` if it does not try to hold one, having no `state` parameter.
  */
-export function decodeFragment(fragment: string): Decoded | null {
+export function decodeFragment(fragment: string): DecodedState | null {
   const payload = new URLSearchParams(fragment.replace(/^#/, '')).get('state');
   if (payload === null) return null;
   let json: string;
@@ -84,5 +86,5 @@ function fromBase64Url(text: string): Uint8Array {
   } catch {
     throw new SyntaxError('not base64url');
   }
-  return Uint8Array.from(binary, (c) => c.charCodeAt(0));
+  return Uint8Array.from(binary, (character) => character.charCodeAt(0));
 }

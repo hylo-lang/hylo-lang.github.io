@@ -1,0 +1,34 @@
+---
+/**
+ * What a playground's newest request is at (see `stages.ts`): one item per stage, showing an icon
+ * for its state, which `ResultPane` (`pane.ts`) sets as `data-state`, along with the item's
+ * tooltip and the state's text for screen readers. `ResultPane` shows only the stage under way, or
+ * every stage if one failed, and hides the strip otherwise.
+ */
+import { Circle, CircleCheck, CircleMinus, CircleX, LoaderCircle } from '@lucide/astro';
+import { STAGES, STAGE_TITLES } from './stages';
+import './playground.css';
+
+interface Props {
+  /** The element's `id`, if it needs one. */
+  id?: string;
+}
+
+const { id } = Astro.props;
+---
+
+<ol id={id} class="pg-stages" data-part="stages" aria-label="Stages" hidden>
+  {
+    STAGES.map((s) => (
+      <li data-stage={s} data-state="off" hidden>
+        <Circle class="pg-icon" data-icon="waiting" aria-hidden="true" />
+        <LoaderCircle class="pg-icon" data-icon="running" aria-hidden="true" />
+        <CircleCheck class="pg-icon" data-icon="done" aria-hidden="true" />
+        <CircleX class="pg-icon" data-icon="failed" aria-hidden="true" />
+        <CircleMinus class="pg-icon" data-icon="skipped" aria-hidden="true" />
+        {STAGE_TITLES[s]}
+        <span class="pg-state pg-visually-hidden" />
+      </li>
+    ))
+  }
+</ol>

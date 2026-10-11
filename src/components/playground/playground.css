@@ -79,7 +79,7 @@ hylo-playground:not([data-ready]) .pg-toolbar {
 .pg-link:focus-visible,
 .pg-tabs [role='tab']:focus-visible,
 .pg-diagnostics button:focus-visible {
-  outline: 2px solid var(--sl-color-accent);
+  outline: 2px solid var(--sl-color-green);
   outline-offset: 2px;
 }
 /* As the theme's primary link buttons (starlight-theme-rapide). */
@@ -133,7 +133,8 @@ hylo-playground:not([data-ready]) .pg-toolbar {
 .pg-button[aria-busy] {
   cursor: progress;
 }
-.pg-busy-icon {
+.pg-busy-icon,
+.pg-stages [data-icon='running'] {
   animation: pg-spin 0.8s linear infinite;
 }
 @keyframes pg-spin {
@@ -142,7 +143,8 @@ hylo-playground:not([data-ready]) .pg-toolbar {
   }
 }
 @media (prefers-reduced-motion: reduce) {
-  .pg-busy-icon {
+  .pg-busy-icon,
+  .pg-stages [data-icon='running'] {
     animation: none;
   }
 }
@@ -170,33 +172,9 @@ hylo-playground:not([data-ready]) .pg-toolbar {
   user-select: none;
 }
 .pg-checkbox input {
-  appearance: none;
-  display: grid;
-  place-content: center;
-  width: 1rem;
-  height: 1rem;
   margin: 0;
-  border: 1.5px solid var(--sl-color-gray-3);
-  border-radius: 0.25rem;
-  background: transparent;
+  accent-color: var(--sl-color-green);
   cursor: pointer;
-}
-/* Outlined in the theme's green, as its primary buttons, with a check mark of the same colour. */
-.pg-checkbox input:checked {
-  border-color: var(--sl-color-green);
-}
-.pg-checkbox input:checked::after {
-  content: '';
-  width: 0.3rem;
-  height: 0.55rem;
-  margin-top: -0.1rem;
-  border: solid var(--sl-color-green-high);
-  border-width: 0 2px 2px 0;
-  transform: rotate(45deg);
-}
-.pg-checkbox input:focus-visible {
-  outline: 2px solid var(--sl-color-green);
-  outline-offset: 2px;
 }
 
 .pg-link {
@@ -212,7 +190,7 @@ hylo-playground:not([data-ready]) .pg-toolbar {
   text-decoration: underline;
 }
 
-.pg-output {
+.pg-results {
   margin-top: 0.5rem;
   border: 1px solid var(--sl-color-gray-5);
   border-radius: 0.5rem;
@@ -238,16 +216,96 @@ hylo-playground:not([data-ready]) .pg-toolbar {
 }
 .pg-tabs [role='tab'][aria-selected='true'] {
   color: var(--sl-color-white);
-  border-bottom-color: var(--sl-color-accent);
+  border-bottom-color: var(--sl-color-green);
 }
-.pg-view {
+.pg-panel {
   padding: 0.75rem 1rem;
   max-height: 28rem;
   overflow: auto;
 }
-.pg-view progress {
+
+/*
+ * What the newest request has yet to produce (see `pane.ts`): its tab is de-emphasized, and its
+ * view keeps the previous result, dimmed. Both wait a moment first, so that a quick request
+ * replaces what is shown without a flash; both come back at once.
+ */
+.pg-tabs [role='tab'],
+.pg-panel > * {
+  transition: opacity 0.15s;
+}
+.pg-tabs [role='tab'][data-pending],
+.pg-panel[aria-busy] > * {
+  opacity: 0.55;
+  transition: opacity 0.15s 0.3s;
+}
+.pg-panel[aria-busy] {
+  cursor: progress;
+}
+
+/* Where the stages of the newest request stand (`Stages.astro`). */
+.pg-stages {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem 1rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: var(--sl-text-xs, 0.8rem);
+  /* No taller than the text beside it, so that showing it moves nothing. */
+  line-height: 1;
+  color: var(--sl-color-gray-3);
+}
+.pg-stages[hidden],
+.pg-stages li[hidden],
+.pg-stages [data-icon] {
+  display: none;
+}
+.pg-stages li {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  margin: 0;
+  white-space: nowrap;
+}
+.pg-stages .pg-icon {
+  width: 0.875rem;
+  height: 0.875rem;
+}
+.pg-stages [data-state='waiting'] [data-icon='waiting'],
+.pg-stages [data-state='running'] [data-icon='running'],
+.pg-stages [data-state='done'] [data-icon='done'],
+.pg-stages [data-state='failed'] [data-icon='failed'],
+.pg-stages [data-state='skipped'] [data-icon='skipped'] {
+  display: block;
+}
+.pg-stages [data-state='waiting'],
+.pg-stages [data-state='skipped'] {
+  color: var(--sl-color-gray-4);
+}
+.pg-stages [data-state='running'] {
+  color: var(--sl-color-white);
+}
+.pg-stages [data-icon='done'] {
+  color: var(--sl-color-green-high);
+}
+.pg-stages [data-icon='failed'] {
+  color: var(--sl-color-red-high);
+}
+/* Text for screen readers only, such as a stage's state, which its icon says otherwise. */
+.pg-visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+.pg-toolbar > .pg-stages {
+  margin-left: 0.25rem;
+}
+.pg-panel progress {
   width: min(20rem, 100%);
-  accent-color: var(--sl-color-accent);
+  accent-color: var(--sl-color-green);
 }
 
 .pg-headline {
@@ -263,7 +321,7 @@ hylo-playground:not([data-ready]) .pg-toolbar {
 .pg-warn {
   color: var(--sl-color-orange-high);
 }
-.pg-note {
+.pg-muted {
   margin: 0;
   color: var(--sl-color-gray-3);
 }

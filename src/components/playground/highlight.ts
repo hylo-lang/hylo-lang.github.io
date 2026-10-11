@@ -11,14 +11,14 @@ import type { HighlighterCore } from 'shiki/core';
 import { CODE_THEMES, GRAMMARS } from '../../assets/syntax/code-style';
 
 /** The highlighter, once something asked for it. */
-let highlighter: Promise<HighlighterCore> | null = null;
+let loadingHighlighter: Promise<HighlighterCore> | null = null;
 
 /**
  * Returns the highlighter, with the site's themes and grammars (`code-style.ts`) and LLVM IR's,
  * creating it on first use. Rejects if a part of it fails to load.
  */
 export function getHighlighter(): Promise<HighlighterCore> {
-  highlighter ??= (async () => {
+  loadingHighlighter ??= (async () => {
     const [{ createHighlighterCore }, { createJavaScriptRegexEngine }, { bundledThemes }] =
       await Promise.all([
         import('shiki/core'),
@@ -36,15 +36,15 @@ export function getHighlighter(): Promise<HighlighterCore> {
       ],
     });
   })();
-  return highlighter;
+  return loadingHighlighter;
 }
 
 /**
- * Returns `code` highlighted as `lang`, one of the highlighter's languages, as HTML colouring
+ * Returns `code` highlighted as `language`, one of the highlighter's languages, as HTML colouring
  * itself through the `--shiki-light` and `--shiki-dark` custom properties, so that the page's
  * theme decides which applies (see `playground.css`).
  */
-export async function highlight(code: string, lang: string): Promise<string> {
-  const h = await getHighlighter();
-  return h.codeToHtml(code, { lang, themes: CODE_THEMES, defaultColor: false });
+export async function highlight(code: string, language: string): Promise<string> {
+  const highlighter = await getHighlighter();
+  return highlighter.codeToHtml(code, { lang: language, themes: CODE_THEMES, defaultColor: false });
 }

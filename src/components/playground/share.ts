@@ -21,14 +21,14 @@
  */
 import { DEFAULT_SETTINGS, type CompileSettings } from './settings';
 import { PLAYGROUND_PATH } from './site';
-import type { Output } from './views';
+import type { View } from './views';
 
 /** What the full-screen playground shows: everything a link to it reproduces. */
 export interface PlaygroundState extends CompileSettings {
   /** The code in the editor. */
   source: string;
   /** The view of the compilation shown. */
-  view: Output;
+  view: View;
 }
 
 /** The state of everything but the code unless something says otherwise. */
@@ -66,6 +66,6 @@ export function playgroundURL(state: PlaygroundState): string {
 /** Returns `bytes` in base64url, without padding. */
 function toBase64Url(bytes: Uint8Array): string {
   let binary = '';
-  for (const b of bytes) binary += String.fromCharCode(b);
+  for (const byte of bytes) binary += String.fromCharCode(byte);
   return btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
 }

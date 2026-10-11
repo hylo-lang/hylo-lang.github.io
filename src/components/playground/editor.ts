@@ -6,31 +6,65 @@ import { shikiToMonaco } from '@shikijs/monaco';
 import * as monaco from './monaco';
 import EditorWorker from 'monaco-editor/editor/editor.worker.js?worker';
 import { CODE_THEMES } from '../../assets/syntax/code-style';
+import hyloConfiguration from '../../assets/syntax/hylo.language-configuration.json' with {
+  type: 'json',
+};
 import { getHighlighter } from './highlight';
 import type { Diagnostic } from '@hylo-lang/hylo-wasm/protocol';
-import { MAIN_FILE } from './settings';
 
 // Monaco runs the editor's language services in a worker, which it asks the page for.
 (self as unknown as { MonacoEnvironment: unknown }).MonacoEnvironment = {
   getWorker: () => new EditorWorker(),
 };
 
-/** The site's code font, as `src/styles/fonts.css` sets it, or `''` if the page sets none. */
-const font = getComputedStyle(document.documentElement).getPropertyValue('--sl-font-mono').trim();
+/** A pair of characters, such as brackets, in a VS Code language configuration. */
+type Pair = readonly string[];
 
 /**
- * Resolves once Monaco highlights every language of the highlighter through Shiki, and the font
- * is loaded, since Monaco measures the font once, and a fallback measured in its place misplaces
- * the caret; done once per page.
+ * Returns `c`, a language configuration as VS Code reads it (a `language-configuration.json`),
+ * as Monaco takes it: the same, except that pairs of characters to close or surround with are
+ * objects rather than arrays.
  */
-const ready = (async () => {
+function languageConfiguration(c: {
+  comments: { lineComment?: monaco.languages.CommentRule['lineComment']; blockComment?: Pair };
+  brackets: Pair[];
+  autoClosingPairs: Pair[];
+  surroundingPairs: Pair[];
+}): monaco.languages.LanguageConfiguration {
+  const tuple = ([open, close]: Pair): [string, string] => [open, close];
+  const object = ([open, close]: Pair) => ({ open, close });
+  return {
+    comments: {
+      lineComment: c.comments.lineComment,
+      blockComment: c.comments.blockComment && tuple(c.comments.blockComment),
+    },
+    brackets: c.brackets.map(tuple),
+    autoClosingPairs: c.autoClosingPairs.map(object),
+    surroundingPairs: c.surroundingPairs.map(object),
+  };
+}
+
+/** The site's code font, as `src/styles/fonts.css` sets it, or `''` if the page sets none. */
+const siteCodeFont = getComputedStyle(document.documentElement)
+  .getPropertyValue('--sl-font-mono')
+  .trim();
+
+/**
+ * Resolves once Monaco highlights every language of the highlighter through Shiki, edits Hylo as
+ * VS Code's extension does (`hylo.language-configuration.json`), and the font is loaded, since
+ * Monaco measures the font once, and a fallback measured in its place misplaces the caret; done
+ * once per page.
+ */
+const monacoReady = (async () => {
   await Promise.all([
-    getHighlighter().then((h) => {
-      for (const id of h.getLoadedLanguages()) monaco.languages.register({ id });
-      shikiToMonaco(h, monaco as never);
+    getHighlighter().then((highlighter) => {
+      for (const id of highlighter.getLoadedLanguages()) monaco.languages.register({ id });
+      shikiToMonaco(highlighter, monaco as never);
+      // What to comment, close and surround with as the reader types, as in VS Code.
+      monaco.languages.setLanguageConfiguration('hylo', languageConfiguration(hyloConfiguration));
     }),
     // A font that does not load leaves the fallback, which Monaco then measures correctly.
-    font && document.fonts.load(`14px ${font}`).catch(() => {}),
+    siteCodeFont && document.fonts.load(`14px ${siteCodeFont}`).catch(() => {}),
   ]);
 })();
 
@@ -38,10 +72,11 @@ const ready = (async () => {
  * Returns the name of the Shiki theme matching the page's, which Starlight sets as `data-theme`
  * on the root element.
  */
-function pageTheme(): string {
+function codeThemeOfPage(): string {
   return document.documentElement.dataset.theme === 'light' ? CODE_THEMES.light : CODE_THEMES.dark;
 }
-new MutationObserver(() => monaco.editor.setTheme(pageTheme())).observe(document.documentElement, {
+const followPageTheme = (): void => monaco.editor.setTheme(codeThemeOfPage());
+new MutationObserver(followPageTheme).observe(document.documentElement, {
   attributes: true,
   attributeFilter: ['data-theme'],
 });
@@ -53,8 +88,8 @@ export interface Editor {
   /** Replaces the code with `value`, as one edit the reader can undo, and scrolls to the top. */
   replace(value: string): void;
   /**
-   * Marks the diagnostics of `diagnostics` that are in the code (`MAIN_FILE`) at their sites,
-   * with their rendered text on hover, replacing those marked before.
+   * Marks `diagnostics` at their sites, with their rendered text, notes included, on hover,
+   * replacing those marked before.
    */
   showDiagnostics(diagnostics: readonly Diagnostic[]): void;
   /** Moves the caret to the 1-based `line` and `column`, scrolls it into view, and focuses. */
@@ -88,13 +123,13 @@ export interface EditorOptions {
  * fallback font.
  */
 export async function createEditor(host: HTMLElement, options: EditorOptions): Promise<Editor> {
-  await ready;
+  await monacoReady;
   const editor = monaco.editor.create(host, {
     value: options.value,
     language: 'hylo',
-    theme: pageTheme(),
-    fontFamily: [font, 'ui-monospace, SFMono-Regular, Menlo, Consolas, monospace']
-      .filter((f) => f !== '')
+    theme: codeThemeOfPage(),
+    fontFamily: [siteCodeFont, 'ui-monospace, SFMono-Regular, Menlo, Consolas, monospace']
+      .filter((family) => family !== '')
       .join(', '),
     fontSize: 14,
     lineHeight: 21,
@@ -159,20 +194,24 @@ export async function createEditor(host: HTMLElement, options: EditorOptions): P
       monaco.editor.setModelMarkers(
         model,
         'hylo',
-        // A site in another file, the standard library's, is nowhere in this code.
-        diagnostics.filter((d) => d.file === MAIN_FILE).map((d) => ({
-          severity: severity[d.level],
-          // The whole diagnostic, as the compiler renders it.
-          message: d.rendered.replace(/\n$/, ''),
-          startLineNumber: d.site.line,
-          startColumn: d.site.column,
-          endLineNumber: d.site.endLine,
-          // An empty range would underline nothing.
-          endColumn:
-            d.site.endLine === d.site.line
-              ? Math.max(d.site.column + 1, d.site.endColumn)
-              : d.site.endColumn,
-        })),
+        // Notes are not marked on their own: they may be in other files, such as the standard
+        // library's, and their diagnostic's text includes them.
+        diagnostics.map((diagnostic) => {
+          const { site } = diagnostic;
+          return {
+            severity: severity[diagnostic.level],
+            // The whole diagnostic, as the compiler renders it.
+            message: diagnostic.rendered,
+            startLineNumber: site.line,
+            startColumn: site.column,
+            endLineNumber: site.endLine,
+            // An empty range would underline nothing.
+            endColumn:
+              site.endLine === site.line
+                ? Math.max(site.column + 1, site.endColumn)
+                : site.endColumn,
+          };
+        }),
       );
     },
     reveal(line, column) {

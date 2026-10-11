@@ -1,55 +1,55 @@
 /**
- * The tabs choosing which view of a compilation a playground shows, following the WAI-ARIA tabs
- * pattern: one tab in the page's tab order, the arrow keys, Home and End moving between tabs, and
- * a tab selected as soon as it is focused.
+ * The tabs choosing which view a playground's panel shows, following the WAI-ARIA tabs pattern:
+ * one tab in the page's tab order, the arrow keys, Home and End moving between tabs, and a tab
+ * selected as soon as it is focused.
  */
-import type { Output } from './views';
+import type { View } from './views';
 
 /** How many panels have been given an id, which numbers the next. */
-let panels = 0;
+let panelCount = 0;
 
 /**
- * Makes the `[role="tab"][data-output]` buttons in `tablist` the tabs of `panel`, giving `panel`
- * and the tabs ids if they have none, and returns the function marking the tab of an output as the
+ * Makes the `[role="tab"][data-view]` buttons in `tablist` the tabs of `panel`, giving `panel`
+ * and the tabs ids if they have none, and returns the function marking the tab of a view as the
  * selected one.
  *
- * `onSelect` is called with a tab's `data-output` when the reader selects it, by clicking it or by
- * moving to it with the keyboard; it should show that output in `panel` and mark the tab as
+ * `onSelect` is called with a tab's `data-view` when the reader selects it, by clicking it or by
+ * moving to it with the keyboard; it should show that view in `panel` and mark the tab as
  * selected with the returned function, which does not call `onSelect`. Until it is first called,
  * no tab is selected.
  */
 export function connectTabs(
   tablist: HTMLElement,
   panel: HTMLElement,
-  onSelect: (output: Output) => void,
-): (output: Output) => void {
-  const tabs = [...tablist.querySelectorAll<HTMLButtonElement>('[role="tab"][data-output]')];
-  panel.id ||= `pg-panel-${++panels}`;
+  onSelect: (view: View) => void,
+): (view: View) => void {
+  const tabs = [...tablist.querySelectorAll<HTMLButtonElement>('[role="tab"][data-view]')];
+  panel.id ||= `pg-panel-${++panelCount}`;
   panel.setAttribute('role', 'tabpanel');
   for (const [i, tab] of tabs.entries()) {
     tab.id ||= `${panel.id}-tab-${i}`;
     tab.setAttribute('aria-controls', panel.id);
-    tab.addEventListener('click', () => onSelect(tab.dataset.output as Output));
+    tab.addEventListener('click', () => onSelect(tab.dataset.view as View));
   }
 
-  tablist.addEventListener('keydown', (e) => {
-    const i = tabs.indexOf(document.activeElement as HTMLButtonElement);
-    if (i < 0) return;
-    const j =
-      e.key === 'ArrowRight' ? (i + 1) % tabs.length
-      : e.key === 'ArrowLeft' ? (i + tabs.length - 1) % tabs.length
-      : e.key === 'Home' ? 0
-      : e.key === 'End' ? tabs.length - 1
+  tablist.addEventListener('keydown', (event) => {
+    const focused = tabs.indexOf(document.activeElement as HTMLButtonElement);
+    if (focused < 0) return;
+    const target =
+      event.key === 'ArrowRight' ? (focused + 1) % tabs.length
+      : event.key === 'ArrowLeft' ? (focused + tabs.length - 1) % tabs.length
+      : event.key === 'Home' ? 0
+      : event.key === 'End' ? tabs.length - 1
       : -1;
-    if (j < 0) return;
-    e.preventDefault();
-    tabs[j].focus();
-    onSelect(tabs[j].dataset.output as Output);
+    if (target < 0) return;
+    event.preventDefault();
+    tabs[target].focus();
+    onSelect(tabs[target].dataset.view as View);
   });
 
-  return (output) => {
+  return (view) => {
     for (const tab of tabs) {
-      const selected = tab.dataset.output === output;
+      const selected = tab.dataset.view === view;
       tab.setAttribute('aria-selected', String(selected));
       tab.tabIndex = selected ? 0 : -1;
       if (selected) panel.setAttribute('aria-labelledby', tab.id);

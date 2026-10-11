@@ -24,8 +24,8 @@ importers:
         specifier: ^5.3.0
         version: 5.3.0
       '@hylo-lang/hylo-wasm':
-        specifier: ^0.0.7
-        version: 0.0.7
+        specifier: ^0.0.8
+        version: 0.0.8
       '@lucide/astro':
         specifier: ^1.48.0
         version: 1.48.0(astro@7.3.5(@types/node@24.12.4)(jiti@2.7.0))
@@ -460,8 +460,8 @@ packages:
   '@fontsource-variable/jetbrains-mono@5.3.0':
     resolution: {integrity: sha512-F32xpS2NsGYoQi2ADSkKTgpJj7ozajsGgDJ8woTnqjmIB+dxDIqImjl4pXZVEExu8UFZ2ndhmX18EBS/hdz3Lw==}
 
-  '@hylo-lang/hylo-wasm@0.0.7':
-    resolution: {integrity: sha512-IigT0IAnkm8WVMvLtCB9TCLCewgZr4ag3/G5TyuGh3f16+q7CbO5fGCKL1Yq4CXfYWHjpCcXw9btXJqmksxYlQ==}
+  '@hylo-lang/hylo-wasm@0.0.8':
+    resolution: {integrity: sha512-s1kxbfm4vYsc3MXmRACHPTu5D03dgejhPHH7tBnci4TE8S5qCCDu+WS6RgoPv8VONq/8RlNHJZYB4J/JsKuy+w==}
 
   '@img/colour@1.1.0':
     resolution: {integrity: sha512-Td76q7j57o/tLVdgS746cYARfSyxk8iEfRxewL9h4OMzYhbW4TAcppl0mT4eyqXddh6L/jwoM75mo7ixa/pCeQ==}
@@ -2479,7 +2479,7 @@ snapshots:
 
   '@fontsource-variable/jetbrains-mono@5.3.0': {}
 
-  '@hylo-lang/hylo-wasm@0.0.7':
+  '@hylo-lang/hylo-wasm@0.0.8':
     dependencies:
       '@bjorn3/browser_wasi_shim': 0.4.2
 
