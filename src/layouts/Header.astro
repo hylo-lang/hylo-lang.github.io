@@ -1,36 +1,45 @@
 ---
+/**
+ * The site's header, in place of Starlight's: the logo, the primary links, the search, the social
+ * icons and the theme switch.
+ *
+ * As the window narrows, the header keeps to one line by its styles alone: its items leave it,
+ * the least important first, for their copies in the "More" menu (a native popover, which Escape
+ * and a click outside close); the search only loses its label. See `data-collapse` below.
+ */
 import LanguageSelect from '@astrojs/starlight/components/LanguageSelect.astro';
 import Search from '@astrojs/starlight/components/Search.astro';
 import SiteTitle from '@astrojs/starlight/components/SiteTitle.astro';
 import SocialIcons from '@astrojs/starlight/components/SocialIcons.astro';
 import ThemeSelect from 'starlight-theme-rapide/overrides/ThemeSelect.astro';
-import { PLAYGROUND_PATH } from '../components/playground/site';
+import { Ellipsis } from '@lucide/astro';
 
+/** The primary links, in the order shown; each one's `collapse` names it in the styles below. */
 const navLinks = [
-    { href: '/blog', label: 'Blog' },
-    { href: '/docs/contributing/community/', label: 'Community' },
-    { href: '/docs', label: 'Docs' },
-    { href: PLAYGROUND_PATH, label: 'Playground' },
-    { href: '/docs/contributing/research-collab/', label: 'Research' },
-    { href: '/docs/contributing', label: 'Contribute' },
+    { href: '/blog', label: 'Blog', collapse: 'blog' },
+    { href: '/docs/contributing/community/', label: 'Community', collapse: 'community' },
+    { href: '/docs', label: 'Docs', collapse: 'docs' },
+    { href: '/playground/', label: 'Playground', collapse: 'playground' },
+    { href: '/docs/contributing/research-collab/', label: 'Research', collapse: 'research' },
+    { href: '/docs/contributing', label: 'Contribute', collapse: 'contribute' },
 ];
 ---
 
 <div class="header">
     <div class="title-wrapper sl-flex">
         <SiteTitle />
-        <nav class="sl-hidden md:sl-flex primary-nav" aria-label="Primary">
-            {navLinks.map(({ href, label }) => (
-                <a href={href}>{label}</a>
+        <nav class="primary-nav" aria-label="Primary">
+            {navLinks.map(({ href, label, collapse }) => (
+                <a href={href} data-collapse={collapse}>{label}</a>
             ))}
         </nav>
     </div>
 
-    <div class="sl-flex print:hidden">
+    <div class="sl-flex print:hidden search">
         <Search />
     </div>
 
-    <div class="sl-hidden md:sl-flex print:hidden right-group">
+    <div class="sl-flex print:hidden right-group" data-collapse="icons">
         <div class="sl-flex social-icons">
             <SocialIcons />
         </div>
@@ -38,27 +47,32 @@ const navLinks = [
         <LanguageSelect />
     </div>
 
-    <details class="sl-flex md:sl-hidden print:hidden mobile-menu">
-        <summary aria-label="Toggle menu">
-            <span class="bar" aria-hidden="true"></span>
-            <span class="bar" aria-hidden="true"></span>
-            <span class="bar" aria-hidden="true"></span>
-        </summary>
-        <div class="panel">
-            <nav aria-label="Primary">
-                {navLinks.map(({ href, label }) => (
-                    <a href={href}>{label}</a>
-                ))}
-            </nav>
-            <div class="row">
-                <div class="sl-flex social-icons">
-                    <SocialIcons />
-                </div>
-                <ThemeSelect />
-                <LanguageSelect />
+    <!-- "More" rather than a menu's three bars, which the sidebar's own button, beside it on
+         narrow pages with a sidebar, already shows. -->
+    <button
+        class="print:hidden menu-button"
+        type="button"
+        popovertarget="site-menu"
+        aria-label="More"
+        title="More"
+    >
+        <Ellipsis size="1.25rem" aria-hidden="true" />
+    </button>
+    <!-- The copies of the header's items, each shown as its original leaves the header. -->
+    <div id="site-menu" class="menu" popover>
+        <nav aria-label="More">
+            {navLinks.map(({ href, label, collapse }) => (
+                <a href={href} data-collapse={collapse}>{label}</a>
+            ))}
+        </nav>
+        <div class="row" data-collapse="icons">
+            <div class="sl-flex social-icons">
+                <SocialIcons />
             </div>
+            <ThemeSelect />
+            <LanguageSelect />
         </div>
-    </details>
+    </div>
 </div>
 
 <style>
@@ -66,25 +80,37 @@ const navLinks = [
         .header {
             display: flex;
             gap: var(--sl-nav-gap);
-            justify-content: space-between;
             align-items: center;
             height: 100%;
         }
 
+        /* The only item that gives way if the header is ever too narrow for what it shows (the
+           breakpoints below are measured, not exact): its links are cut off at the end, rather
+           than the search and the menu pushed out of the window. Padded so that the links'
+           outlines are not clipped. */
         .title-wrapper {
+            flex: 1;
+            min-width: 0;
             overflow: clip;
+            align-items: center;
             padding: 0.25rem;
             margin: -0.25rem;
-            min-width: 0;
+        }
+
+        .header > :not(.title-wrapper),
+        .title-wrapper > :global(*) {
+            flex-shrink: 0;
         }
 
         .primary-nav {
+            display: flex;
             gap: 0.25rem;
             align-items: center;
             padding-inline-start: 1rem;
         }
 
-        .primary-nav a {
+        .primary-nav a,
+        .menu nav a {
             padding: 0.25rem 0.5rem;
             border-radius: 0.25rem;
             color: inherit;
@@ -93,7 +119,9 @@ const navLinks = [
         }
 
         .primary-nav a:hover,
-        .primary-nav a:focus-visible {
+        .primary-nav a:focus-visible,
+        .menu nav a:hover,
+        .menu nav a:focus-visible {
             background: var(--sl-color-gray-6, var(--sl-color-gray-5));
             color: var(--sl-color-white);
         }
@@ -110,90 +138,142 @@ const navLinks = [
             border-inline-end: 1px solid var(--sl-color-gray-5);
         }
 
-        /* Mobile menu: native <details> + summary, no JS. */
-        .mobile-menu {
-            position: relative;
-        }
-
-        .mobile-menu > summary {
-            list-style: none;
+        .menu-button {
             display: inline-flex;
-            flex-direction: column;
+            align-items: center;
             justify-content: center;
-            gap: 4px;
             width: 2.25rem;
             height: 2.25rem;
-            padding: 0.5rem;
+            padding: 0;
             border: 1px solid var(--sl-color-gray-5);
             border-radius: 0.375rem;
+            background: none;
+            color: inherit;
             cursor: pointer;
         }
 
-        .mobile-menu > summary::-webkit-details-marker { display: none; }
-
-        .mobile-menu .bar {
-            display: block;
-            height: 2px;
-            background: currentColor;
-            border-radius: 2px;
-        }
-
-        .mobile-menu .panel {
-            position: absolute;
-            top: calc(100% + 0.5rem);
-            inset-inline-end: 0;
-            min-width: min(18rem, 92vw);
-            background: var(--sl-color-bg-nav);
+        /* In the top layer, under the header, at its end: under the menu button, or the sidebar's
+           next to it. */
+        .menu {
+            position: fixed;
+            inset: auto;
+            top: calc(var(--sl-nav-height) + 0.25rem);
+            inset-inline-end: var(--sl-nav-pad-x);
+            margin: 0;
+            min-width: min(18rem, calc(100vw - 2 * var(--sl-nav-pad-x)));
+            box-sizing: border-box;
+            padding: 0.5rem;
             border: 1px solid var(--sl-color-gray-5);
             border-radius: 0.5rem;
+            background: var(--sl-color-bg-nav);
+            color: var(--sl-color-white);
             box-shadow: var(--sl-shadow-md);
-            padding: 0.5rem;
-            display: flex;
             flex-direction: column;
             gap: 0.5rem;
         }
 
-        .mobile-menu .panel nav {
+        .menu:popover-open {
+            display: flex;
+        }
+
+        .menu nav {
             display: flex;
             flex-direction: column;
         }
 
-        .mobile-menu .panel nav a {
+        .menu nav a {
             padding: 0.625rem 0.75rem;
             border-radius: 0.375rem;
-            color: inherit;
-            text-decoration: none;
         }
 
-        .mobile-menu .panel nav a:hover,
-        .mobile-menu .panel nav a:focus-visible {
-            background: var(--sl-color-gray-6, var(--sl-color-gray-5));
-            color: var(--sl-color-white);
-        }
-
-        .mobile-menu .row {
+        .menu .row {
             display: flex;
             align-items: center;
             gap: 0.75rem;
+            padding: 0.5rem 0.75rem 0.25rem;
+        }
+
+        /* Under the links, which leave the header before the icons. */
+        .menu .row {
             border-top: 1px solid var(--sl-color-gray-5);
-            padding: 0.5rem 0.5rem 0.25rem;
         }
 
-        .mobile-menu .row .social-icons::after { display: none; }
-
-        @media (min-width: 50rem) {
-            .header {
-                display: grid;
-                grid-template-columns: 1fr auto auto;
-                align-content: center;
-            }
-            .title-wrapper { justify-self: start; }
-        }
+        .menu .row .social-icons::after { display: none; }
     }
 
-    /* On pages where Starlight renders its own sidebar hamburger, hide ours
-       to avoid two toggles on mobile. Unlayered so it beats .sl-flex. */
-    :global(html[data-has-sidebar]) .mobile-menu {
+    /*
+     * The header keeps to one line: as the window narrows, its items leave it for their copies in
+     * the menu, the least important first: the search's label, Research, Contribute, the icons,
+     * Community, Blog, Playground and Docs. Each leaves below the width the header needs with it
+     * and every item leaving after it, measured with the fonts of Windows, plus room for wider
+     * ones. Outside the layers, to win over Starlight's `sl-flex`, in `starlight.utils`.
+     */
+    .menu [data-collapse],
+    .menu-button {
         display: none;
+    }
+    @media (width < 58rem) {
+        .search :global(button[data-open-modal] > :not(svg)) {
+            display: none;
+        }
+    }
+    @media (width < 52rem) {
+        .header > .menu-button {
+            display: inline-flex;
+        }
+        .primary-nav [data-collapse='research'] {
+            display: none;
+        }
+        .menu [data-collapse='research'] {
+            display: block;
+        }
+    }
+    @media (width < 48.5rem) {
+        .primary-nav [data-collapse='contribute'] {
+            display: none;
+        }
+        .menu [data-collapse='contribute'] {
+            display: block;
+        }
+    }
+    @media (width < 42.5rem) {
+        .header > [data-collapse='icons'] {
+            display: none;
+        }
+        .menu [data-collapse='icons'] {
+            display: flex;
+        }
+    }
+    @media (width < 33.5rem) {
+        .primary-nav [data-collapse='community'] {
+            display: none;
+        }
+        .menu [data-collapse='community'] {
+            display: block;
+        }
+    }
+    @media (width < 27rem) {
+        .primary-nav [data-collapse='blog'] {
+            display: none;
+        }
+        .menu [data-collapse='blog'] {
+            display: block;
+        }
+    }
+    @media (width < 24rem) {
+        .primary-nav [data-collapse='playground'] {
+            display: none;
+        }
+        .menu [data-collapse='playground'] {
+            display: block;
+        }
+    }
+    @media (width < 17.5rem) {
+        .primary-nav [data-collapse='docs'] {
+            display: none;
+        }
+        .menu [data-collapse='docs'] {
+            display: block;
+        }
     }
 </style>

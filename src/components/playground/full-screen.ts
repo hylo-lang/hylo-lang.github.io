@@ -16,7 +16,6 @@ import { compiler } from './page-compiler';
 import { ResultPane } from './pane';
 import { countErrors } from './diagnostics';
 import {
-  describeFailure,
   renderView,
   showCompilerStatus,
   summarize,
@@ -34,7 +33,7 @@ import { DEFAULT_STATE, playgroundURL, serialize, type PlaygroundState } from '.
 import { decodeFragment, deserialize, type DecodedState } from './share-reader';
 import { isSettled } from './stages';
 import { connectTabs } from './tabs';
-import { isArtifactView, VIEWS, type View } from './views';
+import { canProduce, isArtifactView, VIEWS, type View } from './views';
 
 /** Where the state of the last visit is kept, as `serialize` writes it. */
 const STATE_STORAGE_KEY = 'hylo-playground:state';
@@ -54,15 +53,19 @@ const ARTIFACT_VIEWS = VIEWS.filter(isArtifactView);
 /** The state of a first visit. */
 const FIRST_VISIT_STATE: PlaygroundState = { source: EXAMPLES[0].source, ...DEFAULT_STATE };
 
+/** A checkbox or a menu of the page's. */
+type Control = HTMLInputElement | HTMLSelectElement;
+
 /** Returns the element whose id is `id`, which the page has. */
 const elementById = <T extends HTMLElement>(id: string): T => document.getElementById(id) as T;
 // The page's elements.
 const panel = elementById<HTMLElement>('pg-panel');
 const tablist = elementById<HTMLElement>('pg-tabs');
+const tabs = [...tablist.querySelectorAll<HTMLElement>('[role="tab"][data-view]')];
 const optimizationSelect = elementById<HTMLSelectElement>('pg-optimization');
 const stopAfterSelect = elementById<HTMLSelectElement>('pg-stop-after');
 const standardLibraryCheckbox = elementById<HTMLInputElement>('pg-standard-library');
-const timeLimitSelect = elementById<HTMLSelectElement>('pg-time-limit');
+const timeLimitInput = elementById<HTMLInputElement>('pg-time-limit');
 const moreMenuButton = elementById<HTMLButtonElement>('pg-more-button');
 const moreMenu = elementById<HTMLElement>('pg-more');
 const examplesSelect = elementById<HTMLSelectElement>('pg-examples');
@@ -73,6 +76,17 @@ const shareLabel = elementById<HTMLElement>('pg-share-label');
 const statusLine = elementById<HTMLElement>('pg-status-line');
 const hintLine = elementById<HTMLElement>('pg-hint-line');
 const errorCountBadge = elementById<HTMLElement>('pg-error-count');
+/**
+ * The header's controls and their copies in the "More options" menu, which the page shows instead
+ * when the window is too narrow for them. The page reads and listens to the header's: a change to
+ * a copy is made to its control, and a control's value is given to its copy.
+ */
+const copiedControls: [Control, Control][] = [
+  [optimizationSelect, elementById('pg-optimization-copy')],
+  [autorunCheckbox, elementById('pg-autorun-copy')],
+];
+/** The examples' menus: the header's, and its copy. */
+const examplesSelects = [examplesSelect, elementById<HTMLSelectElement>('pg-examples-copy')];
 
 /** The shortcut running the code on this platform, as keys and as text. */
 const RUN_SHORTCUT = /Mac|iPhone|iPad/.test(navigator.platform)
@@ -151,9 +165,26 @@ const pane = new ResultPane(
   openingState.view,
 );
 
+/** Gives the value of `source`, a control or its copy, to `target`, the other. */
+function copyValue(source: Control, target: Control): void {
+  if (source instanceof HTMLInputElement && target instanceof HTMLInputElement) {
+    target.checked = source.checked;
+  } else {
+    target.value = source.value;
+  }
+}
+
+for (const [control, copy] of copiedControls) {
+  control.addEventListener('change', () => copyValue(control, copy));
+  copy.addEventListener('change', () => {
+    copyValue(copy, control);
+    control.dispatchEvent(new Event('change'));
+  });
+}
+
 autorunCheckbox.checked = readStored(AUTORUN_STORAGE_KEY) !== 'off';
 // Before the settings, which mark the menu if it differs from its default.
-timeLimitSelect.value = String(parseTimeLimit(readStored(TIME_LIMIT_STORAGE_KEY)));
+timeLimitInput.value = String(parseTimeLimit(readStored(TIME_LIMIT_STORAGE_KEY)));
 applySettings(openingState);
 // The compiler, the longest download, loads while the editor does.
 compiler.startLoading();
@@ -178,7 +209,15 @@ function applySettings(settings: CompileSettings): void {
   optimizationSelect.value = String(settings.optimization);
   stopAfterSelect.value = settings.stopAfter ?? '';
   standardLibraryCheckbox.checked = settings.standardLibrary;
+  for (const [control, copy] of copiedControls) copyValue(control, copy);
+  hideUnproducibleTabs();
   markMoreMenuIfModified();
+}
+
+/** Hides the tabs of the views that the final phase chosen keeps a request from producing. */
+function hideUnproducibleTabs(): void {
+  const stopAfter = parsePhase(stopAfterSelect.value);
+  for (const tab of tabs) tab.hidden = !canProduce(tab.dataset.view as View, stopAfter);
 }
 
 /** Marks the "More options" button iff a setting in its menu differs from its default. */
@@ -187,7 +226,7 @@ function markMoreMenuIfModified(): void {
     'data-modified',
     stopAfterSelect.value !== '' ||
       !standardLibraryCheckbox.checked ||
-      parseTimeLimit(timeLimitSelect.value) !== DEFAULT_TIME_LIMIT,
+      parseTimeLimit(timeLimitInput.value) !== DEFAULT_TIME_LIMIT,
   );
 }
 
@@ -262,7 +301,7 @@ async function compileAndRun(): Promise<void> {
   runButton.toggleAttribute('aria-busy', true);
   const result = await compiler.compileAndRun(request, {
     signal: thisRequest.signal,
-    timeLimit: parseTimeLimit(timeLimitSelect.value),
+    timeLimit: parseTimeLimit(timeLimitInput.value),
     onProgress: (progress) => {
       void pane.showProgress(progress);
       showDiagnosticsOf(progress);
@@ -279,11 +318,7 @@ async function compileAndRun(): Promise<void> {
     JSON.stringify(request) !== JSON.stringify(currentRequest()),
   );
   showDiagnosticsOf(result);
-  const timing =
-    describeFailure(result) === undefined
-      ? ` Compiled in ${result.compilation.milliseconds.toFixed(0)} ms.`
-      : '';
-  statusLine.textContent = summarize(result) + timing;
+  statusLine.textContent = summarize(result, true);
   updateHint();
 }
 
@@ -324,13 +359,17 @@ function updateHint(): void {
 /** Marks a view's tab as the selected one. */
 const markSelectedTab = connectTabs(tablist, panel, (view) => void selectView(view));
 
-/** Selects `view`, and shows the latest results it has. */
+/**
+ * Selects `view`, or the result if the final phase chosen keeps requests from producing `view`,
+ * and shows the latest results it has.
+ */
 async function selectView(view: View): Promise<void> {
+  if (!canProduce(view, parsePhase(stopAfterSelect.value))) view = 'result';
   if (view !== pane.selectedView) scheduleSave();
   markSelectedTab(view);
   await pane.selectView(view);
 }
-markSelectedTab(pane.selectedView);
+void selectView(pane.selectedView);
 
 /**
  * Opens the state in `location.hash`, if it holds one, when a link to the page is followed from
@@ -354,14 +393,20 @@ function openFollowedLink(): void {
 // Loading is shown until there is a result to show instead.
 showCompilerStatus(compiler, pane, statusLine);
 
-for (const example of EXAMPLES) examplesSelect.add(new Option(example.name, example.name));
-examplesSelect.addEventListener('change', () => {
-  const example = EXAMPLES.find((candidate) => candidate.name === examplesSelect.value);
-  examplesSelect.value = '';
-  if (!example) return;
-  // Through the editor, so that the change is one the reader can undo.
-  editor.replace(example.source);
-  editor.focus();
+for (const select of examplesSelects) {
+  for (const example of EXAMPLES) select.add(new Option(example.name, example.name));
+  select.addEventListener('change', () => {
+    const example = EXAMPLES.find((candidate) => candidate.name === select.value);
+    select.value = '';
+    if (!example) return;
+    // Through the editor, so that the change is one the reader can undo.
+    editor.replace(example.source);
+    editor.focus();
+  });
+}
+stopAfterSelect.addEventListener('change', () => {
+  hideUnproducibleTabs();
+  void selectView(pane.selectedView);
 });
 for (const control of [optimizationSelect, stopAfterSelect, standardLibraryCheckbox]) {
   control.addEventListener('change', () => {
@@ -376,8 +421,10 @@ moreMenu.addEventListener('toggle', (event) => {
 addEventListener('resize', () => {
   if (moreMenu.matches(':popover-open')) positionMoreMenu();
 });
-timeLimitSelect.addEventListener('change', () => {
-  store(TIME_LIMIT_STORAGE_KEY, timeLimitSelect.value);
+timeLimitInput.addEventListener('change', () => {
+  // What was typed, as the limit it gives: a whole number of seconds within the bounds.
+  timeLimitInput.value = String(parseTimeLimit(timeLimitInput.value));
+  store(TIME_LIMIT_STORAGE_KEY, timeLimitInput.value);
   markMoreMenuIfModified();
 });
 autorunCheckbox.addEventListener('change', () => {

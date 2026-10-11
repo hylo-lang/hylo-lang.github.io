@@ -6,7 +6,7 @@
 import type { Diagnostic } from '@hylo-lang/hylo-wasm/protocol';
 import type { CompilerStatus, Result } from './compiler';
 import { countErrors } from './diagnostics';
-import { VIEW_LANGUAGES, type View } from './views';
+import { isArtifactView, VIEW_LANGUAGES, type View } from './views';
 
 /** The sentence saying the compiler failed to load. */
 const FAILED_TO_LOAD = 'The compiler failed to load.';
@@ -179,19 +179,26 @@ export function describeFailure(result: Result): string | undefined {
 
 /**
  * Returns a sentence summing up `result`, for the status line that screen readers announce rather
- * than the whole panel.
+ * than the whole panel, followed by how long compiling took if `timed`.
  */
-export function summarize(result: Result): string {
+export function summarize(result: Result, timed = false): string {
   const failure = describeFailure(result);
   if (failure !== undefined) return failure;
+  const timing = timed ? `Compiled in ${result.compilation.milliseconds.toFixed(0)} ms.` : '';
   const errors = countErrors(result.compilation.diagnostics);
   const { execution } = result;
-  if (execution === null) {
-    return errors > 0 ? `${errors} error${errors > 1 ? 's' : ''}.` : 'Compiles.';
-  }
-  return execution.trap !== undefined
-    ? 'The program trapped.'
-    : `Exited with status ${execution.exitCode}.`;
+  const outcome =
+    execution !== null
+      ? execution.trap !== undefined
+        ? 'The program trapped.'
+        : `Exited with status ${execution.exitCode}.`
+      : errors > 0
+        ? `${errors} error${errors > 1 ? 's' : ''}.`
+        : // The timing says as much.
+          timed
+          ? ''
+          : 'Compiles.';
+  return [outcome, timing].filter((sentence) => sentence !== '').join(' ');
 }
 
 /** Returns a sentence describing `status`, or `null` if there is nothing to say about it. */
@@ -300,6 +307,17 @@ function whyNotProduced(result: Result): string {
   return countErrors(result.compilation.diagnostics) > 0
     ? 'Not produced: the program has errors.'
     : 'Not produced.';
+}
+
+/**
+ * Returns `true` iff `result` lacks what `view` shows because its request failed or the program
+ * has errors, rather than because the request did not ask for it.
+ */
+export function failedToProduce(view: View, result: Result): boolean {
+  if (!isArtifactView(view) || result.compilation.artifacts[view] !== undefined) return false;
+  return (
+    describeFailure(result) !== undefined || countErrors(result.compilation.diagnostics) > 0
+  );
 }
 
 /**

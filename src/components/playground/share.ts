@@ -20,7 +20,6 @@
  * snippets, do not load the validation library.
  */
 import { DEFAULT_SETTINGS, type CompileSettings } from './settings';
-import { PLAYGROUND_PATH } from './site';
 import type { View } from './views';
 
 /** What the full-screen playground shows: everything a link to it reproduces. */
@@ -60,7 +59,7 @@ export function encodeFragment(state: PlaygroundState): string {
 
 /** Returns the address of the full-screen playground, opened on `state`. */
 export function playgroundURL(state: PlaygroundState): string {
-  return `${PLAYGROUND_PATH}#${encodeFragment(state)}`;
+  return `/playground/#${encodeFragment(state)}`;
 }
 
 /** Returns `bytes` in base64url, without padding. */

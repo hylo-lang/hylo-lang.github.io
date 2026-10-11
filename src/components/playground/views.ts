@@ -2,7 +2,7 @@
  * The views of a request that a playground can show, as tabs, and how they are presented. (The
  * element showing the selected one is the panel.)
  */
-import type { Artifact } from '@hylo-lang/hylo-wasm/protocol';
+import type { Artifact, Phase } from '@hylo-lang/hylo-wasm/protocol';
 
 /**
  * A view of a request: `result`, what running the program did and the diagnostics;
@@ -42,6 +42,25 @@ export const VIEW_LANGUAGES: Record<Artifact, string> = {
   llvm: 'llvm',
   assembly: 'wasm-asm',
 };
+
+/**
+ * Returns `true` iff a request whose compilation stops after `stopAfter`, or goes to the end if it
+ * is `null`, can produce what `view` shows: the result and the diagnostics always, Hylo IR once
+ * the code is lowered to it, and LLVM IR and WebAssembly only when compilation goes to the end.
+ */
+export function canProduce(view: View, stopAfter: Phase | null): boolean {
+  switch (view) {
+    case 'result':
+    case 'diagnostics':
+      return true;
+    case 'raw-ir':
+    case 'ir':
+      return stopAfter === null || stopAfter === 'lowering';
+    case 'llvm':
+    case 'assembly':
+      return stopAfter === null;
+  }
+}
 
 /** Returns `true` iff `view` shows an artifact of the compiler. */
 export function isArtifactView(view: View): view is Artifact {

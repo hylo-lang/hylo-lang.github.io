@@ -7,13 +7,20 @@
  * `playground.css` shows with a progress cursor), with a tooltip saying what it is waiting for, and
  * the view's tab is marked `data-pending`, which `playground.css` de-emphasizes once a moment has
  * passed: quick requests replace what is shown in place, without anything moving or flashing.
+ * A tab whose view the request failed to produce, because it failed or the program has errors, is
+ * marked `data-failed`, which `playground.css` shows in red.
  * With no result to show yet, the panel shows the compiler loading, or why it failed to, or what
  * the view waits for.
  *
  * The pane is the only writer of the panel's contents.
  */
 import type { CompilerStatus, Result } from './compiler';
-import { mutedParagraph, renderCompilerStatus, viewSignature } from './rendering';
+import {
+  failedToProduce,
+  mutedParagraph,
+  renderCompilerStatus,
+  viewSignature,
+} from './rendering';
 import {
   describeStageState,
   describeWait,
@@ -141,8 +148,13 @@ export class ResultPane {
     const { panel, tabs, stageStrip, renderView } = this.#elements;
     this.#refreshStageStrip(stageStrip);
     for (const tab of tabs) {
-      const { wait } = this.#viewState(tab.dataset.view as View);
+      const tabView = tab.dataset.view as View;
+      const { result: tabResult, wait } = this.#viewState(tabView);
       tab.toggleAttribute('data-pending', wait !== null);
+      tab.toggleAttribute(
+        'data-failed',
+        wait === null && tabResult !== null && failedToProduce(tabView, tabResult),
+      );
       if (wait !== null) tab.title = wait;
       else tab.removeAttribute('title');
     }

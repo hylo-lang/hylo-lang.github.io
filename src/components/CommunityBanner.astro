@@ -1,0 +1,78 @@
+---
+/**
+ * The banner inviting the reader into the community: where it talks, and its developer meetings.
+ * In the theme's own colours, so that it works in the light and the dark theme alike.
+ */
+import { Icon } from '@astrojs/starlight/components';
+import { Video } from '@lucide/astro';
+import { discussionsLink, slackLink } from '../links';
+
+---
+
+<section class="not-content banner">
+    <span class="label">Community</span>
+    <h2>Join the discussion</h2>
+    <p>
+        Curious about PL design, compilers, systems programming, or want to contribute?<br>
+        Join our community, and share your ideas, questions and feedback with us!
+    </p>
+    <div class="actions">
+        <a href={slackLink}><Icon name="slack" size="1.1rem" />Slack</a>
+        <a href={discussionsLink}><Icon name="github" size="1.1rem" />GitHub Discussions</a>
+        <!-- The community page, which says when the meetings are, and links to them. -->
+        <a href="/docs/contributing/community/"><Video size="1.1rem" />Developer meetings</a>
+    </div>
+</section>
+
+<style>
+    .banner {
+        display: grid;
+        gap: 0.5rem;
+        margin-block: 2rem;
+        padding: 2rem;
+        border: 1px solid var(--sl-color-gray-5);
+        border-radius: .5rem;
+        background-color: var(--sl-color-black);
+        background-image: radial-gradient(var(--sl-color-gray-5) 1px, transparent 1px);
+        background-size: 16px 16px;
+    }
+    .label {
+        font-family: var(--__sl-font-mono);
+        font-size: var(--sl-text-xs);
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        color: var(--sl-color-accent-high);
+    }
+    h2 {
+        margin: 0;
+        color: var(--sl-color-white);
+        font-size: var(--sl-text-2xl);
+        font-weight: 600;
+        line-height: 1.25;
+    }
+    p {
+        max-width: 40rem;
+        margin: 0;
+        color: var(--sl-color-gray-2);
+    }
+    .actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.75rem;
+        margin-top: 1rem;
+    }
+    .actions a {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.55rem 1rem;
+        border: 1px solid var(--sl-color-gray-5);
+        background: var(--sl-color-black);
+        color: var(--sl-color-white);
+        font-weight: 500;
+        text-decoration: none;
+    }
+    .actions a:hover {
+        border-color: var(--sl-color-gray-3);
+    }
+</style>

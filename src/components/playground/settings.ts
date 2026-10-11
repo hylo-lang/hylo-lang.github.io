@@ -80,19 +80,22 @@ export function parsePhase(text: string): Phase | null {
   return phase;
 }
 
-/** The time limits a reader can choose, in seconds, for each stage of a request. */
-export const TIME_LIMITS = [5, 10, 20, 30, 60] as const;
+/** The shortest time limit a reader can choose for each stage of a request, in seconds. */
+export const MIN_TIME_LIMIT = 1;
 
-/** A time limit a reader can choose, in seconds. */
-export type TimeLimit = (typeof TIME_LIMITS)[number];
+/** The longest time limit a reader can choose for each stage of a request, in seconds. */
+export const MAX_TIME_LIMIT = 600;
 
 /** The time limit of each stage of a request, in seconds, unless the reader chooses another. */
-export const DEFAULT_TIME_LIMIT: TimeLimit = 20;
+export const DEFAULT_TIME_LIMIT = 20;
 
 /**
- * Returns the time limit `text` names, such as `"20"`, or `DEFAULT_TIME_LIMIT` if it names none,
- * which a value remembered from an older page or tampered with may.
+ * Returns the time limit `text` gives in seconds, such as `"20"`, rounded to a whole number and
+ * brought within `MIN_TIME_LIMIT` and `MAX_TIME_LIMIT`; or `DEFAULT_TIME_LIMIT` if it gives no
+ * number, as a value remembered from an older page or tampered with may not.
  */
-export function parseTimeLimit(text: string | null): TimeLimit {
-  return TIME_LIMITS.find((limit) => String(limit) === text) ?? DEFAULT_TIME_LIMIT;
+export function parseTimeLimit(text: string | null): number {
+  const seconds = text === null || text.trim() === '' ? NaN : Number(text);
+  if (!Number.isFinite(seconds)) return DEFAULT_TIME_LIMIT;
+  return Math.min(MAX_TIME_LIMIT, Math.max(MIN_TIME_LIMIT, Math.round(seconds)));
 }

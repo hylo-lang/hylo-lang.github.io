@@ -5,25 +5,24 @@
  * sidebars; it uses the same colours, theme and fonts all the same.
  *
  * The markup is static; `full-screen.ts` makes it work, finding its elements by the `pg-` ids
- * below, which it relies on. The header keeps to one line by moving its items into the "More
- * options" menu as the window narrows (`header.ts`), in the order of their `data-collapse`: the
- * least needed first, the controls most used last; Share and Run always stay. A link to the page may hold a state in its fragment (see
- * `share.ts`'s `playgroundURL`).
+ * below, which it relies on. The header keeps to one line by leaving out items as the window
+ * narrows, by its styles alone (see `data-collapse` below), the "More options" menu showing a copy
+ * of each in its place. A link to the page may hold a state in its fragment (see `share.ts`'s
+ * `playgroundURL`).
  */
 import { Icon } from '@astrojs/starlight/components';
 import ThemeProvider from '@astrojs/starlight/components/ThemeProvider.astro';
 import ThemeSelect from 'starlight-theme-rapide/overrides/ThemeSelect.astro';
-import { Image } from 'astro:assets';
 import { Check, Ellipsis, LoaderCircle, Play, Share2 } from '@lucide/astro';
 import darkLogo from '../assets/hylo-green-smaller.png';
 import lightLogo from '../assets/hylo-black.png';
 import { compilerRepoLink } from '../links';
-import { url } from '../utils/url';
 import {
   DEFAULT_TIME_LIMIT,
+  MAX_TIME_LIMIT,
+  MIN_TIME_LIMIT,
   OPTIMIZATION_LEVELS,
   PHASES,
-  TIME_LIMITS,
 } from '../components/playground/settings';
 import { VIEWS, VIEW_TITLES } from '../components/playground/views';
 import Stages from '../components/playground/Stages.astro';
@@ -37,27 +36,48 @@ import '../components/playground/playground.css';
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <!-- The order of the CSS layers on every Starlight page, where the theme's colours (`rapide`)
+         win over the defaults starlight-tailwind gives them (`utilities`). A layer's place is set
+         where it is first mentioned, so this comes before every stylesheet: in the build, the page
+         gets the site's global styles too, after the theme's. -->
+    <style is:inline>
+      @layer properties, base, starlight, theme, components, utilities, rapide;
+    </style>
     <title>Playground | Hylo</title>
     <meta
       name="description"
       content="Compile and run Hylo in your browser, and see what the compiler makes of it."
     />
-    <link rel="icon" href={url('hylo-favicon.png')} />
+    <link rel="icon" href="/hylo-favicon.png" />
     <!-- The reader's light or dark choice from the rest of the site, before the first paint, as
          on every Starlight page. -->
     <ThemeProvider />
   </head>
   <body>
     <header class="bar">
-      <a class="home" href={url('')} aria-label="Hylo home">
-        <Image src={darkLogo} alt="" class="logo logo-dark" height={80} />
-        <Image src={lightLogo} alt="" class="logo logo-light" height={80} />
+      <a class="home" href="/" aria-label="Hylo home">
+        <!-- The files themselves, as Starlight's site title shows them, so that the logo is drawn
+             exactly as on the other pages. -->
+        <img
+          src={darkLogo.src}
+          width={darkLogo.width}
+          height={darkLogo.height}
+          alt=""
+          class="logo logo-dark"
+        />
+        <img
+          src={lightLogo.src}
+          width={lightLogo.width}
+          height={lightLogo.height}
+          alt=""
+          class="logo logo-light"
+        />
       </a>
-      <h1 data-collapse="1" data-collapse-hide>Playground</h1>
-      <select id="pg-examples" class="pg-select" aria-label="Load an example" data-collapse="8">
+      <h1 data-collapse="title">Playground</h1>
+      <select id="pg-examples" class="pg-select" aria-label="Load an example" data-collapse="examples">
         <option value="">Examples…</option>
       </select>
-      <label class="item" data-collapse="6">
+      <label class="item" data-collapse="optimization">
         <span class="item-label">Optimization</span>
         <select id="pg-optimization" class="pg-select" aria-label="Optimization level">
           {OPTIMIZATION_LEVELS.map((level) => <option value={level}>-O{level}</option>)}
@@ -74,7 +94,27 @@ import '../components/playground/playground.css';
         <Ellipsis class="pg-icon" aria-hidden="true" />
       </button>
       <div id="pg-more" class="menu" popover aria-label="More options">
-        <div id="pg-collapsed" class="collapsed" hidden></div>
+        <!-- The copies of the header's controls, shown as they leave it. -->
+        <div class="collapsed">
+          <select
+            id="pg-examples-copy"
+            class="pg-select"
+            aria-label="Load an example"
+            data-collapse="examples"
+          >
+            <option value="">Examples…</option>
+          </select>
+          <label class="item" data-collapse="optimization">
+            Optimization
+            <select id="pg-optimization-copy" class="pg-select" aria-label="Optimization level">
+              {OPTIMIZATION_LEVELS.map((level) => <option value={level}>-O{level}</option>)}
+            </select>
+          </label>
+          <label class="pg-checkbox" title="Compile and run as you type" data-collapse="autorun">
+            <input id="pg-autorun-copy" type="checkbox" checked />
+            Auto-run
+          </label>
+        </div>
         <label class="field" title="The phase after which compilation stops">
           Final phase
           <select id="pg-stop-after" class="pg-select">
@@ -88,39 +128,58 @@ import '../components/playground/playground.css';
         </label>
         <label class="field" title="How long each stage may run before it is stopped">
           Time limit
-          <select id="pg-time-limit" class="pg-select">
-            {
-              TIME_LIMITS.map((limit) => (
-                <option value={limit} selected={limit === DEFAULT_TIME_LIMIT}>
-                  {limit} s
-                </option>
-              ))
-            }
-          </select>
+          <span class="pg-input-unit">
+            <input
+              id="pg-time-limit"
+              class="pg-input"
+              type="number"
+              inputmode="numeric"
+              min={MIN_TIME_LIMIT}
+              max={MAX_TIME_LIMIT}
+              step="1"
+              value={DEFAULT_TIME_LIMIT}
+              required
+            />
+            seconds
+          </span>
         </label>
         <label class="pg-checkbox">
           <input id="pg-standard-library" type="checkbox" checked />
-          Standard library
+          Import Standard library
         </label>
-        <div id="pg-collapsed-links" class="collapsed-links" hidden></div>
+        <!-- The copies of the header's links and theme switch, shown as they leave it. -->
+        <div class="collapsed-links">
+          <a class="nav-link" href="/docs/" data-collapse="docs">Docs</a>
+          <a
+            class="icon-link"
+            href={compilerRepoLink}
+            aria-label="GitHub"
+            title="GitHub"
+            data-collapse="github"
+          >
+            <Icon name="github" size="1rem" />
+          </a>
+          <div class="item" data-collapse="theme">
+            <ThemeSelect />
+          </div>
+        </div>
       </div>
-      <label class="pg-checkbox" title="Compile and run as you type" data-collapse="7">
+      <label class="pg-checkbox" title="Compile and run as you type" data-collapse="autorun">
         <input id="pg-autorun" type="checkbox" checked />
         Auto-run
       </label>
       <span class="spacer"></span>
-      <a class="nav-link" href={url('docs/')} data-collapse="3" data-collapse-to="links">Docs</a>
+      <a class="nav-link" href="/docs/" data-collapse="docs">Docs</a>
       <a
-        class="nav-link"
+        class="icon-link"
         href={compilerRepoLink}
         aria-label="GitHub"
         title="GitHub"
-        data-collapse="2"
-        data-collapse-to="links"
+        data-collapse="github"
       >
         <Icon name="github" size="1rem" />
       </a>
-      <div class="item" data-collapse="4" data-collapse-to="links">
+      <div class="item" data-collapse="theme">
         <ThemeSelect />
       </div>
       <button id="pg-share" type="button" class="pg-button" title="Copy a link to this code">
@@ -132,13 +191,13 @@ import '../components/playground/playground.css';
         <Play class="pg-icon pg-idle-icon" aria-hidden="true" />
         <LoaderCircle class="pg-icon pg-busy-icon" aria-hidden="true" />
         Run
-        <kbd class="pg-kbd" data-shortcut data-collapse="5" data-collapse-hide>Ctrl ↵</kbd>
+        <kbd class="pg-kbd" data-shortcut data-collapse="shortcut">Ctrl ↵</kbd>
       </button>
     </header>
     <noscript>
       <p class="noscript">
         The playground runs the compiler in your browser, which needs JavaScript. The
-        <a href={url('docs/')}>documentation</a> works without it.
+        <a href="/docs/">documentation</a> works without it.
       </p>
     </noscript>
     <main>
@@ -165,13 +224,19 @@ import '../components/playground/playground.css';
       </section>
     </main>
     <script>
-      import '../components/playground/header';
       import '../components/playground/full-screen';
     </script>
   </body>
 </html>
 
 <style>
+  /* The browser's own parts, as scroll bars, in the theme's colours, as Starlight sets them. */
+  :root {
+    color-scheme: dark;
+  }
+  :root[data-theme='light'] {
+    color-scheme: light;
+  }
   :root {
     /* Starlight's `--sl-font`, which this page does not load. */
     --font: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', 'Noto Sans',
@@ -282,11 +347,18 @@ import '../components/playground/playground.css';
     background: var(--sl-color-gray-6, var(--sl-color-gray-5));
     color: var(--sl-color-white);
   }
+  /* As the site header's social icons: only the icon's colour changes. */
+  .icon-link {
+    display: inline-flex;
+    padding: 0.25rem 0.5rem;
+    color: var(--sl-color-gray-2);
+  }
+  .icon-link:hover,
+  .icon-link:focus-visible {
+    color: var(--sl-color-accent-high);
+  }
 
-  /*
-   * The header's items keep their width, so that `header.ts` sees when they no longer fit, and
-   * leave it rather than overflow; their labels show only in the menu.
-   */
+  /* The header's items keep their width; any wider than measured below are cut off. */
   .bar {
     overflow: hidden;
   }
@@ -302,7 +374,7 @@ import '../components/playground/playground.css';
   .bar > * > .item-label {
     display: none;
   }
-  /* The items moved into the menu, above its own settings. */
+  /* The copies of the controls, above the menu's own settings. */
   .collapsed {
     display: flex;
     flex-direction: column;
@@ -311,33 +383,118 @@ import '../components/playground/playground.css';
     border-bottom: 1px solid var(--sl-color-gray-5);
     color: var(--sl-color-gray-2);
   }
-  .collapsed[hidden] {
-    display: none;
-  }
   .collapsed .item {
     justify-content: space-between;
   }
-  /* The links and the theme switch, in a row at the foot of the menu, as in the site's own. */
+  /*
+   * The copies of the links and the theme switch, in a row at the foot of the menu, as in the
+   * site's own: the first at the start, the others at the end, each one's own padding aligned
+   * with the menu's edges.
+   */
   .collapsed-links {
     display: flex;
     align-items: center;
     gap: 0.25rem;
+    margin-inline: -0.5rem;
     padding-top: 0.6rem;
     border-top: 1px solid var(--sl-color-gray-5);
   }
-  .collapsed-links[hidden] {
-    display: none;
-  }
-  /* Each item's own padding aligned with the menu's edges. */
-  .collapsed-links > :first-child {
-    margin-inline: -0.5rem auto;
-  }
-  .collapsed-links > :last-child {
-    margin-inline-end: -0.5rem;
+  .collapsed-links > [data-collapse='docs'] {
+    margin-inline-end: auto;
   }
   .collapsed-links :global(starlight-rapide-theme-select button) {
     margin: 0;
     padding: 0.25rem 0.5rem;
+  }
+
+  /*
+   * The header keeps to one line: as the window narrows, its items leave it, the least needed
+   * first and the most used controls last, while Share and Run always stay. Each item leaves below
+   * the width the header needs with it and every item leaving after it, measured with the fonts
+   * of Windows plus some room for wider ones, and its copy in the menu shows instead; the title
+   * and the shortcut have none, and stay for screen readers only.
+   */
+  @media (width < 63rem) {
+    [data-collapse='title'] {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      overflow: hidden;
+      clip-path: inset(50%);
+      white-space: nowrap;
+    }
+  }
+  @media (width < 56.5rem) {
+    .bar > [data-collapse='github'] {
+      display: none;
+    }
+  }
+  @media (width >= 56.5rem) {
+    .collapsed-links,
+    .menu [data-collapse='github'] {
+      display: none;
+    }
+  }
+  @media (width < 54rem) {
+    .bar > [data-collapse='docs'] {
+      display: none;
+    }
+  }
+  @media (width >= 54rem) {
+    .menu [data-collapse='docs'] {
+      display: none;
+    }
+  }
+  @media (width < 47rem) {
+    .bar > [data-collapse='theme'] {
+      display: none;
+    }
+  }
+  @media (width >= 47rem) {
+    .menu [data-collapse='theme'] {
+      display: none;
+    }
+  }
+  @media (width < 43rem) {
+    [data-collapse='shortcut'] {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      overflow: hidden;
+      clip-path: inset(50%);
+      white-space: nowrap;
+    }
+  }
+  @media (width < 39.5rem) {
+    .bar > [data-collapse='optimization'] {
+      display: none;
+    }
+  }
+  @media (width >= 39.5rem) {
+    .collapsed,
+    .menu [data-collapse='optimization'] {
+      display: none;
+    }
+  }
+  @media (width < 35rem) {
+    .bar > [data-collapse='autorun'] {
+      display: none;
+    }
+  }
+  @media (width >= 35rem) {
+    .menu [data-collapse='autorun'] {
+      display: none;
+    }
+  }
+  @media (width < 29.5rem) {
+    .bar > [data-collapse='examples'] {
+      display: none;
+    }
+  }
+  @media (width >= 29.5rem) {
+    .menu [data-collapse='examples'] {
+      display: none;
+    }
   }
   main {
     flex: 1;
