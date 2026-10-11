@@ -184,21 +184,26 @@ export function describeFailure(result: Result): string | undefined {
 export function summarize(result: Result, timed = false): string {
   const failure = describeFailure(result);
   if (failure !== undefined) return failure;
-  const timing = timed ? `Compiled in ${result.compilation.milliseconds.toFixed(0)} ms.` : '';
-  const errors = countErrors(result.compilation.diagnostics);
+  const outcome = outcomeOf(result);
+  if (!timed) return outcome ?? 'Compiles.';
+  const timing = `Compiled in ${result.compilation.milliseconds.toFixed(0)} ms.`;
+  // That it compiles, the timing says.
+  return outcome === null ? timing : `${outcome} ${timing}`;
+}
+
+/**
+ * Returns a sentence saying what `result`, which its request was served to the end, came to: how
+ * the program ended, or how many errors it has; or `null` if it compiles without running.
+ */
+function outcomeOf(result: Result): string | null {
   const { execution } = result;
-  const outcome =
-    execution !== null
-      ? execution.trap !== undefined
-        ? 'The program trapped.'
-        : `Exited with status ${execution.exitCode}.`
-      : errors > 0
-        ? `${errors} error${errors > 1 ? 's' : ''}.`
-        : // The timing says as much.
-          timed
-          ? ''
-          : 'Compiles.';
-  return [outcome, timing].filter((sentence) => sentence !== '').join(' ');
+  if (execution !== null) {
+    return execution.trap !== undefined
+      ? 'The program trapped.'
+      : `Exited with status ${execution.exitCode}.`;
+  }
+  const errors = countErrors(result.compilation.diagnostics);
+  return errors > 0 ? `${errors} error${errors > 1 ? 's' : ''}.` : null;
 }
 
 /** Returns a sentence describing `status`, or `null` if there is nothing to say about it. */

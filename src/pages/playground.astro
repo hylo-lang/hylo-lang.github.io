@@ -26,6 +26,7 @@ import {
 } from '../components/playground/settings';
 import { VIEWS, VIEW_TITLES } from '../components/playground/views';
 import Stages from '../components/playground/Stages.astro';
+import layerOrder from '../styles/layers.css?raw';
 import 'starlight-theme-rapide/styles/theme';
 import '../styles/fonts.css';
 import '../components/playground/playground.css';
@@ -36,13 +37,9 @@ import '../components/playground/playground.css';
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <!-- The order of the CSS layers on every Starlight page, where the theme's colours (`rapide`)
-         win over the defaults starlight-tailwind gives them (`utilities`). A layer's place is set
-         where it is first mentioned, so this comes before every stylesheet: in the build, the page
-         gets the site's global styles too, after the theme's. -->
-    <style is:inline>
-      @layer properties, base, starlight, theme, components, utilities, rapide;
-    </style>
+    <!-- The site's order of the CSS layers, before every stylesheet: in the build, the page gets
+         the site's global styles too, after the theme's. -->
+    <style is:inline set:html={layerOrder} />
     <title>Playground | Hylo</title>
     <meta
       name="description"
@@ -78,7 +75,6 @@ import '../components/playground/playground.css';
         <option value="">Examples…</option>
       </select>
       <label class="item" data-collapse="optimization">
-        <span class="item-label">Optimization</span>
         <select id="pg-optimization" class="pg-select" aria-label="Optimization level">
           {OPTIMIZATION_LEVELS.map((level) => <option value={level}>-O{level}</option>)}
         </select>
@@ -370,10 +366,6 @@ import '../components/playground/playground.css';
     align-items: center;
     gap: 0.75rem;
   }
-  /* The menu is in the header too, so only the header's own children. */
-  .bar > * > .item-label {
-    display: none;
-  }
   /* The copies of the controls, above the menu's own settings. */
   .collapsed {
     display: flex;
@@ -430,8 +422,8 @@ import '../components/playground/playground.css';
     }
   }
   @media (width >= 56.5rem) {
-    .collapsed-links,
-    .menu [data-collapse='github'] {
+    /* Its first item, and so the whole row. */
+    .collapsed-links {
       display: none;
     }
   }
@@ -471,8 +463,8 @@ import '../components/playground/playground.css';
     }
   }
   @media (width >= 39.5rem) {
-    .collapsed,
-    .menu [data-collapse='optimization'] {
+    /* Its first item, and so the whole section. */
+    .collapsed {
       display: none;
     }
   }

@@ -3,6 +3,7 @@
  * playground compiles with, and the request they make of the compiler.
  */
 import type { Artifact, CompileRequest, Phase } from '@hylo-lang/hylo-wasm/protocol';
+import { canProduce } from './views';
 
 /** LLVM's optimization levels, from none to the most. */
 export const OPTIMIZATION_LEVELS = [0, 1, 2, 3] as const;
@@ -37,15 +38,18 @@ export const DEFAULT_SETTINGS: Readonly<CompileSettings> = {
 };
 
 /**
- * Returns the request compiling `source` with `settings`, producing `artifacts`, and an
- * executable to run unless `settings.stopAfter` stops compilation before there is one.
+ * Returns the request compiling `source` with `settings`, producing those of `artifacts` that
+ * `settings.stopAfter` leaves compilation to produce (see `canProduce`), and an executable to run
+ * unless it stops compilation before there is one.
  */
 export function compileRequest(
   source: string,
   artifacts: readonly Artifact[],
   settings: CompileSettings,
 ): CompileRequest {
-  const emit: NonNullable<CompileRequest['emit']> = [...artifacts];
+  const emit: NonNullable<CompileRequest['emit']> = artifacts.filter((artifact) =>
+    canProduce(artifact, settings.stopAfter),
+  );
   if (settings.stopAfter === null) emit.push('executable');
   return {
     source,

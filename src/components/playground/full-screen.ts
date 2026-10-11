@@ -210,14 +210,7 @@ function applySettings(settings: CompileSettings): void {
   stopAfterSelect.value = settings.stopAfter ?? '';
   standardLibraryCheckbox.checked = settings.standardLibrary;
   for (const [control, copy] of copiedControls) copyValue(control, copy);
-  hideUnproducibleTabs();
   markMoreMenuIfModified();
-}
-
-/** Hides the tabs of the views that the final phase chosen keeps a request from producing. */
-function hideUnproducibleTabs(): void {
-  const stopAfter = parsePhase(stopAfterSelect.value);
-  for (const tab of tabs) tab.hidden = !canProduce(tab.dataset.view as View, stopAfter);
 }
 
 /** Marks the "More options" button iff a setting in its menu differs from its default. */
@@ -361,10 +354,13 @@ const markSelectedTab = connectTabs(tablist, panel, (view) => void selectView(vi
 
 /**
  * Selects `view`, or the result if the final phase chosen keeps requests from producing `view`,
- * and shows the latest results it has.
+ * and shows the latest results it has; hides the tabs of the views that phase keeps them from
+ * producing.
  */
 async function selectView(view: View): Promise<void> {
-  if (!canProduce(view, parsePhase(stopAfterSelect.value))) view = 'result';
+  const stopAfter = parsePhase(stopAfterSelect.value);
+  for (const tab of tabs) tab.hidden = !canProduce(tab.dataset.view as View, stopAfter);
+  if (!canProduce(view, stopAfter)) view = 'result';
   if (view !== pane.selectedView) scheduleSave();
   markSelectedTab(view);
   await pane.selectView(view);
@@ -404,10 +400,7 @@ for (const select of examplesSelects) {
     editor.focus();
   });
 }
-stopAfterSelect.addEventListener('change', () => {
-  hideUnproducibleTabs();
-  void selectView(pane.selectedView);
-});
+stopAfterSelect.addEventListener('change', () => void selectView(pane.selectedView));
 for (const control of [optimizationSelect, stopAfterSelect, standardLibraryCheckbox]) {
   control.addEventListener('change', () => {
     markMoreMenuIfModified();

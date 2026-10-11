@@ -1,0 +1,7 @@
+/*
+ * The order of the site's CSS layers, where the theme's colours (`rapide`) win over the defaults
+ * starlight-tailwind gives them (`utilities`). A layer's place is set where it is first mentioned,
+ * so this comes before any other style: first in `global.css`, which Starlight's pages load first,
+ * and inline at the top of the playground's page, which is not one of them.
+ */
+@layer properties, base, starlight, theme, components, utilities, rapide;

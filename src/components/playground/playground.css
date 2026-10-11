@@ -1,6 +1,15 @@
 /* The playground's look, in Starlight's colour tokens so that it follows the site's theme. Shared
    by embedded snippets and the full-screen playground. */
 
+/* Failure, in a red that reads clearly on either theme's background: the dark theme's
+   `--sl-color-red-high` is too pale to look red. */
+:root {
+  --pg-color-failure: var(--sl-color-red-accent-invert);
+}
+:root[data-theme='light'] {
+  --pg-color-failure: var(--sl-color-red-high);
+}
+
 hylo-playground {
   display: block;
   margin-block: 1rem;
@@ -341,16 +350,12 @@ hylo-playground:not([data-ready]) .pg-toolbar {
   color: var(--sl-color-green-high);
 }
 /*
- * Failure, in a red that reads clearly on either theme's background: the dark theme's
- * `--sl-color-red-high` is too pale to look red. A tab is marked `data-failed` (see `pane.ts`) when
- * its view was not produced because the request failed or the program has errors.
+ * A tab is marked `data-failed` (see `pane.ts`) when its view was not produced because the request
+ * failed or the program has errors.
  */
 .pg-bad,
 .pg-tabs [role='tab'][data-failed] {
-  color: var(--sl-color-red-high);
-}
-:root:not([data-theme='light']) :is(.pg-bad, .pg-tabs [role='tab'][data-failed]) {
-  color: var(--sl-color-red-accent-invert);
+  color: var(--pg-color-failure);
 }
 .pg-warn {
   color: var(--sl-color-orange-high);
