@@ -1,0 +1,24 @@
+---
+/** A paragraph set apart by a bar of the accent colour on its left, as a quotation in Markdown. */
+---
+
+<div class="not-content callout">
+    <slot />
+</div>
+
+<style>
+    .callout {
+        margin-block: 1.5rem;
+        padding: 0.25rem 0 0.25rem 1.25rem;
+        border-inline-start: 4px solid var(--sl-color-accent);
+        color: var(--sl-color-gray-2);
+        font-size: var(--sl-text-lg);
+    }
+    .callout :global(p) {
+        margin: 0;
+    }
+    .callout :global(a) {
+        color: var(--sl-color-accent-high);
+        font-weight: 500;
+    }
+</style>

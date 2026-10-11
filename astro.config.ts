@@ -35,6 +35,7 @@ export default defineConfig({
             ],
             components: {
                 'Header': './src/layouts/Header.astro',
+                'Sidebar': './src/layouts/Sidebar.astro',
                 'Hero': './src/components/Hero.astro',
             },
 

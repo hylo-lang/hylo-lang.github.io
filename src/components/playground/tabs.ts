@@ -33,18 +33,20 @@ export function connectTabs(
   }
 
   tablist.addEventListener('keydown', (event) => {
-    const focused = tabs.indexOf(document.activeElement as HTMLButtonElement);
+    // Only the tabs shown: a playground hides those of views it cannot produce.
+    const shown = tabs.filter((tab) => !tab.hidden);
+    const focused = shown.indexOf(document.activeElement as HTMLButtonElement);
     if (focused < 0) return;
     const target =
-      event.key === 'ArrowRight' ? (focused + 1) % tabs.length
-      : event.key === 'ArrowLeft' ? (focused + tabs.length - 1) % tabs.length
+      event.key === 'ArrowRight' ? (focused + 1) % shown.length
+      : event.key === 'ArrowLeft' ? (focused + shown.length - 1) % shown.length
       : event.key === 'Home' ? 0
-      : event.key === 'End' ? tabs.length - 1
+      : event.key === 'End' ? shown.length - 1
       : -1;
     if (target < 0) return;
     event.preventDefault();
-    tabs[target].focus();
-    onSelect(tabs[target].dataset.view as View);
+    shown[target].focus();
+    onSelect(shown[target].dataset.view as View);
   });
 
   return (view) => {

@@ -1,0 +1,38 @@
+---
+/**
+ * Starlight's sidebar, with the site's primary links above it in its menu on narrow pages: there,
+ * the sidebar's own menu button stands in for the header's, which `Header.astro` hides so as not
+ * to show two.
+ */
+import Default from '@astrojs/starlight/components/Sidebar.astro';
+import { navLinks } from './nav-links';
+---
+
+<nav class="md:sl-hidden primary-links" aria-label="Primary">
+    {navLinks.map(({ href, label }) => <a href={href}>{label}</a>)}
+</nav>
+<Default><slot /></Default>
+
+<style>
+    @layer starlight.core {
+        .primary-links {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.25rem 0.5rem;
+            margin-bottom: 1rem;
+            padding-bottom: 1rem;
+            border-bottom: 1px solid var(--sl-color-gray-6);
+        }
+        .primary-links a {
+            padding: 0.25rem 0.5rem;
+            border-radius: 0.25rem;
+            color: var(--sl-color-white);
+            font-weight: 500;
+            text-decoration: none;
+        }
+        .primary-links a:hover,
+        .primary-links a:focus-visible {
+            background: var(--sl-color-gray-6, var(--sl-color-gray-5));
+        }
+    }
+</style>

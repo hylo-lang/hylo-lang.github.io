@@ -1,6 +1,15 @@
 /* The playground's look, in Starlight's colour tokens so that it follows the site's theme. Shared
    by embedded snippets and the full-screen playground. */
 
+/* Failure, in a red that reads clearly on either theme's background: the dark theme's
+   `--sl-color-red-high` is too pale to look red. */
+:root {
+  --pg-color-failure: var(--sl-color-red-accent-invert);
+}
+:root[data-theme='light'] {
+  --pg-color-failure: var(--sl-color-red-high);
+}
+
 hylo-playground {
   display: block;
   margin-block: 1rem;
@@ -74,8 +83,33 @@ hylo-playground:not([data-ready]) .pg-toolbar {
   background-size: 0.3rem 0.3rem;
   background-repeat: no-repeat;
 }
+/* A number, as the menus look, followed by its unit. */
+.pg-input {
+  box-sizing: border-box;
+  width: 5rem;
+  height: 2rem;
+  padding: 0 0.6rem;
+  border-radius: 0.5rem;
+  border: 1px solid var(--sl-color-gray-5);
+  background: var(--sl-color-gray-6);
+  color: var(--sl-color-white);
+  font: inherit;
+  font-size: var(--sl-text-sm, 0.875rem);
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  transition: border-color 0.15s;
+}
+.pg-input:hover {
+  border-color: var(--sl-color-gray-4);
+}
+.pg-input-unit {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
 .pg-button:focus-visible,
 .pg-select:focus-visible,
+.pg-input:focus-visible,
 .pg-link:focus-visible,
 .pg-tabs [role='tab']:focus-visible,
 .pg-diagnostics button:focus-visible {
@@ -315,8 +349,13 @@ hylo-playground:not([data-ready]) .pg-toolbar {
 .pg-ok {
   color: var(--sl-color-green-high);
 }
-.pg-bad {
-  color: var(--sl-color-red-high);
+/*
+ * A tab is marked `data-failed` (see `pane.ts`) when its view was not produced because the request
+ * failed or the program has errors.
+ */
+.pg-bad,
+.pg-tabs [role='tab'][data-failed] {
+  color: var(--pg-color-failure);
 }
 .pg-warn {
   color: var(--sl-color-orange-high);
@@ -352,7 +391,10 @@ hylo-playground:not([data-ready]) .pg-toolbar {
   color: var(--shiki-light);
 }
 
+/* As wide as its longest line, to which the panel scrolls, as it does in a view of code. */
 .pg-diagnostics {
+  width: max-content;
+  min-width: 100%;
   list-style: none;
   margin: 0.5rem 0 0;
   padding: 0;
@@ -374,7 +416,6 @@ hylo-playground:not([data-ready]) .pg-toolbar {
   background: none;
   color: inherit;
   cursor: pointer;
-  overflow-x: auto;
 }
 .pg-diagnostics button:disabled {
   cursor: default;

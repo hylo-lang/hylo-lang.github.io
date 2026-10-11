@@ -6,7 +6,7 @@
 import type { Diagnostic } from '@hylo-lang/hylo-wasm/protocol';
 import type { CompilerStatus, Result } from './compiler';
 import { countErrors } from './diagnostics';
-import { VIEW_LANGUAGES, type View } from './views';
+import { isArtifactView, VIEW_LANGUAGES, type View } from './views';
 
 /** The sentence saying the compiler failed to load. */
 const FAILED_TO_LOAD = 'The compiler failed to load.';
@@ -179,19 +179,31 @@ export function describeFailure(result: Result): string | undefined {
 
 /**
  * Returns a sentence summing up `result`, for the status line that screen readers announce rather
- * than the whole panel.
+ * than the whole panel, followed by how long compiling took if `timed`.
  */
-export function summarize(result: Result): string {
+export function summarize(result: Result, timed = false): string {
   const failure = describeFailure(result);
   if (failure !== undefined) return failure;
-  const errors = countErrors(result.compilation.diagnostics);
+  const outcome = outcomeOf(result);
+  if (!timed) return outcome ?? 'Compiles.';
+  const timing = `Compiled in ${result.compilation.milliseconds.toFixed(0)} ms.`;
+  // That it compiles, the timing says.
+  return outcome === null ? timing : `${outcome} ${timing}`;
+}
+
+/**
+ * Returns a sentence saying what `result`, which its request was served to the end, came to: how
+ * the program ended, or how many errors it has; or `null` if it compiles without running.
+ */
+function outcomeOf(result: Result): string | null {
   const { execution } = result;
-  if (execution === null) {
-    return errors > 0 ? `${errors} error${errors > 1 ? 's' : ''}.` : 'Compiles.';
+  if (execution !== null) {
+    return execution.trap !== undefined
+      ? 'The program trapped.'
+      : `Exited with status ${execution.exitCode}.`;
   }
-  return execution.trap !== undefined
-    ? 'The program trapped.'
-    : `Exited with status ${execution.exitCode}.`;
+  const errors = countErrors(result.compilation.diagnostics);
+  return errors > 0 ? `${errors} error${errors > 1 ? 's' : ''}.` : null;
 }
 
 /** Returns a sentence describing `status`, or `null` if there is nothing to say about it. */
@@ -300,6 +312,17 @@ function whyNotProduced(result: Result): string {
   return countErrors(result.compilation.diagnostics) > 0
     ? 'Not produced: the program has errors.'
     : 'Not produced.';
+}
+
+/**
+ * Returns `true` iff `result` lacks what `view` shows because its request failed or the program
+ * has errors, rather than because the request did not ask for it.
+ */
+export function failedToProduce(view: View, result: Result): boolean {
+  if (!isArtifactView(view) || result.compilation.artifacts[view] !== undefined) return false;
+  return (
+    describeFailure(result) !== undefined || countErrors(result.compilation.diagnostics) > 0
+  );
 }
 
 /**

@@ -34,7 +34,6 @@
 import { ExternalLink, LoaderCircle, Pencil, Play, RotateCcw } from '@lucide/astro';
 import type { Phase } from '@hylo-lang/hylo-wasm/protocol';
 import { DEFAULT_SETTINGS, OPTIMIZATION_LEVELS, PHASES } from './settings';
-import { PLAYGROUND_PATH } from './site';
 import { EXPECTATION_FORMS, parseExpectation } from './snippet';
 import { VIEWS, VIEW_TITLES, type View } from './views';
 import Stages from './Stages.astro';
@@ -143,7 +142,7 @@ const code = await Astro.slots.render('default');
       )
     }
     <Stages />
-    <a data-part="open" class="pg-link" href={PLAYGROUND_PATH}>
+    <a data-part="open" class="pg-link" href="/playground/">
       Open in the playground
       <ExternalLink class="pg-icon" aria-hidden="true" />
     </a>
