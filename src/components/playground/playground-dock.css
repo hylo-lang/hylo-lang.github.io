@@ -174,7 +174,7 @@
 }
 /*
  * The button adding a file over the program's lone file, whose group shows no tabs, nor the
- * button after them: faint until the pointer or the keyboard comes to it.
+ * button after them.
  */
 .pg-dock-add.pg-dock-add-alone {
   display: none;
@@ -187,13 +187,12 @@
   border: 1px solid var(--sl-color-gray-5);
   background: var(--sl-color-gray-6);
   color: var(--sl-color-gray-2);
-  opacity: 0.4;
-  transition: opacity 0.15s;
 }
 [data-alone] > .pg-dock-add.pg-dock-add-alone {
   display: inline-grid;
 }
 .pg-dock-add.pg-dock-add-alone:hover,
 .pg-dock-add.pg-dock-add-alone:focus-visible {
-  opacity: 1;
+  background: var(--sl-color-gray-5);
+  color: var(--sl-color-white);
 }
