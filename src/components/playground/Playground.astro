@@ -22,9 +22,32 @@
  * The compiler is only downloaded when a reader runs a snippet, and is shared by every snippet on
  * the page.
  *
+ * A snippet can compile code it does not show: fences marked `hidden` are compiled with the one
+ * shown, in order, and a snippet that `continues` another, earlier on the page, which it names by
+ * its `name`, compiles all of that one's code before its own.
+ *
+ *     <Playground name="counter" stopAfter="typing" expect="ok">
+ *     ```hylo
+ *     fun incremented(_ n: Int32) -> Int32 { n + (1 as Int32) }
+ *     ```
+ *     </Playground>
+ *
+ *     <Playground continues="counter" expect="exit 3">
+ *     ```hylo hidden
+ *     public fun main() -> Int32 {
+ *     ```
+ *     ```hylo
+ *       incremented(2 as Int32)
+ *     ```
+ *     ```hylo hidden
+ *     }
+ *     ```
+ *     </Playground>
+ *
  * Only works in MDX pages: the code comes from the Markdown plugin `src/plugins/playground-source.ts`, which
- * sets `source` to the code of the fence, and fails the build, naming the page and the line, if
- * the slot is not exactly one `hylo` code fence. The build also fails if `expect` is missing or
+ * sets `source`, `prelude` and `epilogue` from the fences, and fails the build, naming the page
+ * and the line, if the slot is not `hylo` code fences of which exactly one is shown, or if
+ * `continues` names no snippet earlier on the page. The build also fails if `expect` is missing or
  * not one of its forms, or if another prop has a value it does not take. The site's tests then
  * check that the snippet does what `expect` says (`snippets.test.ts`).
  *
@@ -64,8 +87,16 @@ interface Props {
    * (it does not compile), or `ok` (it compiles, and runs if it is a program). Required.
    */
   expect: string;
-  /** The code of the fence, which `playground-source.ts` sets; not for authors to set. */
+  /** A name by which later snippets of the page can continue this one. */
+  name?: string;
+  /** The `name` of an earlier snippet of the page, whose code this one compiles before its own. */
+  continues?: string;
+  /** The code of the fence shown, which `playground-source.ts` sets; not for authors to set. */
   source: string;
+  /** The code compiled before `source` without being shown, which `playground-source.ts` sets. */
+  prelude: string;
+  /** The code compiled after `source` without being shown, which `playground-source.ts` sets. */
+  epilogue: string;
 }
 
 const {
@@ -77,6 +108,8 @@ const {
   editable = true,
   expect,
   source,
+  prelude,
+  epilogue,
 } = Astro.props;
 
 // Mistakes are reported as the site builds, rather than as a snippet that misbehaves. MDX does not
@@ -105,7 +138,7 @@ if (parseExpectation(expect) === null) {
   fail(`\`expect="${expect}"\` is not one of ${EXPECTATION_FORMS}`);
 }
 
-if (typeof source !== 'string') fail('no code: use it in an MDX page, where `src/plugins/playground-source.ts` gives it its code');
+if ([source, prelude, epilogue].some((code) => typeof code !== 'string')) fail('no code: use it in an MDX page, where `src/plugins/playground-source.ts` gives it its code');
 const code = await Astro.slots.render('default');
 ---
 
@@ -117,6 +150,8 @@ const code = await Astro.slots.render('default');
   data-stop-after={stopAfter}
   data-expect={expect}
   data-source={source}
+  data-prelude={prelude || undefined}
+  data-epilogue={epilogue || undefined}
   class="not-content"
 >
   <div data-part="source"><Fragment set:html={code} /></div>
