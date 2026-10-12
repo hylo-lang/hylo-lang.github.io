@@ -106,8 +106,13 @@ hylo-playground:not([data-ready]) .pg-toolbar {
   display: none;
 }
 
+/*
+ * A snippet's editor, as high as its code (see `fitContent` in `editor.ts`) up to most of the
+ * window below the site's header, and at most 800px, beyond which it scrolls.
+ */
 .pg-editor {
   min-height: 3rem;
+  max-height: min(calc(90vh - var(--sl-nav-height, 4rem)), 800px);
   border: 1px solid var(--sl-color-gray-5);
   border-radius: 0.5rem;
   overflow: hidden;

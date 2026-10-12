@@ -173,7 +173,10 @@ export async function createEditor(host: HTMLElement, options: EditorOptions): P
 
   if (options.fitContent) {
     const fit = (): void => {
-      host.style.height = `${editor.getContentHeight()}px`;
+      // The host's borders as well, which its height includes: the code has its height inside
+      // them, rather than scrolling by their width. The host's `max-height` may cap it.
+      const borders = host.offsetHeight - host.clientHeight;
+      host.style.height = `${editor.getContentHeight() + borders}px`;
       editor.layout();
     };
     editor.onDidContentSizeChange(fit);
