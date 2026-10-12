@@ -286,43 +286,90 @@ public fun main() -> Int32 {
 ```
 </Playground>
 
-### Building on an earlier snippet
+### Building a program across snippets
 
 A snippet named with `name` can be continued by any snippet after it on the same page, with
-`continues`: the later one compiles all of the earlier one's code, hidden or not, before its own.
-A chain of snippets can so build a program up as the prose explains it.
+`continues`: the later one starts from all of the earlier one's code, hidden or not. A chain of
+snippets can so build a program up as the prose explains it. Nothing of the snippets after one is
+compiled with it, and "Open in the playground" opens the program as it stands there.
+
+A program can have several files. A fence goes into the file its `title` names, which the code
+block shows as a file name, and adds its code at the end of it, so a later snippet can continue a
+file an earlier one started. A fence without a title goes into the snippet's own file:
+`main.hylo`, or `main2.hylo` and so on if the program already has one of that name. Diagnostics
+name the files. A snippet can show a fence of each of several files, which it shows as tabs.
+
+A snippet says what it builds on: the snippet it continues, linking to it, the files it compiles
+without showing them, and, above a file's code, whether the file continues from an earlier snippet
+and how many of its lines it does not show. [Runnable Snippets](/docs/contributing/runnable-snippets/)
+shows all of it at work.
+
+A snippet with `contributes={false}` builds on what it continues, but leaves its own code out of
+the snippets continuing it: a mistake or a digression does not end up in the program.
 
 `````mdx
-<Playground name="pair" stopAfter="typing" expect="ok">
-```hylo
-struct Pair is Deinitializable { … }
+<Playground name="point" stopAfter="typing" expect="ok">
+```hylo title="point.hylo"
+public struct Point is Deinitializable { … }
 ```
 </Playground>
 
-<Playground continues="pair" expect="exit 5">
+<Playground name="sum" continues="point" stopAfter="typing" expect="ok">
+```hylo title="point.hylo"
+public fun sum(p: Point) -> Int32 { … }
+```
+</Playground>
+
+<Playground name="mistake" continues="sum" contributes={false} expect="error">
+```hylo
+public fun main() -> Int32 { … }
+```
+</Playground>
+
+<Playground continues="mistake" expect="exit 3">
 ```hylo
 public fun main() -> Int32 { … }
 ```
 </Playground>
 `````
 
-<Playground name="pair" stopAfter="typing" expect="ok">
-```hylo
-struct Pair is Deinitializable {
+<Playground name="point" stopAfter="typing" expect="ok">
+```hylo title="point.hylo"
+public struct Point is Deinitializable {
   public memberwise init
-  public var a: Int32
-  public var b: Int32
+  public var x: Int32
+  public var y: Int32
 }
 ```
 </Playground>
 
-Once `Pair` is declared, a program can use it:
+The same file can go on in a later snippet:
 
-<Playground continues="pair" expect="exit 5">
+<Playground name="sum" continues="point" stopAfter="typing" expect="ok">
+```hylo title="point.hylo"
+/// Returns the sum of the coordinates of `p`.
+public fun sum(p: Point) -> Int32 { p.x + p.y }
+```
+</Playground>
+
+A first attempt at using it does not compile, because integer literals are `Int` unless something
+says otherwise:
+
+<Playground name="mistake" continues="sum" contributes={false} expect="error">
 ```hylo
 public fun main() -> Int32 {
-  let p = Pair(a: 2 as Int32, b: 3 as Int32)
-  return p.a + p.b
+  sum(Point(x: 1, y: 2))
+}
+```
+</Playground>
+
+The mistake is not part of the program, so the next snippet, which continues it, has its own
+`main`:
+
+<Playground continues="mistake" expect="exit 3">
+```hylo
+public fun main() -> Int32 {
+  sum(Point(x: 1 as Int32, y: 2 as Int32))
 }
 ```
 </Playground>

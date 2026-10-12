@@ -12,7 +12,9 @@
  * With no result to show yet, the panel shows the compiler loading, or why it failed to, or what
  * the view waits for.
  *
- * The pane is the only writer of the panel's contents.
+ * The pane is the only writer of the panel's contents. A pane told its panel is not visible keeps
+ * its tabs and strip in step but leaves the panel as it is until it is visible again, so that the
+ * full-screen playground, which has a pane per view, only renders the views the reader sees.
  */
 import type { CompilerStatus, Result } from './compiler';
 import {
@@ -40,8 +42,8 @@ export interface PaneElements {
   panel: HTMLElement;
   /** The tabs, `[role="tab"][data-view]` buttons, if the playground offers several views. */
   tabs: readonly HTMLElement[];
-  /** The strip of stages that `Stages.astro` renders. */
-  stageStrip: HTMLElement;
+  /** The strip of stages that `Stages.astro` renders, if this pane keeps it in step. */
+  stageStrip?: HTMLElement;
   renderView: RenderView;
 }
 
@@ -59,6 +61,8 @@ export class ResultPane {
   #rendered: { view: View; signature: string } | null = null;
   /** Incremented whenever a rendering starts, so that a stale one is dropped. */
   #renderGeneration = 0;
+  /** Whether the panel is visible, which it is unless the pane is told otherwise. */
+  #visible = true;
 
   /** Creates a pane of `elements` showing nothing, with `selectedView` selected. */
   constructor(elements: PaneElements, selectedView: View) {
@@ -122,6 +126,16 @@ export class ResultPane {
     this.#elements.panel.replaceChildren(mutedParagraph(message));
   }
 
+  /**
+   * Records whether the panel is visible: the panel is only brought in step with the results while
+   * it is, and is as soon as it is again.
+   */
+  setVisible(visible: boolean): void {
+    if (visible === this.#visible) return;
+    this.#visible = visible;
+    if (visible) void this.#refresh();
+  }
+
   /** Forgets every request, and shows nothing. */
   clear(): void {
     ++this.#renderGeneration;
@@ -146,7 +160,7 @@ export class ResultPane {
   /** Brings the strip, the tabs and the panel in step with what has been recorded. */
   async #refresh(): Promise<void> {
     const { panel, tabs, stageStrip, renderView } = this.#elements;
-    this.#refreshStageStrip(stageStrip);
+    if (stageStrip) this.#refreshStageStrip(stageStrip);
     for (const tab of tabs) {
       const tabView = tab.dataset.view as View;
       const { result: tabResult, wait } = this.#viewState(tabView);
@@ -159,6 +173,7 @@ export class ResultPane {
       else tab.removeAttribute('title');
     }
 
+    if (!this.#visible) return;
     const view = this.#selectedView;
     const { result, wait } = this.#viewState(view);
     if (wait !== null) {

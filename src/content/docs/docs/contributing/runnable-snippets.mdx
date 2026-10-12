@@ -1,0 +1,225 @@
+---
+title: Runnable Snippets
+description: A tour of what runnable snippets can do, built as a small program, one snippet at a time.
+---
+
+import Playground from '../../../../components/playground/Playground.astro';
+import { Aside } from '@astrojs/starlight/components';
+
+Every code block on this page compiles and runs in your browser. Press **Run** on any of them,
+**Edit** the code and watch the results follow your edits, or **Open in the playground** to take
+the program as it stands at that point to the full-screen playground. The site's tests check that
+each one still does what the page says, every time the compiler changes.
+
+The page builds a small geometry library, a snippet at a time, the way prose explains a program.
+How each snippet is written is shown in [Editing this
+Documentation](/docs/contributing/documentation/#runnable-snippets); the source of
+this page shows all of it at work.
+
+## A program, built up across snippets
+
+A program starts with a type. It is not a program yet, without a `main`, so this snippet is
+checked rather than run (`stopAfter="typing"`), and it lives in a file of its own, `point.hylo`,
+which its title names.
+
+<Playground name="point" stopAfter="typing" expect="ok">
+```hylo title="point.hylo"
+/// A point of the plane, at integer coordinates.
+public struct Point is Deinitializable {
+  public memberwise init
+  public var x: Int32
+  public var y: Int32
+}
+```
+</Playground>
+
+A later snippet can continue the same file. This one adds to `point.hylo` (`continues="point"`,
+with the same title), so everything above is compiled with it, though it only shows what it adds.
+
+<Playground name="sum" continues="point" stopAfter="typing" expect="ok">
+```hylo title="point.hylo"
+extension Point {
+  /// Returns the sum of the coordinates.
+  public fun sum() -> Int32 { self.x + self.y }
+}
+```
+</Playground>
+
+## Showing only what matters
+
+To show an expression rather than a program, the code around it can be compiled without being
+shown: here a `main` opens before the two lines you see and closes after them. Edit them, and only
+them; **Open in the playground** shows the whole program.
+
+<Playground continues="sum" contributes={false} expect="exit 7">
+```hylo hidden
+public fun main() -> Int32 {
+```
+```hylo
+  let p = Point(x: 3 as Int32, y: 4 as Int32)
+  return p.sum()
+```
+```hylo hidden
+}
+```
+</Playground>
+
+That snippet says `contributes={false}`: the `main` it adds is for showing off `sum`, not part of
+the library, so the snippets continuing it later will not get it.
+
+Code that is worth knowing about but beside the point can be folded instead
+(`collapse={2-9}`): you see that it is there, and unfold it if you want to.
+
+<Playground expect="exit 10">
+```hylo collapse={2-9}
+/// Returns 1 + 2 + … + n.
+fun triangle(n: Int32) -> Int32 {
+  var total: Int32 = 0
+  var i: Int32 = 1
+  while i <= n {
+    &total = total + i
+    &i = i + (1 as Int32)
+  }
+  return total
+}
+
+public fun main() -> Int32 { triangle(4 as Int32) }
+```
+</Playground>
+
+## Several files
+
+A snippet can bring several files at once. This one shows `shape.hylo`, a trait, and brings a type
+conforming to it in `rect.hylo`, which it compiles but does not show.
+
+<Playground name="shapes" continues="sum" stopAfter="typing" expect="ok">
+```hylo title="shape.hylo"
+/// A figure of the plane.
+trait Shape {
+  /// Returns the area of the figure.
+  fun area() -> Int32
+}
+```
+```hylo hidden title="rect.hylo"
+/// A rectangle, by its width and height.
+struct Rect is Shape & Deinitializable {
+  public memberwise init
+  public var w: Int32
+  public var h: Int32
+  fun area() -> Int32 { self.w * self.h }
+}
+```
+</Playground>
+
+A program can now use all of it. The program has four files at this point: `point.hylo`,
+`shape.hylo`, `rect.hylo`, and this snippet's own, `main.hylo`. Open it in the playground to see
+them one after another.
+
+<Playground name="program" continues="shapes" expect="exit 15">
+```hylo
+/// Returns the area of two copies of `s`.
+fun twice<T is Shape>(s: T) -> Int32 { s.area() + s.area() }
+
+public fun main() -> Int32 {
+  let r = Rect(w: 2 as Int32, h: 3 as Int32)
+  let p = Point(x: 1 as Int32, y: 2 as Int32)
+  return twice(r) + p.sum()
+}
+```
+</Playground>
+
+A snippet can also show several files at once, as tabs. This one goes on with `shape.hylo`, which
+its tab marks as continued from an earlier snippet, adds `square.hylo`, and uses both in
+`main.hylo`. Edit any of them: each tab has its own editor, and a diagnostic takes you to the
+right tab.
+
+<Playground continues="shapes" expect="exit 21">
+```hylo title="main.hylo"
+public fun main() -> Int32 {
+  totalArea(Rect(w: 3 as Int32, h: 4 as Int32), Square(side: 3 as Int32))
+}
+```
+```hylo title="shape.hylo"
+/// Returns the sum of the areas of `a` and `b`.
+fun totalArea<A is Shape, B is Shape>(a: A, b: B) -> Int32 { a.area() + b.area() }
+```
+```hylo title="square.hylo"
+/// A square, by the length of its sides.
+struct Square is Shape & Deinitializable {
+  public memberwise init
+  public var side: Int32
+  fun area() -> Int32 { self.side * self.side }
+}
+```
+</Playground>
+
+## Mistakes, and what the compiler says about them
+
+A snippet can show code that does not compile, and the diagnostics it gets
+(`expect="error"`). Click one to be taken to it in the code. With `contributes={false}`, the
+mistake stays out of the program for what follows.
+
+<Aside type="tip">
+Fix it by writing `1 as Int32` and `2 as Int32`: the results follow your edits.
+</Aside>
+
+<Playground continues="shapes" contributes={false} outputs="result diagnostics" expect="error">
+```hylo
+public fun main() -> Int32 {
+  Point(x: 1, y: 2).sum()
+}
+```
+</Playground>
+
+Several snippets can continue the same one, as alternatives. This one continues `shapes` too,
+and is not troubled by the mistake above.
+
+<Playground continues="shapes" expect="exit 9">
+```hylo
+public fun main() -> Int32 {
+  Rect(w: 3 as Int32, h: 3 as Int32).area()
+}
+```
+</Playground>
+
+A program that runs can still stop: this one breaks a precondition of a function it calls, which
+lives in a file the snippet does not show, and traps (`expect="trap"`).
+
+<Playground expect="trap">
+```hylo hidden title="math.hylo"
+/// Returns `a` divided by `b`, which must not be zero.
+fun checkedRatio(a: Int32, b: Int32) -> Int32 {
+  precondition(b != (0 as Int32))
+  return a / b
+}
+```
+```hylo
+public fun main() -> Int32 {
+  checkedRatio(6 as Int32, 0 as Int32)
+}
+```
+</Playground>
+
+## Under the hood
+
+A snippet can show what the compiler makes of the code: Hylo IR, LLVM IR, and WebAssembly. Here,
+with LLVM's optimizations (`optimization={2}`), the calls through the trait fold away to a
+constant, which the LLVM tab shows. `focus="main"` limits the Hylo IR to `main`, which still
+calls `area()` twice: Hylo IR is what the compiler hands to LLVM.
+
+<Playground continues="shapes" outputs="result ir llvm assembly" focus="main" optimization={2} expect="exit 12">
+```hylo
+public fun main() -> Int32 {
+  let r = Rect(w: 2 as Int32, h: 3 as Int32)
+  return r.area() + r.area()
+}
+```
+</Playground>
+
+Some snippets are better read than edited; this last one is read-only (`editable={false}`).
+
+<Playground continues="sum" editable={false} expect="exit 3">
+```hylo
+public fun main() -> Int32 { Point(x: 1 as Int32, y: 2 as Int32).sum() }
+```
+</Playground>

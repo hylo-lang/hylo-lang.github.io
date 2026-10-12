@@ -4,7 +4,8 @@
  */
 import * as v from 'valibot';
 import { OPTIMIZATION_LEVELS, PHASES } from './settings';
-import { CURRENT_VERSION, DEFAULT_STATE, type PlaygroundState } from './share';
+import { isFileName } from './file-names';
+import { CURRENT_VERSION, DEFAULT_FILE_NAME, DEFAULT_STATE, type PlaygroundState } from './share';
 import { VIEWS } from './views';
 
 /** What reading a state found. */
@@ -13,22 +14,42 @@ export type DecodedState =
   /** A state that could not be read, and why, in a sentence for the reader. */
   | { problem: string };
 
-/** Version 1 of the state. */
-const Version1 = v.object({
-  version: v.literal(1),
-  source: v.string(),
+/** The settings and the view, which every version has, with their defaults. */
+const settings = {
   optimization: v.optional(v.picklist(OPTIMIZATION_LEVELS), DEFAULT_STATE.optimization),
   standardLibrary: v.optional(v.boolean(), DEFAULT_STATE.standardLibrary),
   stopAfter: v.optional(v.nullable(v.picklist(PHASES)), DEFAULT_STATE.stopAfter),
   view: v.optional(v.picklist(VIEWS), DEFAULT_STATE.view),
-});
+};
+
+/** Version 1 of the state: a program of one file, read as `main.hylo`. */
+const Version1 = v.pipe(
+  v.object({ version: v.literal(1), source: v.string(), ...settings }),
+  v.transform(({ version: _, source, ...rest }): PlaygroundState => ({
+    files: [{ name: DEFAULT_FILE_NAME, contents: source }],
+    ...rest,
+  })),
+);
+
+/** Version 2 of the state: a program of files, of distinct names, one of which may be shown. */
+const Version2 = v.pipe(
+  v.object({
+    version: v.literal(2),
+    files: v.pipe(
+      v.array(v.object({ name: v.pipe(v.string(), v.check(isFileName)), contents: v.string() })),
+      v.minLength(1),
+      v.check((files) => new Set(files.map((f) => f.name)).size === files.length),
+    ),
+    active: v.optional(v.string()),
+    ...settings,
+  }),
+  v.check(({ files, active }) => active === undefined || files.some((f) => f.name === active)),
+  // `object` drops the fields its schema does not name, which leaves the version to drop.
+  v.transform(({ version: _, ...state }): PlaygroundState => state),
+);
 
 /** A state of any version, read as the current state. */
-const State: v.GenericSchema<unknown, PlaygroundState> = v.pipe(
-  v.variant('version', [Version1]),
-  // `object` drops the fields its schema does not name, which leaves the version to drop.
-  v.transform(({ version: _, ...state }) => state),
-);
+const State: v.GenericSchema<unknown, PlaygroundState> = v.union([Version1, Version2]);
 
 /** What every version has in common: the version, which says how to read the rest. */
 const Versioned = v.looseObject({ version: v.pipe(v.number(), v.integer(), v.minValue(1)) });

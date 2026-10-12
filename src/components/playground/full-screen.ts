@@ -1,7 +1,9 @@
 /**
  * The full-screen playground's script (`src/pages/playground.astro`, whose elements it expects by
- * their ids): an editor filling half the window, every view of the request in the other half,
- * compiled and run again as the reader types unless they turn auto-run off.
+ * their ids): the program's files and every view of the request, in a dock (`playground-dock.ts`)
+ * whose panels the reader can arrange, the files in one half of the window and the views in the
+ * other to begin with, compiled and run again as the reader types unless they turn auto-run off.
+ * While the program has one file, its half looks as an editor alone.
  *
  * Its state (see `PlaygroundState`) opens from a link (see `share.ts`), on load or when the link
  * is followed from the page itself, and is otherwise the one remembered from the reader's last
@@ -9,9 +11,9 @@
  * reload shows what the reader has done since.
  */
 import type { CompileRequest } from '@hylo-lang/hylo-wasm/protocol';
-import type { Result } from './compiler';
-import { createEditor, type Editor } from './editor';
+import type { CompilerStatus, Result } from './compiler';
 import { EXAMPLES } from './examples';
+import { PlaygroundDock } from './playground-dock';
 import { compiler } from './page-compiler';
 import { ResultPane } from './pane';
 import { countErrors } from './diagnostics';
@@ -29,10 +31,15 @@ import {
   parseTimeLimit,
   type CompileSettings,
 } from './settings';
-import { DEFAULT_STATE, playgroundURL, serialize, type PlaygroundState } from './share';
+import {
+  DEFAULT_FILE_NAME,
+  DEFAULT_STATE,
+  playgroundURL,
+  serialize,
+  type PlaygroundState,
+} from './share';
 import { decodeFragment, deserialize, type DecodedState } from './share-reader';
 import { isSettled } from './stages';
-import { connectTabs } from './tabs';
 import { canProduce, isArtifactView, VIEWS, type View } from './views';
 
 /** Where the state of the last visit is kept, as `serialize` writes it. */
@@ -51,7 +58,10 @@ const SAVE_DELAY_MILLISECONDS = 300;
 /** What every request asks for, besides an executable: every artifact a view shows. */
 const ARTIFACT_VIEWS = VIEWS.filter(isArtifactView);
 /** The state of a first visit. */
-const FIRST_VISIT_STATE: PlaygroundState = { source: EXAMPLES[0].source, ...DEFAULT_STATE };
+const FIRST_VISIT_STATE: PlaygroundState = {
+  files: [{ name: DEFAULT_FILE_NAME, contents: EXAMPLES[0].source }],
+  ...DEFAULT_STATE,
+};
 
 /** A checkbox or a menu of the page's. */
 type Control = HTMLInputElement | HTMLSelectElement;
@@ -59,9 +69,6 @@ type Control = HTMLInputElement | HTMLSelectElement;
 /** Returns the element whose id is `id`, which the page has. */
 const elementById = <T extends HTMLElement>(id: string): T => document.getElementById(id) as T;
 // The page's elements.
-const panel = elementById<HTMLElement>('pg-panel');
-const tablist = elementById<HTMLElement>('pg-tabs');
-const tabs = [...tablist.querySelectorAll<HTMLElement>('[role="tab"][data-view]')];
 const optimizationSelect = elementById<HTMLSelectElement>('pg-optimization');
 const stopAfterSelect = elementById<HTMLSelectElement>('pg-stop-after');
 const standardLibraryCheckbox = elementById<HTMLInputElement>('pg-standard-library');
@@ -75,7 +82,7 @@ const shareButton = elementById<HTMLButtonElement>('pg-share');
 const shareLabel = elementById<HTMLElement>('pg-share-label');
 const statusLine = elementById<HTMLElement>('pg-status-line');
 const hintLine = elementById<HTMLElement>('pg-hint-line');
-const errorCountBadge = elementById<HTMLElement>('pg-error-count');
+const newFileButton = elementById<HTMLButtonElement>('pg-new-file');
 /**
  * The header's controls and their copies in the "More options" menu, which the page shows instead
  * when the window is too narrow for them. The page reads and listens to the header's: a change to
@@ -148,22 +155,13 @@ let linkProblem =
   openingLink !== null && 'problem' in openingLink ? openingLink.problem : undefined;
 /** Aborts the page's latest request, the only one whose results are still wanted. */
 let latestRequest: AbortController | null = null;
-/** The diagnostics the editor and the error count show, as their `viewSignature`. */
+/** The diagnostics the editors and the error count show, as their `viewSignature`. */
 let diagnosticsShownInEditor = '';
+/** The file the reader last removed, and what puts it back, until they edit the code again. */
+let lastRemoval: { name: string; undo: () => void } | null = null;
 
-/** What the page's requests produced. */
-const pane = new ResultPane(
-  {
-    panel,
-    tabs: [...tablist.querySelectorAll<HTMLElement>('[role="tab"]')],
-    stageStrip: elementById('pg-stages'),
-    renderView: (container, view, result) =>
-      renderView(container, view, result, {
-        onReveal: (line, column) => editor.reveal(line, column),
-      }),
-  },
-  openingState.view,
-);
+/** The view the reader last looked at, which a link to the page shows. */
+let selectedView: View = openingState.view;
 
 /** Gives the value of `source`, a control or its copy, to `target`, the other. */
 function copyValue(source: Control, target: Control): void {
@@ -189,20 +187,97 @@ applySettings(openingState);
 // The compiler, the longest download, loads while the editor does.
 compiler.startLoading();
 
-/** The editor, holding the code. */
-const editor: Editor = await createEditor(elementById('pg-editor'), {
-  value: openingState.source,
-  onChange: () => {
-    linkProblem = undefined;
-    scheduleSave();
-    if (autorunCheckbox.checked) {
-      scheduleCompileAndRun();
-    } else {
-      markStale();
-    }
-  },
+/** The files of the program as they are now, as JSON, to tell a change of them from another. */
+let filesShown = '';
+
+/** The editors, one per file, holding the code, and the panels of the views. */
+const dock = new PlaygroundDock(
+  elementById('pg-dock'),
+  openingState.files,
+  openingState.active,
+  VIEWS,
+  openingState.view,
+  {
+  onEdit: codeEdited,
   onRun: () => void compileAndRun(),
-});
+  onFilesChange: () => {
+    scheduleSave();
+    // Adding, removing or renaming a file changes the program; showing another does not.
+    const files = JSON.stringify(dock.files);
+    if (files !== filesShown) codeEdited();
+  },
+  onRemove: (name, undo) => {
+    lastRemoval = { name, undo };
+    updateHint();
+  },
+  onViewVisibility: (view, visible) => {
+    panes.get(view)!.setVisible(visible);
+    if (!visible || view === selectedView) return;
+    selectedView = view;
+    scheduleSave();
+  },
+  },
+);
+filesShown = JSON.stringify(dock.files);
+
+/** What the page's requests produced, a pane per view, each rendering its view while it shows. */
+const panes = new Map(
+  VIEWS.map((view) => [
+    view,
+    new ResultPane(
+      {
+        panel: dock.viewPanel(view),
+        tabs: [dock.viewTab(view)],
+        stageStrip: view === 'result' ? elementById('pg-stages') : undefined,
+        renderView: (container, view, result) =>
+          renderView(container, view, result, {
+            onReveal: (diagnostic) => dock.reveal(diagnostic),
+            canReveal: (diagnostic) => dock.contains(diagnostic),
+          }),
+      },
+      view,
+    ),
+  ]),
+);
+for (const [view, pane] of panes) pane.setVisible(dock.isViewVisible(view));
+
+/** The panes, as one, for what concerns them all. */
+const allPanes = {
+  showCompilerStatus: (status: CompilerStatus) => {
+    for (const pane of panes.values()) pane.showCompilerStatus(status);
+  },
+  get isShowingResult() {
+    return [...panes.values()].some((pane) => pane.isShowingResult);
+  },
+  showProgress: (progress: Result) => {
+    for (const pane of panes.values()) void pane.showProgress(progress);
+  },
+  showAnswer: (answer: Result) => {
+    for (const pane of panes.values()) void pane.showAnswer(answer);
+  },
+};
+
+/** How many errors the diagnostics have, in the tab of the diagnostics. */
+const errorCountBadge = document.createElement('span');
+errorCountBadge.className = 'count';
+dock.viewTab('diagnostics').append(errorCountBadge);
+document.body.toggleAttribute('data-files', true);
+
+/** Saves the code, and runs it unless auto-run is off, once the reader has edited it. */
+function codeEdited(): void {
+  filesShown = JSON.stringify(dock.files);
+  linkProblem = undefined;
+  if (lastRemoval) {
+    lastRemoval = null;
+    updateHint();
+  }
+  scheduleSave();
+  if (autorunCheckbox.checked) {
+    scheduleCompileAndRun();
+  } else {
+    markStale();
+  }
+}
 
 /** Sets the controls to `settings`. */
 function applySettings(settings: CompileSettings): void {
@@ -243,7 +318,13 @@ function currentSettings(): CompileSettings {
 
 /** Returns the state of the page now. */
 function currentState(): PlaygroundState {
-  return { source: editor.value, ...currentSettings(), view: pane.selectedView };
+  return {
+    files: dock.files,
+    // The first file, shown by default, needs no saying.
+    active: dock.active === dock.files[0].name ? undefined : dock.active,
+    ...currentSettings(),
+    view: selectedView,
+  };
 }
 
 /** The save the last changes scheduled, if it has not happened. */
@@ -274,8 +355,8 @@ function scheduleCompileAndRun(): void {
 
 /** Returns the request compiling the page's code with its settings now. */
 function currentRequest(): CompileRequest {
-  const { source, ...settings } = currentState();
-  return compileRequest(source, ARTIFACT_VIEWS, settings);
+  const { files, active: _, view: __, ...settings } = currentState();
+  return compileRequest(files, ARTIFACT_VIEWS, settings);
 }
 
 /**
@@ -296,7 +377,7 @@ async function compileAndRun(): Promise<void> {
     signal: thisRequest.signal,
     timeLimit: parseTimeLimit(timeLimitInput.value),
     onProgress: (progress) => {
-      void pane.showProgress(progress);
+      allPanes.showProgress(progress);
       showDiagnosticsOf(progress);
     },
   });
@@ -304,7 +385,7 @@ async function compileAndRun(): Promise<void> {
   if (result === null) return;
   latestRequest = null;
   runButton.removeAttribute('aria-busy');
-  void pane.showAnswer(result);
+  allPanes.showAnswer(result);
   // The code or the settings may have changed while this was compiled.
   document.body.toggleAttribute(
     'data-stale',
@@ -325,20 +406,37 @@ function showDiagnosticsOf(result: Result): void {
   if (signature === diagnosticsShownInEditor) return;
   diagnosticsShownInEditor = signature;
   const { diagnostics } = result.compilation;
-  editor.showDiagnostics(diagnostics);
+  dock.showDiagnostics(diagnostics);
   const errors = countErrors(diagnostics);
   errorCountBadge.textContent = errors > 0 ? String(errors) : '';
 }
 
 /** Marks what is shown as behind the code, if anything is shown. */
 function markStale(): void {
-  if (!pane.isShowingResult) return;
+  if (!allPanes.isShowingResult) return;
   document.body.toggleAttribute('data-stale', true);
   updateHint();
 }
 
-/** Says what the reader should know: a link that did not open, or how to run the code. */
+/**
+ * Says what the reader should know: a link that did not open, a file they removed, which they can
+ * put back, or how to run the code.
+ */
 function updateHint(): void {
+  if (lastRemoval) {
+    const { name, undo } = lastRemoval;
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'undo';
+    button.textContent = 'Undo';
+    button.addEventListener('click', () => {
+      lastRemoval = null;
+      undo();
+      updateHint();
+    });
+    hintLine.replaceChildren(`Removed ${name}. `, button);
+    return;
+  }
   const stale = document.body.hasAttribute('data-stale');
   hintLine.textContent =
     linkProblem ??
@@ -349,23 +447,18 @@ function updateHint(): void {
         : `Auto-run is off: press Run or ${RUN_SHORTCUT.text} to run.`);
 }
 
-/** Marks a view's tab as the selected one. */
-const markSelectedTab = connectTabs(tablist, panel, (view) => void selectView(view));
-
 /**
- * Selects `view`, or the result if the final phase chosen keeps requests from producing `view`,
- * and shows the latest results it has; hides the tabs of the views that phase keeps them from
- * producing.
+ * Shows the tabs of the views that requests can produce with the final phase chosen, and only
+ * those, showing the result in place of a view they cannot produce.
  */
-async function selectView(view: View): Promise<void> {
+function updateAvailableViews(): void {
   const stopAfter = parsePhase(stopAfterSelect.value);
-  for (const tab of tabs) tab.hidden = !canProduce(tab.dataset.view as View, stopAfter);
-  if (!canProduce(view, stopAfter)) view = 'result';
-  if (view !== pane.selectedView) scheduleSave();
-  markSelectedTab(view);
-  await pane.selectView(view);
+  for (const view of VIEWS) {
+    dock.setViewAvailable(view, canProduce(view, stopAfter));
+    if (!canProduce(view, stopAfter) && view === selectedView) dock.showView('result');
+  }
 }
-void selectView(pane.selectedView);
+updateAvailableViews();
 
 /**
  * Opens the state in `location.hash`, if it holds one, when a link to the page is followed from
@@ -381,13 +474,14 @@ function openFollowedLink(): void {
   }
   linkProblem = undefined;
   applySettings(linked.state);
-  editor.replace(linked.state.source);
-  void selectView(linked.state.view);
+  dock.setFiles(linked.state.files, linked.state.active);
+  dock.showView(linked.state.view);
+  updateAvailableViews();
   void compileAndRun();
 }
 
 // Loading is shown until there is a result to show instead.
-showCompilerStatus(compiler, pane, statusLine);
+showCompilerStatus(compiler, allPanes, statusLine);
 
 for (const select of examplesSelects) {
   for (const example of EXAMPLES) select.add(new Option(example.name, example.name));
@@ -395,12 +489,12 @@ for (const select of examplesSelects) {
     const example = EXAMPLES.find((candidate) => candidate.name === select.value);
     select.value = '';
     if (!example) return;
-    // Through the editor, so that the change is one the reader can undo.
-    editor.replace(example.source);
-    editor.focus();
+    // Through the editor, so that the change is one the reader can undo, if it is in main.hylo.
+    dock.setFiles([{ name: DEFAULT_FILE_NAME, contents: example.source }]);
+    dock.focus();
   });
 }
-stopAfterSelect.addEventListener('change', () => void selectView(pane.selectedView));
+stopAfterSelect.addEventListener('change', updateAvailableViews);
 for (const control of [optimizationSelect, stopAfterSelect, standardLibraryCheckbox]) {
   control.addEventListener('change', () => {
     markMoreMenuIfModified();
@@ -433,6 +527,10 @@ autorunCheckbox.addEventListener('change', () => {
   updateHint();
 });
 runButton.addEventListener('click', () => void compileAndRun());
+newFileButton.addEventListener('click', () => {
+  moreMenu.hidePopover();
+  dock.addFile();
+});
 addEventListener('hashchange', openFollowedLink);
 // Edits made just before leaving are remembered too.
 addEventListener('pagehide', () => {
