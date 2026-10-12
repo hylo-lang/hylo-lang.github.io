@@ -26,11 +26,6 @@ export interface ShownFile {
   source: string;
   /** The code of the file after `source`, not shown. */
   epilogue: string;
-  /**
-   * How many lines at the start of `prelude` come from the snippet this one continues, rather
-   * than from this snippet's hidden code: 0 iff the file starts in this snippet.
-   */
-  continuedLines: number;
 }
 
 /**

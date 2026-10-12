@@ -35,7 +35,7 @@ test('gives a playground the code of its fence, in a file of its own', () => {
     attributes: { expect: 'ok' },
     files: [{ name: 'main.hylo', contents: '' }],
     shown: [
-      { file: 'main.hylo', prelude: '', source: 'fun f() {}', epilogue: '', continuedLines: 0 },
+      { file: 'main.hylo', prelude: '', source: 'fun f() {}', epilogue: '' },
     ],
   });
 });
@@ -132,22 +132,8 @@ test('gives the code shown in a file continued the code before it as its prelude
     ),
   );
   expect(second.shown).toEqual([
-    { file: 'point.hylo', prelude: 'p1', source: 'p2', epilogue: '', continuedLines: 1 },
+    { file: 'point.hylo', prelude: 'p1', source: 'p2', epilogue: '' },
   ]);
-});
-
-test('counts the lines continued apart from the hidden code of the playground itself', () => {
-  const [, second] = playgrounds(
-    page(
-      playground('name="one" expect="ok"', fence('p1\np2', 'title="p.hylo"')),
-      playground(
-        'continues="one" expect="ok"',
-        fence('h', 'hidden title="p.hylo"'),
-        fence('s', 'title="p.hylo"'),
-      ),
-    ),
-  );
-  expect(second.shown).toMatchObject([{ prelude: 'p1\np2\nh', continuedLines: 2 }]);
 });
 
 test('shows a fence of each of several files, as tabs, in the order of the fences', () => {
@@ -163,9 +149,9 @@ test('shows a fence of each of several files, as tabs, in the order of the fence
   );
   expect(p.fences.map((f) => f.value)).toEqual(['b', 'a', 'm']);
   expect(p.shown).toEqual([
-    { file: 'b.hylo', prelude: '', source: 'b', epilogue: 'after', continuedLines: 0 },
-    { file: 'a.hylo', prelude: 'h', source: 'a', epilogue: '', continuedLines: 0 },
-    { file: 'main.hylo', prelude: '', source: 'm', epilogue: '', continuedLines: 0 },
+    { file: 'b.hylo', prelude: '', source: 'b', epilogue: 'after' },
+    { file: 'a.hylo', prelude: 'h', source: 'a', epilogue: '' },
+    { file: 'main.hylo', prelude: '', source: 'm', epilogue: '' },
   ]);
   expect(assembleProgram(p)).toEqual([
     { name: 'b.hylo', contents: 'b\nafter' },
@@ -298,8 +284,8 @@ test('as a plugin, sets the code as attributes and keeps only the fences shown',
     { name: 'b.hylo', contents: '' },
   ];
   const shown = [
-    { file: 'main.hylo', prelude: 'hiddenBefore', source: 'shown', epilogue: '', continuedLines: 0 },
-    { file: 'b.hylo', prelude: '', source: 'second', epilogue: '', continuedLines: 0 },
+    { file: 'main.hylo', prelude: 'hiddenBefore', source: 'shown', epilogue: '' },
+    { file: 'b.hylo', prelude: '', source: 'second', epilogue: '' },
   ];
   expect(code).toContain(`files: ${JSON.stringify(JSON.stringify(files))}`);
   expect(code).toContain(`shown: ${JSON.stringify(JSON.stringify(shown))}`);

@@ -3,7 +3,7 @@ import { expect, test } from 'vitest';
 import { assembleProgram, lineCount, shownCodeOffset } from './snippet';
 
 const point = { name: 'point.hylo', contents: 'struct P {}' };
-const main = { file: 'main.hylo', prelude: 'a\nb', source: 'c', epilogue: 'd', continuedLines: 0 };
+const main = { file: 'main.hylo', prelude: 'a\nb', source: 'c', epilogue: 'd' };
 const code = { files: [point, { name: 'main.hylo', contents: '' }], shown: [main] };
 
 test('puts the code shown between the hidden code of its file, leaving out the parts it lacks', () => {
