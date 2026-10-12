@@ -12,7 +12,6 @@ export const communitySidebar: ArrayElement<Sidebar> = {
         {label: 'Coding Conventions', slug: 'docs/contributing/coding-conventions'},
         {label: 'Research Collaboration', slug: 'docs/contributing/research-collab'},
         {label: 'Editing this Documentation', slug: 'docs/contributing/documentation'},
-        {label: 'Runnable Snippets', slug: 'docs/contributing/runnable-snippets'},
         {label: 'Diversity and Inclusion', slug: 'docs/contributing/diversity-and-inclusion'},
         {label: 'Code of Conduct', slug: 'docs/contributing/code-of-conduct'},
         {label: 'Blog', link: '/blog/'},
