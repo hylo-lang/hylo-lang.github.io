@@ -15,14 +15,16 @@
     "@astrojs/starlight": "^0.42.3",
     "@astrojs/starlight-tailwind": "^5.0.0",
     "@expressive-code/core": "^0.44.2",
+    "@expressive-code/plugin-collapsible-sections": "^0.44.2",
     "@fontsource-variable/jetbrains-mono": "^5.3.0",
-    "@hylo-lang/hylo-wasm": "^0.0.8",
+    "@hylo-lang/hylo-wasm": "^0.0.9",
     "@lucide/astro": "^1.48.0",
     "@shikijs/monaco": "^4.5.0",
     "@tailwindcss/vite": "^4.3.3",
     "astro": "^7.3.5",
     "date-fns": "^4.4.0",
     "date-fns-tz": "^3.2.0",
+    "dockview": "^8.4.1",
     "monaco-editor": "^0.57.0",
     "sharp": "^0.35.4",
     "shiki": "^4.5.0",
@@ -31,6 +33,7 @@
     "valibot": "^1.5.0"
   },
   "devDependencies": {
+    "satteri": "0.10.5",
     "vitest": "^5.0.1"
   }
 }

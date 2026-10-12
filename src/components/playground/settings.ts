@@ -2,7 +2,7 @@
  * How a playground asks the compiler to compile code: the settings a snippet or the full-screen
  * playground compiles with, and the request they make of the compiler.
  */
-import type { Artifact, CompileRequest, Phase } from '@hylo-lang/hylo-wasm/protocol';
+import type { Artifact, CompileRequest, Phase, SourceFile } from '@hylo-lang/hylo-wasm/protocol';
 import { canProduce } from './views';
 
 /** LLVM's optimization levels, from none to the most. */
@@ -38,12 +38,12 @@ export const DEFAULT_SETTINGS: Readonly<CompileSettings> = {
 };
 
 /**
- * Returns the request compiling `source` with `settings`, producing those of `artifacts` that
- * `settings.stopAfter` leaves compilation to produce (see `canProduce`), and an executable to run
- * unless it stops compilation before there is one.
+ * Returns the request compiling `code`, one file or several, with `settings`, producing those of
+ * `artifacts` that `settings.stopAfter` leaves compilation to produce (see `canProduce`), and an
+ * executable to run unless it stops compilation before there is one.
  */
 export function compileRequest(
-  source: string,
+  code: string | readonly SourceFile[],
   artifacts: readonly Artifact[],
   settings: CompileSettings,
 ): CompileRequest {
@@ -52,7 +52,7 @@ export function compileRequest(
   );
   if (settings.stopAfter === null) emit.push('executable');
   return {
-    source,
+    ...(typeof code === 'string' ? { source: code } : { files: [...code] }),
     emit,
     optimization: settings.optimization,
     standardLibrary: settings.standardLibrary,

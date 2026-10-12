@@ -22,19 +22,54 @@
  * The compiler is only downloaded when a reader runs a snippet, and is shared by every snippet on
  * the page.
  *
- * Only works in MDX pages: the code comes from the Markdown plugin `src/plugins/playground-source.ts`, which
- * sets `source` to the code of the fence, and fails the build, naming the page and the line, if
- * the slot is not exactly one `hylo` code fence. The build also fails if `expect` is missing or
- * not one of its forms, or if another prop has a value it does not take. The site's tests then
- * check that the snippet does what `expect` says (`snippets.test.ts`).
+ * A snippet can compile code it does not show: fences marked `hidden` are compiled with those
+ * shown, in order. Each fence goes into the file its `file` names, without showing it, or else its
+ * `title`, or into the snippet's own file; fences of the same file follow one another in it. A
+ * snippet that `continues` another,
+ * earlier on the page, which it names by its `name`, starts from all the files of that one; one
+ * with `contributes={false}` still does, but leaves its own code out of those continuing it.
+ *
+ *     <Playground name="point" stopAfter="typing" expect="ok">
+ *     ```hylo title="point.hylo"
+ *     struct Point { … }
+ *     ```
+ *     </Playground>
+ *
+ *     <Playground continues="point" expect="exit 3">
+ *     ```hylo hidden
+ *     public fun main() -> Int32 {
+ *     ```
+ *     ```hylo
+ *       Point(x: 1, y: 2).sum()
+ *     ```
+ *     ```hylo hidden
+ *     }
+ *     ```
+ *     </Playground>
+ *
+ * A snippet showing fences of several files shows them as tabs, named after the files.
+ *
+ * Only works in MDX pages: the code comes from the Markdown plugin
+ * `src/plugins/playground-source.ts`, which documents how fences make files, sets `files` and
+ * `shown` from them, and fails the build, naming the page and the line, if the slot is not `hylo`
+ * code fences, at most one shown of each file, or if `continues` names no snippet earlier on the
+ * page. The build also fails if `expect` is missing or not one of
+ * its forms, or if another prop has a value it does not take. The site's tests then check that the
+ * snippet does what `expect` says (`snippets.test.ts`).
  *
  * Renders a `<hylo-playground>` (`playground-element.ts`), which takes the settings and the code
  * from the `data-` attributes set here.
  */
-import { ExternalLink, LoaderCircle, Pencil, Play, RotateCcw } from '@lucide/astro';
+import {
+  ExternalLink,
+  LoaderCircle,
+  Pencil,
+  Play,
+  RotateCcw,
+} from '@lucide/astro';
 import type { Phase } from '@hylo-lang/hylo-wasm/protocol';
 import { DEFAULT_SETTINGS, OPTIMIZATION_LEVELS, PHASES } from './settings';
-import { EXPECTATION_FORMS, parseExpectation } from './snippet';
+import { EXPECTATION_FORMS, parseExpectation, type ShownFile } from './snippet';
 import { VIEWS, VIEW_TITLES, type View } from './views';
 import Stages from './Stages.astro';
 import './playground.css';
@@ -64,8 +99,22 @@ interface Props {
    * (it does not compile), or `ok` (it compiles, and runs if it is a program). Required.
    */
   expect: string;
-  /** The code of the fence, which `playground-source.ts` sets; not for authors to set. */
-  source: string;
+  /** A name by which later snippets of the page can continue this one. */
+  name?: string;
+  /** The `name` of an earlier snippet of the page, whose files this one starts from. */
+  continues?: string;
+  /**
+   * `false` iff a snippet continuing this one starts from what this one continues, without this
+   * one's own code; true by default.
+   */
+  contributes?: boolean;
+  /**
+   * The files of the program as JSON (`SourceFile[]`), with the contents of those shown left out,
+   * which `playground-source.ts` sets; not for authors to set.
+   */
+  files: string;
+  /** The files shown as JSON (`ShownFile[]`), which `playground-source.ts` sets. */
+  shown: string;
 }
 
 const {
@@ -76,7 +125,8 @@ const {
   stopAfter,
   editable = true,
   expect,
-  source,
+  files,
+  shown,
 } = Astro.props;
 
 // Mistakes are reported as the site builds, rather than as a snippet that misbehaves. MDX does not
@@ -105,8 +155,20 @@ if (parseExpectation(expect) === null) {
   fail(`\`expect="${expect}"\` is not one of ${EXPECTATION_FORMS}`);
 }
 
-if (typeof source !== 'string') fail('no code: use it in an MDX page, where `src/plugins/playground-source.ts` gives it its code');
-const code = await Astro.slots.render('default');
+if ([files, shown].some((code) => typeof code !== 'string')) {
+  fail('no code: use it in an MDX page, where `src/plugins/playground-source.ts` gives it its code');
+}
+const shownFiles = JSON.parse(shown) as ShownFile[];
+
+// The slot is the code blocks of the fences shown, one after another, each of which Expressive Code
+// renders as a `div.expressive-code`.
+const blocks = (await Astro.slots.render('default'))
+  .split(/(?=<div class="expressive-code")/)
+  .filter((block) => block.trim() !== '');
+if (blocks.length !== shownFiles.length) {
+  fail(`expected a code block for each of ${shownFiles.length} files shown, found ${blocks.length}`);
+}
+const tabs = shownFiles.length > 1;
 ---
 
 <hylo-playground
@@ -116,11 +178,44 @@ const code = await Astro.slots.render('default');
   data-standard-library={String(standardLibrary)}
   data-stop-after={stopAfter}
   data-expect={expect}
-  data-source={source}
+  data-files={files}
+  data-shown={shown}
   class="not-content"
 >
-  <div data-part="source"><Fragment set:html={code} /></div>
-  {editable && <div data-part="editor" class="pg-editor" hidden />}
+  <div data-part="files" class:list={['pg-files', { 'pg-has-tabs': tabs }]}>
+    {
+      tabs && (
+        <div data-part="file-tabs" class="pg-file-tabs" role="tablist" aria-label="Files">
+          {shownFiles.map((f, i) => (
+            <button
+              type="button"
+              role="tab"
+              data-file-tab={i}
+              aria-selected={String(i === 0)}
+              tabindex={i === 0 ? 0 : -1}
+            >
+              {f.file}
+            </button>
+          ))}
+        </div>
+      )
+    }
+    {
+      shownFiles.map((f, i) => (
+        <div
+          data-file-panel={i}
+          data-selected={i === 0 ? '' : undefined}
+          role={tabs ? 'tabpanel' : undefined}
+          aria-label={tabs ? f.file : undefined}
+        >
+          <div data-part="source">
+            <Fragment set:html={blocks[i]} />
+          </div>
+          {editable && <div data-part="editor" class="pg-editor" hidden />}
+        </div>
+      ))
+    }
+  </div>
   <div class="pg-toolbar">
     <button type="button" data-part="run" class="pg-button pg-primary">
       <Play class="pg-icon pg-idle-icon" aria-hidden="true" />
@@ -151,7 +246,7 @@ const code = await Astro.slots.render('default');
   <div data-part="results" class="pg-results" hidden>
     {
       views.length > 1 && (
-        <div class="pg-tabs" role="tablist" aria-label="Views">
+        <div data-part="view-tabs" class="pg-tabs" role="tablist" aria-label="Views">
           {views.map((view) => (
             <button type="button" role="tab" data-view={view}>
               {VIEW_TITLES[view]}

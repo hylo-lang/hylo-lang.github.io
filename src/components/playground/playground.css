@@ -17,13 +17,63 @@ hylo-playground {
 hylo-playground [data-part='source'] .expressive-code {
   margin: 0;
 }
+
+/*
+ * The files a snippet shows, as tabs if there are several, which name the files, in place of the
+ * code blocks' titles. Without the script, they are shown one after another, with their titles.
+ */
+.pg-file-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+  margin-bottom: 0.25rem;
+  border-bottom: 1px solid var(--sl-color-gray-5);
+}
+.pg-file-tabs [role='tab'] {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.35rem 0.75rem;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  background: none;
+  font-family: var(--__sl-font-mono, monospace);
+  font-size: var(--sl-text-xs, 0.8rem);
+  color: var(--sl-color-gray-3);
+  cursor: pointer;
+}
+.pg-file-tabs [role='tab'][aria-selected='true'] {
+  color: var(--sl-color-white);
+  border-bottom-color: var(--sl-color-green);
+}
+.pg-file-tabs [role='tab']:focus-visible {
+  outline: 2px solid var(--sl-color-text-accent);
+  outline-offset: -2px;
+}
+hylo-playground:not(:defined) .pg-file-tabs {
+  display: none;
+}
+hylo-playground:defined .pg-has-tabs [data-file-panel]:not([data-selected]) {
+  display: none;
+}
+hylo-playground:defined .pg-has-tabs .expressive-code figcaption {
+  display: none;
+}
+hylo-playground:not(:defined) .pg-has-tabs [data-file-panel] + [data-file-panel] {
+  margin-top: 0.75rem;
+}
 /* Until the element is defined there is nothing for the buttons to do. */
 hylo-playground:not([data-ready]) .pg-toolbar {
   display: none;
 }
 
+/*
+ * A snippet's editor, as high as its code (see `fitContent` in `editor.ts`) up to most of the
+ * window below the site's header, and at most 800px, beyond which it scrolls.
+ */
 .pg-editor {
   min-height: 3rem;
+  max-height: min(calc(90vh - var(--sl-nav-height, 4rem)), 800px);
   border: 1px solid var(--sl-color-gray-5);
   border-radius: 0.5rem;
   overflow: hidden;
@@ -264,10 +314,12 @@ hylo-playground:not([data-ready]) .pg-toolbar {
  * replaces what is shown without a flash; both come back at once.
  */
 .pg-tabs [role='tab'],
+.pg-dock-view-tab,
 .pg-panel > * {
   transition: opacity 0.15s;
 }
 .pg-tabs [role='tab'][data-pending],
+.pg-dock-view-tab[data-pending],
 .pg-panel[aria-busy] > * {
   opacity: 0.55;
   transition: opacity 0.15s 0.3s;
@@ -354,7 +406,8 @@ hylo-playground:not([data-ready]) .pg-toolbar {
  * failed or the program has errors.
  */
 .pg-bad,
-.pg-tabs [role='tab'][data-failed] {
+.pg-tabs [role='tab'][data-failed],
+.pg-dock-view-tab[data-failed] {
   color: var(--pg-color-failure);
 }
 .pg-warn {

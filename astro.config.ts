@@ -8,13 +8,15 @@ import {compilerRepoLink, slackLink} from "./src/links.ts";
 import {injectMonacoStyles} from "./src/plugins/inject-monaco-styles.ts";
 import {satteri} from '@astrojs/markdown-satteri';
 import {playgroundSource} from "./src/plugins/playground-source.ts";
+import {exampleSource} from "./src/plugins/example-source.ts";
 
 // https://astro.build/config
 export default defineConfig({
     site: 'https://hylo-lang.org',
     markdown: {
-        // Astro's default processor, with a plugin giving every `<Playground>` the code it wraps.
-        processor: satteri({mdastPlugins: [playgroundSource]}),
+        // Astro's default processor, with plugins giving every `<Playground>` the code it wraps,
+        // and every `<Example>` its MDX.
+        processor: satteri({mdastPlugins: [playgroundSource, exampleSource]}),
     },
     integrations: [
         starlight({
