@@ -32,7 +32,6 @@
 import type { SatteriProcessorOptions } from '@astrojs/markdown-satteri';
 import {
   joinLines,
-  lineCount,
   type ShownFile,
   type SnippetCode,
 } from '../components/playground/snippet';
@@ -219,7 +218,6 @@ function read(
       prelude: joinLines(parts.slice(0, k)),
       source: parts[k],
       epilogue: joinLines(parts.slice(k + 1)),
-      continuedLines: lineCount(joinLines(before!.get(file) ?? [])),
     };
   });
 

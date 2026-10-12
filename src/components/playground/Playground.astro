@@ -47,8 +47,7 @@
  *     ```
  *     </Playground>
  *
- * A snippet showing fences of several files shows them as tabs, named after the files, marking
- * those that continue a file of an earlier snippet.
+ * A snippet showing fences of several files shows them as tabs, named after the files.
  *
  * Only works in MDX pages: the code comes from the Markdown plugin
  * `src/plugins/playground-source.ts`, which documents how fences make files, sets `files` and
@@ -62,7 +61,6 @@
  * from the `data-` attributes set here.
  */
 import {
-  Ellipsis,
   ExternalLink,
   LoaderCircle,
   Pencil,
@@ -195,9 +193,7 @@ const tabs = shownFiles.length > 1;
               data-file-tab={i}
               aria-selected={String(i === 0)}
               tabindex={i === 0 ? 0 : -1}
-              title={f.continuedLines > 0 ? `Continues ${f.file} from an earlier snippet` : undefined}
             >
-              {f.continuedLines > 0 && <Ellipsis class="pg-icon" aria-label="continued:" />}
               {f.file}
             </button>
           ))}
