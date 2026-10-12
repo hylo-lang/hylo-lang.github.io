@@ -8,8 +8,10 @@
  * the fences' text, as the author wrote it.
  *
  * A `<Playground>` wraps `hylo` code fences. Each goes into a file of the program: the one its
- * `title` names, such as `title="point.hylo"`, or else the snippet's own, which every fence of the
- * snippet without a title shares. A fence adds its code at the end of its file, so fences of the
+ * `file` names, such as `file="point.hylo"`, which the code block does not show; or else the one
+ * its `title` names, which the code block shows as its caption; or else the snippet's own, which
+ * every fence of the snippet naming no file shares. A fence with a `file` may have a `title` that
+ * is any caption. A fence adds its code at the end of its file, so fences of the
  * same file build it up in order. The fences that say `hidden` in their meta are compiled but not
  * shown; the others are shown, at most one of each file, as tabs if there are several, which keep
  * only the fences shown as the playground's children.
@@ -21,7 +23,7 @@
  * its own code: a mistake or a digression can build on a program without changing it.
  *
  * The snippet's own file is called `main.hylo`, or `main2.hylo`, `main3.hylo` and so on: the first
- * of these that neither the program it continues nor one of its fences' titles names already.
+ * of these that neither the program it continues nor one of its fences names already.
  *
  * The build fails, naming the page and the line, if a `<Playground>` wraps anything else, shows
  * no fence or two of the same file, names a file that is not a `.hylo` file, continues one that is
@@ -87,9 +89,23 @@ export interface PlaygroundCode extends SnippetCode {
 /** Returns whether `fence` is compiled but not shown: whether its meta says `hidden`. */
 const isHidden = (fence: Code): boolean => /(?:^|\s)hidden(?:\s|$)/.test(fence.meta ?? '');
 
-/** Returns the file `fence` names with its `title`, if it does. */
-const titleOf = (fence: Code): string | undefined =>
-  /(?:^|\s)title=(?:"([^"]*)"|'([^']*)')/.exec(fence.meta ?? '')?.slice(1).find((t) => t !== undefined);
+/** Returns the value of the meta attribute `name` of `fence`, quoted either way, if it has one. */
+const metaValue = (fence: Code, name: string): string | undefined =>
+  new RegExp(`(?:^|\\s)${name}=(?:"([^"]*)"|'([^']*)')`)
+    .exec(fence.meta ?? '')
+    ?.slice(1)
+    .find((value) => value !== undefined);
+
+/**
+ * Returns the file `fence` names, and how: with its `file`, or else with its `title`; `undefined`
+ * if it names none.
+ */
+function fileNameOf(fence: Code): { name: string; by: 'file' | 'title' } | undefined {
+  const file = metaValue(fence, 'file');
+  if (file !== undefined) return { name: file, by: 'file' };
+  const title = metaValue(fence, 'title');
+  return title === undefined ? undefined : { name: title, by: 'title' };
+}
 
 /** Returns a string identifying where `node` is in its page. */
 const key = (node: Node): string => `${node.position?.start.line}:${node.position?.start.column}`;
@@ -166,15 +182,21 @@ function read(
     fail(`another \`<${COMPONENT}>\` of the page is named \`${attributes.name}\``);
   }
 
-  const titles = fences.map(titleOf);
-  for (const title of titles) {
-    if (title !== undefined && !isFileName(title)) {
-      fail(`\`title="${title}"\` does not name a \`.hylo\` file, such as \`title="point.hylo"\``);
-    }
+  const named = fences.map(fileNameOf);
+  for (const fileName of named) {
+    if (fileName === undefined || isFileName(fileName.name)) continue;
+    const { name, by } = fileName;
+    fail(
+      by === 'file'
+        ? `\`file="${name}"\` does not name a \`.hylo\` file, such as \`file="point.hylo"\``
+        : `\`title="${name}"\` does not name a \`.hylo\` file: name the file with \`file\`, ` +
+            `such as \`file="point.hylo"\`, for a title that is not its name`,
+    );
   }
-  const taken = new Set([...before!.keys(), ...titles.filter((t) => t !== undefined)]);
+  const names = named.map((fileName) => fileName?.name);
+  const taken = new Set([...before!.keys(), ...names.filter((n) => n !== undefined)]);
   const ownFile = freshFileName(taken);
-  const files = fences.map((_, i) => titles[i] ?? ownFile);
+  const files = fences.map((_, i) => names[i] ?? ownFile);
 
   // The program, built up fence by fence. A shown file's code before its shown fence is its
   // prelude, and what hidden fences add to it after, its epilogue.

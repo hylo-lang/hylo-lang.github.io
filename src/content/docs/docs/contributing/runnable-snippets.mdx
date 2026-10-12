@@ -100,7 +100,7 @@ trait Shape {
   fun area() -> Int32
 }
 ```
-```hylo hidden title="rect.hylo"
+```hylo hidden file="rect.hylo"
 /// A rectangle, by its width and height.
 struct Rect is Shape & Deinitializable {
   public memberwise init
@@ -157,14 +157,15 @@ struct Square is Shape & Deinitializable {
 
 A snippet can show code that does not compile, and the diagnostics it gets
 (`expect="error"`). Click one to be taken to it in the code. With `contributes={false}`, the
-mistake stays out of the program for what follows.
+mistake stays out of the program for what follows. Its caption is not a file name: the fence
+names its file with `file` instead, and gives a `title` of its own.
 
 <Aside type="tip">
 Fix it by writing `1 as Int32` and `2 as Int32`: the results follow your edits.
 </Aside>
 
 <Playground continues="shapes" contributes={false} outputs="result diagnostics" expect="error">
-```hylo
+```hylo file="main.hylo" title="A first attempt"
 public fun main() -> Int32 {
   Point(x: 1, y: 2).sum()
 }
@@ -186,7 +187,7 @@ A program that runs can still stop: this one breaks a precondition of a function
 lives in a file the snippet does not show, and traps (`expect="trap"`).
 
 <Playground expect="trap">
-```hylo hidden title="math.hylo"
+```hylo hidden file="math.hylo"
 /// Returns `a` divided by `b`, which must not be zero.
 fun checkedRatio(a: Int32, b: Int32) -> Int32 {
   precondition(b != (0 as Int32))
