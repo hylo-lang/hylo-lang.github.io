@@ -3,7 +3,7 @@
  * themselves (`playground-element.ts`), the component checking them as the site builds
  * (`Playground.astro`), and the test running them (`snippets.test.ts`).
  */
-import type { CompileRequest } from '@hylo-lang/hylo-wasm/protocol';
+import type { CompileRequest, SourceFile } from '@hylo-lang/hylo-wasm/protocol';
 import { compileRequest, type CompileSettings } from './settings';
 import { isArtifactView, type View } from './views';
 
@@ -14,34 +14,76 @@ export interface SnippetSettings extends CompileSettings {
 }
 
 /**
- * The code of a snippet: the code it shows, and the code it compiles before and after it without
- * showing it, each empty if there is none. `src/plugins/playground-source.ts` collects them.
+ * A file of a snippet's program that the snippet shows: the code shown, which the reader may
+ * edit, with the code of the file compiled before and after it without being shown.
  */
-export interface SnippetCode {
-  /** The code compiled before `source`, not shown. */
+export interface ShownFile {
+  /** The file's name. */
+  file: string;
+  /** The code of the file before `source`, not shown. */
   prelude: string;
-  /** The code shown, which the reader may edit. */
+  /** The code shown. */
   source: string;
-  /** The code compiled after `source`, not shown. */
+  /** The code of the file after `source`, not shown. */
   epilogue: string;
-}
-
-/** Returns the program `code` makes: its parts, in order, one line after another. */
-export function assembleProgram(code: SnippetCode): string {
-  return [code.prelude, code.source, code.epilogue].filter((part) => part !== '').join('\n');
+  /**
+   * How many lines at the start of `prelude` come from the snippet this one continues, rather
+   * than from this snippet's hidden code: 0 iff the file starts in this snippet.
+   */
+  continuedLines: number;
 }
 
 /**
- * Returns how many lines of the program `code` makes come before the code it shows: what to
- * subtract from a line of the program to get the line of the code shown.
+ * The code of a snippet: the files of its program, some of which it shows, in tabs if it shows
+ * several. `src/plugins/playground-source.ts` collects them.
  */
-export function shownCodeOffset(code: SnippetCode): number {
-  return code.prelude === '' ? 0 : code.prelude.split('\n').length;
+export interface SnippetCode {
+  /**
+   * The files of the program, in the order the compiler reads them, with the contents of those
+   * in `shown` left out (empty): `shown` holds them.
+   */
+  files: SourceFile[];
+  /** The files shown, in the order of their tabs; never empty. */
+  shown: ShownFile[];
 }
 
-/** Returns the request compiling `source` as a snippet with `settings` does. */
-export function snippetRequest(source: string, settings: SnippetSettings): CompileRequest {
-  return compileRequest(source, settings.views.filter(isArtifactView), settings);
+/** Returns the parts of a file, those that are not empty, one line after another. */
+export const joinLines = (parts: readonly string[]): string =>
+  parts.filter((part) => part !== '').join('\n');
+
+/**
+ * Returns the files of the program `code` makes, with `sources` as the code shown in each of
+ * `code.shown`, in order: by default, the code the snippet shows.
+ */
+export function assembleProgram(
+  code: SnippetCode,
+  sources: readonly string[] = code.shown.map((f) => f.source),
+): SourceFile[] {
+  return code.files.map((f) => {
+    const i = code.shown.findIndex((shown) => shown.file === f.name);
+    if (i < 0) return f;
+    const { prelude, epilogue } = code.shown[i];
+    return { name: f.name, contents: joinLines([prelude, sources[i], epilogue]) };
+  });
+}
+
+/** Returns how many lines `text` has: none if it is empty. */
+export const lineCount = (text: string): number => (text === '' ? 0 : text.split('\n').length);
+
+/**
+ * Returns how many lines of `shown.file` come before the code shown: what to subtract from a line
+ * of that file to get the line of the code shown.
+ */
+export function shownCodeOffset(shown: ShownFile): number {
+  return lineCount(shown.prelude);
+}
+
+/** Returns the request compiling `files` as a snippet with `settings` does. */
+export function snippetRequest(
+  files: readonly SourceFile[],
+  settings: SnippetSettings,
+): CompileRequest {
+  return compileRequest(files, settings.views.filter(isArtifactView), settings);
 }
 
 /** What a snippet does: its `expect` attribute. */

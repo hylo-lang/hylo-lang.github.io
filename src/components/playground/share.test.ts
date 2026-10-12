@@ -1,13 +1,20 @@
 /**
- * The playground's state survives being written into a link or storage, and reading anything
- * else yields a problem rather than a malformed state.
+ * The playground's state survives being written into a link or storage, links of every version
+ * keep opening, and reading anything else yields a problem rather than a malformed state.
  */
 import { describe, expect, test } from 'vitest';
 import { encodeFragment, serialize, type PlaygroundState } from './share';
 import { decodeFragment, deserialize } from './share-reader';
 
 const state: PlaygroundState = {
-  source: 'public fun main() -> Int32 {\n  // ünïcödé, emoji 🦎, and a long line\n  42\n}\n',
+  files: [
+    {
+      name: 'main.hylo',
+      contents: 'public fun main() -> Int32 {\n  // ünïcödé, emoji 🦎, and a long line\n  seven()\n}\n',
+    },
+    { name: 'lib/seven.hylo', contents: 'fun seven() -> Int32 { 7 }' },
+  ],
+  active: 'lib/seven.hylo',
   optimization: 2,
   standardLibrary: false,
   stopAfter: 'lowering',
@@ -20,6 +27,9 @@ function fragment(json: string): string {
   const base64 = btoa(String.fromCharCode(...bytes));
   return `state=${base64.replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '')}`;
 }
+
+/** The settings and view of a state that names none. */
+const defaults = { optimization: 0, standardLibrary: true, stopAfter: null, view: 'result' };
 
 describe('a state', () => {
   test('survives a link, with or without the `#`', () => {
@@ -34,7 +44,7 @@ describe('a state', () => {
   });
 
   test('is written as JSON naming its version', () => {
-    expect(JSON.parse(serialize(state))).toEqual({ version: 1, ...state });
+    expect(JSON.parse(serialize(state))).toEqual({ version: 2, ...state });
   });
 
   test('is absent from a fragment without one', () => {
@@ -42,14 +52,24 @@ describe('a state', () => {
     expect(decodeFragment('#section')).toBeNull();
   });
 
-  test('of version 1 may leave out what has a default, and hold more', () => {
+  test('of version 1 opens as a program of one file, `main.hylo`', () => {
+    expect(decodeFragment(fragment('{"version":1,"source":"x","optimization":2}'))).toEqual({
+      state: { files: [{ name: 'main.hylo', contents: 'x' }], ...defaults, optimization: 2 },
+    });
+  });
+
+  test('of version 1 or 2 may leave out what has a default, and hold more', () => {
     expect(decodeFragment(fragment('{"version":1,"source":"x","extra":true}'))).toEqual({
-      state: { source: 'x', optimization: 0, standardLibrary: true, stopAfter: null, view: 'result' },
+      state: { files: [{ name: 'main.hylo', contents: 'x' }], ...defaults },
+    });
+    const v2 = '{"version":2,"files":[{"name":"a.hylo","contents":"x"}],"extra":true}';
+    expect(deserialize(v2)).toEqual({
+      state: { files: [{ name: 'a.hylo', contents: 'x' }], ...defaults },
     });
   });
 
   test('of a newer version says so', () => {
-    expect(deserialize('{"version":2,"source":"x"}')).toEqual({
+    expect(deserialize('{"version":3,"files":[]}')).toEqual({
       problem: expect.stringContaining('newer'),
     });
   });
@@ -63,18 +83,30 @@ describe('a state', () => {
     expect(decodeFragment(text)).toEqual({ problem: expect.stringContaining('damaged') });
   });
 
+  /** Returns a state of version 2 of the files `files`, as JSON, with `more`. */
+  const v2 = (files: string, more = '') => `{"version":2,"files":${files}${more}}`;
+  const file = (name: string) => `{"name":"${name}","contents":"x"}`;
+
   test.each([
     ['without a version', '{"source":"x"}'],
     ['with a version that is a name', '{"version":"constructor","source":"x"}'],
     ['with a version of no schema', '{"version":0,"source":"x"}'],
     ['with a fractional version', '{"version":1.5,"source":"x"}'],
-    ['without source', '{"version":1}'],
-    ['with source that is not text', '{"version":1,"source":42}'],
+    ['of version 1 without source', '{"version":1}'],
+    ['of version 1 with source that is not text', '{"version":1,"source":42}'],
     ['with a bad optimization level', '{"version":1,"source":"x","optimization":7}'],
     ['with an optimization level as text', '{"version":1,"source":"x","optimization":"2"}'],
     ['with an unknown phase', '{"version":1,"source":"x","stopAfter":"linking"}'],
     ['with an unknown view', '{"version":1,"source":"x","view":"nope"}'],
     ['with a view inherited by every object', '{"version":1,"source":"x","view":"toString"}'],
+    ['of version 2 without files', '{"version":2}'],
+    ['of version 2 with no files', v2('[]')],
+    ['of version 2 with a file of no name', v2(`[${file('')}]`)],
+    ['of version 2 with a file that is not Hylo', v2(`[${file('a.txt')}]`)],
+    ['of version 2 with a file outside the program', v2(`[${file('../a.hylo')}]`)],
+    ['of version 2 with two files of one name', v2(`[${file('a.hylo')},${file('a.hylo')}]`)],
+    ['of version 2 with contents that are not text', v2('[{"name":"a.hylo","contents":1}]')],
+    ['of version 2 showing a file it lacks', v2(`[${file('a.hylo')}]`, ',"active":"b.hylo"')],
     ['that is not an object', '"x"'],
     ['that is null', 'null'],
     ['that is an array', '[1]'],

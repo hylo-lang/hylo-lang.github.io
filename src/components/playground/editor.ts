@@ -94,6 +94,11 @@ export interface Editor {
   showDiagnostics(diagnostics: readonly Diagnostic[]): void;
   /** Moves the caret to the 1-based `line` and `column`, scrolls it into view, and focuses. */
   reveal(line: number, column: number): void;
+  /**
+   * Measures the host again and redraws the editor: for an editor created, or kept, while its host
+   * was not displayed, which Monaco then laid out at no size, once the host is displayed.
+   */
+  layout(): void;
   /** Gives the editor the keyboard focus. */
   focus(): void;
   /** Removes the editor from its host and releases what it holds. */
@@ -109,6 +114,12 @@ export interface EditorOptions {
    * its container.
    */
   fitContent?: boolean;
+  /**
+   * The number of the first line, 1 by default: the line of its file at which the code starts,
+   * when the file has code before it that the editor does not show, so that the editor numbers
+   * lines as the compiler's diagnostics do.
+   */
+  firstLineNumber?: number;
   /** Called after every edit; `Editor.value` is the code. */
   onChange?: () => void;
   /** Called when the reader presses Ctrl+Enter (⌘+Enter on a Mac) in the editor. */
@@ -140,6 +151,9 @@ export async function createEditor(host: HTMLElement, options: EditorOptions): P
     automaticLayout: true,
     renderLineHighlight: 'line',
     lineNumbersMinChars: 3,
+    ...(options.firstLineNumber !== undefined && {
+      lineNumbers: (n: number) => String(n + options.firstLineNumber! - 1),
+    }),
     padding: { top: 12, bottom: 12 },
     overviewRulerLanes: 0,
     overviewRulerBorder: false,
@@ -218,6 +232,10 @@ export async function createEditor(host: HTMLElement, options: EditorOptions): P
       editor.setPosition({ lineNumber: line, column });
       editor.revealLineInCenterIfOutsideViewport(line);
       editor.focus();
+    },
+    layout() {
+      editor.layout();
+      editor.render(true);
     },
     focus: () => editor.focus(),
     dispose: () => editor.dispose(),

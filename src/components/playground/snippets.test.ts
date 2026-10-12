@@ -20,7 +20,8 @@ const root = fileURLToPath(new URL('../../..', import.meta.url));
 
 /** A `<Playground>` snippet: what the site's plugin makes of it, and the page it is in. */
 interface Snippet extends PlaygroundCode {
-  file: string;
+  /** The page it is in, relative to the repository. */
+  page: string;
 }
 
 /**
@@ -36,7 +37,7 @@ function snippets(dir: string): Snippet[] {
       const playgrounds = collectPlaygrounds(tree, pathToFileURL(file).pathname);
       return [...playgrounds.values()].map((playground) => ({
         ...playground,
-        file: path.relative(root, file),
+        page: path.relative(root, file),
       }));
     });
 }
@@ -47,7 +48,7 @@ test('the site has runnable snippets to check', () => {
   expect(all.length).toBeGreaterThan(0);
 });
 
-test.each(all.map((s) => [`${s.file}:${s.line}`, s] as const))('%s is well formed', (_, s) => {
+test.each(all.map((s) => [`${s.page}:${s.line}`, s] as const))('%s is well formed', (_, s) => {
   expect(parseExpectation(s.attributes.expect ?? ''), 'a snippet says what it does').not.toBeNull();
 });
 
@@ -57,7 +58,7 @@ describe('snippets, with the compiler', () => {
     compiler = await load();
   }, 120_000);
 
-  test.each(all.map((s) => [`${s.file}:${s.line}`, s] as const))('%s', async (_, snippet) => {
+  test.each(all.map((s) => [`${s.page}:${s.line}`, s] as const))('%s', async (_, snippet) => {
     const attributes = snippet.attributes;
     const expectation = parseExpectation(attributes.expect ?? '');
     if (expectation === null) throw new Error(`\`expect="${attributes.expect}"\` says nothing`);

@@ -13,7 +13,7 @@
 import { Icon } from '@astrojs/starlight/components';
 import ThemeProvider from '@astrojs/starlight/components/ThemeProvider.astro';
 import ThemeSelect from 'starlight-theme-rapide/overrides/ThemeSelect.astro';
-import { Check, Ellipsis, LoaderCircle, Play, Share2 } from '@lucide/astro';
+import { Check, Ellipsis, FilePlus, LoaderCircle, Play, Share2 } from '@lucide/astro';
 import darkLogo from '../assets/hylo-green-smaller.png';
 import lightLogo from '../assets/hylo-black.png';
 import { compilerRepoLink } from '../links';
@@ -24,12 +24,13 @@ import {
   OPTIMIZATION_LEVELS,
   PHASES,
 } from '../components/playground/settings';
-import { VIEWS, VIEW_TITLES } from '../components/playground/views';
 import Stages from '../components/playground/Stages.astro';
 import layerOrder from '../styles/layers.css?raw';
 import 'starlight-theme-rapide/styles/theme';
 import '../styles/fonts.css';
 import '../components/playground/playground.css';
+import 'dockview/dist/styles/dockview.css';
+import '../components/playground/playground-dock.css';
 ---
 
 <!doctype html>
@@ -111,6 +112,10 @@ import '../components/playground/playground.css';
             Auto-run
           </label>
         </div>
+        <button id="pg-new-file" type="button" class="menu-action" title="Add a file to the program">
+          <FilePlus class="pg-icon" aria-hidden="true" />
+          New file
+        </button>
         <label class="field" title="The phase after which compilation stops">
           Final phase
           <select id="pg-stop-after" class="pg-select">
@@ -197,27 +202,13 @@ import '../components/playground/playground.css';
       </p>
     </noscript>
     <main>
-      <section class="pane source" aria-label="Source">
-        <div id="pg-editor" class="editor"></div>
-      </section>
-      <section class="pane results" aria-label="Results">
-        <div id="pg-tabs" class="pg-tabs" role="tablist" aria-label="Views">
-          {
-            VIEWS.map((view) => (
-              <button type="button" role="tab" data-view={view}>
-                {VIEW_TITLES[view]}
-                {view === 'diagnostics' && <span id="pg-error-count" class="count" />}
-              </button>
-            ))
-          }
-        </div>
-        <div id="pg-panel" class="pg-panel"></div>
-        <footer class="status-bar">
-          <p id="pg-status-line" role="status"></p>
-          <Stages id="pg-stages" />
-          <p id="pg-hint-line" class="hint"></p>
-        </footer>
-      </section>
+      <!-- The files and the views, as panels of a dock that `playground-dock.ts` fills. -->
+      <div id="pg-dock" class="dock"></div>
+      <footer class="status-bar">
+        <p id="pg-status-line" role="status"></p>
+        <Stages id="pg-stages" />
+        <p id="pg-hint-line" class="hint"></p>
+      </footer>
     </main>
     <script>
       import '../components/playground/full-screen';
@@ -241,6 +232,8 @@ import '../components/playground/playground.css';
     --nav-height: 3.5rem;
     --nav-pad-x: 1rem;
     --nav-pad-y: 0.75rem;
+    /* The height of the dock's tab bars (`playground-dock.css`). */
+    --pg-tab-bar-height: 2.35rem;
   }
   @media (min-width: 50em) {
     :root {
@@ -320,6 +313,26 @@ import '../components/playground/playground.css';
   }
   .menu:popover-open {
     display: flex;
+  }
+  /* An action of the menu, rather than a setting. */
+  .menu-action {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin: -0.25rem -0.5rem;
+    padding: 0.35rem 0.5rem;
+    border: 0;
+    border-radius: 0.35rem;
+    background: none;
+    color: var(--sl-color-gray-2);
+    font: inherit;
+    text-align: start;
+    cursor: pointer;
+  }
+  .menu-action:hover,
+  .menu-action:focus-visible {
+    background: var(--sl-color-gray-6, var(--sl-color-gray-5));
+    color: var(--sl-color-white);
   }
   .field {
     display: flex;
@@ -491,29 +504,15 @@ import '../components/playground/playground.css';
   main {
     flex: 1;
     min-height: 0;
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-  }
-  .pane {
     display: flex;
     flex-direction: column;
-    min-height: 0;
-    min-width: 0;
   }
-  .source {
-    border-right: 1px solid var(--sl-color-gray-5);
-  }
-  .editor {
+  /* The dock, which keeps the panels its groups do not show in place, out of sight. */
+  .dock {
+    position: relative;
     flex: 1;
     min-height: 0;
-  }
-  .results .pg-panel {
-    flex: 1;
-    max-height: none;
-  }
-  .count:not(:empty) {
-    margin-left: 0.35rem;
-    color: var(--sl-color-red-high);
+    overflow: hidden;
   }
   .noscript {
     margin: 0;
@@ -543,6 +542,16 @@ import '../components/playground/playground.css';
   .hint {
     text-align: right;
   }
+  /* Putting back the file the reader removed. */
+  .hint :global(.undo) {
+    padding: 0;
+    border: 0;
+    background: none;
+    color: var(--sl-color-text-accent);
+    font: inherit;
+    text-decoration: underline;
+    cursor: pointer;
+  }
   /* What is shown no longer matches the code, edited without auto-run. */
   :global(body[data-stale]) .pg-panel {
     opacity: 0.6;
@@ -551,14 +560,6 @@ import '../components/playground/playground.css';
   @media (max-width: 50rem) {
     .bar {
       gap: 0.5rem;
-    }
-    main {
-      grid-template-columns: 1fr;
-      grid-template-rows: 1fr 1fr;
-    }
-    .source {
-      border-right: 0;
-      border-bottom: 1px solid var(--sl-color-gray-5);
     }
   }
 </style>

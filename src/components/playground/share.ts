@@ -12,39 +12,51 @@
  * state holds adds a version, with a schema of its own, while the older schemas stay and map what
  * they hold onto the current state.
  *
- * Version 1 is `{ version: 1, source, optimization?, standardLibrary?, stopAfter?, view? }`, with
- * the fields of `PlaygroundState`; the optional ones default to those of `DEFAULT_STATE`. Fields
- * it does not name are ignored.
+ * - Version 1 is `{ version: 1, source, optimization?, standardLibrary?, stopAfter?, view? }`: a
+ *   program of one file, `source`, which reads as the file `main.hylo`.
+ * - Version 2 is `{ version: 2, files, active?, optimization?, standardLibrary?, stopAfter?,
+ *   view? }`, with the fields of `PlaygroundState`: `files` is a list of `{ name, contents }`, of
+ *   distinct names that `isFileName` accepts, and `active` is one of them.
+ *
+ * The optional fields default to those of `DEFAULT_STATE`. Fields a version does not name are
+ * ignored.
  *
  * Reading is kept apart from writing so that the pages that only write links, those with
  * snippets, do not load the validation library.
  */
+import type { SourceFile } from '@hylo-lang/hylo-wasm/protocol';
 import { DEFAULT_SETTINGS, type CompileSettings } from './settings';
 import type { View } from './views';
 
 /** What the full-screen playground shows: everything a link to it reproduces. */
 export interface PlaygroundState extends CompileSettings {
-  /** The code in the editor. */
-  source: string;
+  /** The files of the program, in order; never empty. */
+  files: SourceFile[];
+  /** The name of the file shown, if not the first; one of `files`. */
+  active?: string;
   /** The view of the compilation shown. */
   view: View;
 }
 
 /** The state of everything but the code unless something says otherwise. */
-export const DEFAULT_STATE: Readonly<Omit<PlaygroundState, 'source'>> = {
+export const DEFAULT_STATE: Readonly<Omit<PlaygroundState, 'files'>> = {
   ...DEFAULT_SETTINGS,
   view: 'result',
 };
 
+/** The name of the file of a program of one file. */
+export const DEFAULT_FILE_NAME = 'main.hylo';
+
 /** The version `serialize` writes. */
-export const CURRENT_VERSION = 1;
+export const CURRENT_VERSION = 2;
 
 /** Returns `state` as JSON, in the current version. */
 export function serialize(state: PlaygroundState): string {
-  const { source, optimization, standardLibrary, stopAfter, view } = state;
+  const { files, active, optimization, standardLibrary, stopAfter, view } = state;
   return JSON.stringify({
     version: CURRENT_VERSION,
-    source,
+    files,
+    active,
     optimization,
     standardLibrary,
     stopAfter,

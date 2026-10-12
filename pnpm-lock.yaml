@@ -27,8 +27,8 @@ importers:
         specifier: ^5.3.0
         version: 5.3.0
       '@hylo-lang/hylo-wasm':
-        specifier: ^0.0.8
-        version: 0.0.8
+        specifier: ^0.0.9
+        version: 0.0.9
       '@lucide/astro':
         specifier: ^1.48.0
         version: 1.48.0(astro@7.3.5(@types/node@24.12.4)(jiti@2.7.0))
@@ -47,6 +47,9 @@ importers:
       date-fns-tz:
         specifier: ^3.2.0
         version: 3.2.0(date-fns@4.4.0)
+      dockview:
+        specifier: ^8.4.1
+        version: 8.4.1
       monaco-editor:
         specifier: ^0.57.0
         version: 0.57.0
@@ -469,8 +472,8 @@ packages:
   '@fontsource-variable/jetbrains-mono@5.3.0':
     resolution: {integrity: sha512-F32xpS2NsGYoQi2ADSkKTgpJj7ozajsGgDJ8woTnqjmIB+dxDIqImjl4pXZVEExu8UFZ2ndhmX18EBS/hdz3Lw==}
 
-  '@hylo-lang/hylo-wasm@0.0.8':
-    resolution: {integrity: sha512-s1kxbfm4vYsc3MXmRACHPTu5D03dgejhPHH7tBnci4TE8S5qCCDu+WS6RgoPv8VONq/8RlNHJZYB4J/JsKuy+w==}
+  '@hylo-lang/hylo-wasm@0.0.9':
+    resolution: {integrity: sha512-qv8Swe6gcTbh1vcPrBGEkVJjCc0MNoVP876BLOvioQP32BKYVLp5NQTFnGQSMue7+5MbkzDgdnwxrE2mYPaQYw==}
 
   '@img/colour@1.1.0':
     resolution: {integrity: sha512-Td76q7j57o/tLVdgS746cYARfSyxk8iEfRxewL9h4OMzYhbW4TAcppl0mT4eyqXddh6L/jwoM75mo7ixa/pCeQ==}
@@ -1181,6 +1184,12 @@ packages:
   direction@2.0.1:
     resolution: {integrity: sha512-9S6m9Sukh1cZNknO1CWAr2QAWsbKLafQiyM5gZ7VgXHeuaoUwffKN4q6NC4A/Mf9iiPlOXQEKW/Mv/mh9/3YFA==}
     hasBin: true
+
+  dockview-core@8.4.1:
+    resolution: {integrity: sha512-LcvhGwmK/Q1tFDEPkiBpkLIYctimmu8JJHgG5yhIXwyf9IvWQkJa3EG7/a1NKUS2Q8w82uoYZTL+c84/zpQUjg==}
+
+  dockview@8.4.1:
+    resolution: {integrity: sha512-6CrXwfDkhTL0N8stgnur8E/WYFZqltAtHaAV96Ia9lA1JGWwWMw5MWZznWckIMocS2Il5rgaqP/i/l2ltYaTqw==}
 
   dom-serializer@2.0.0:
     resolution: {integrity: sha512-wIkAryiqt/nV5EQKqQpo3SToSOV9J0DnbJqwK7Wv/Trc92zIAYZ4FlMu+JPFW1DfGFt81ZTCGgDEabffXeLyJg==}
@@ -2492,7 +2501,7 @@ snapshots:
 
   '@fontsource-variable/jetbrains-mono@5.3.0': {}
 
-  '@hylo-lang/hylo-wasm@0.0.8':
+  '@hylo-lang/hylo-wasm@0.0.9':
     dependencies:
       '@bjorn3/browser_wasi_shim': 0.4.2
 
@@ -3116,6 +3125,12 @@ snapshots:
   diff@9.0.0: {}
 
   direction@2.0.1: {}
+
+  dockview-core@8.4.1: {}
+
+  dockview@8.4.1:
+    dependencies:
+      dockview-core: 8.4.1
 
   dom-serializer@2.0.0:
     dependencies:

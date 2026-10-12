@@ -1,0 +1,199 @@
+/*
+ * The full-screen playground's dock of files and views (`playground-dock.ts`), in Starlight's colour tokens so
+ * that it follows the site's theme, its tabs looking as those of the views beside it
+ * (`.pg-tabs`). A dock of one file hides its tabs, and looks as an editor alone.
+ */
+.dockview-theme-hylo {
+  /* What dockview's own themes set, which its layout relies on. */
+  --dv-overlay-z-index: 999;
+  --dv-tab-font-size: inherit;
+  --dv-border-radius: 0px;
+  --dv-tab-margin: 0;
+  --dv-spacing-padding: 0px;
+  --dv-tab-border-radius: 0px;
+  --dv-sash-border-radius: 0px;
+  --dv-dropdown-border-radius: 0.35rem;
+  --dv-tab-close-icon-size: inherit;
+  --dv-floating-group-border: none;
+  --dv-active-sash-transition-duration: 0.1s;
+  --dv-active-sash-transition-delay: 0.3s;
+
+  --dv-group-view-background-color: var(--sl-color-black);
+  --dv-tabs-and-actions-container-background-color: var(--sl-color-gray-6);
+  /* As high as the views' tab bar beside the dock (`src/pages/playground.astro`). */
+  --dv-tabs-and-actions-container-height: var(--pg-tab-bar-height, 2.35rem);
+  --dv-tabs-and-actions-container-font-size: var(--sl-text-xs, 0.8rem);
+  --dv-activegroup-visiblepanel-tab-background-color: transparent;
+  --dv-activegroup-hiddenpanel-tab-background-color: transparent;
+  --dv-inactivegroup-visiblepanel-tab-background-color: transparent;
+  --dv-inactivegroup-hiddenpanel-tab-background-color: transparent;
+  --dv-activegroup-visiblepanel-tab-color: var(--sl-color-white);
+  --dv-activegroup-hiddenpanel-tab-color: var(--sl-color-gray-3);
+  --dv-inactivegroup-visiblepanel-tab-color: var(--sl-color-gray-2);
+  --dv-inactivegroup-hiddenpanel-tab-color: var(--sl-color-gray-3);
+  --dv-tab-divider-color: transparent;
+  --dv-separator-border: var(--sl-color-gray-5);
+  --dv-paneview-header-border-color: var(--sl-color-gray-5);
+  --dv-sash-color: transparent;
+  --dv-active-sash-color: var(--sl-color-accent);
+  --dv-drag-over-background-color: color-mix(in srgb, var(--sl-color-accent) 18%, transparent);
+  --dv-drag-over-border-color: var(--sl-color-accent);
+  --dv-drag-over-border: 1px solid var(--sl-color-accent);
+  --dv-icon-hover-background-color: var(--sl-color-gray-5);
+  --dv-tabs-container-scrollbar-color: var(--sl-color-gray-4);
+  --dv-scrollbar-background-color: var(--sl-color-gray-4);
+  --dv-context-menu-background-color: var(--sl-color-gray-6);
+  --dv-context-menu-color: var(--sl-color-white);
+  --dv-dnd-compass-color: var(--sl-color-accent);
+  --dv-edge-dock-indicator-color: var(--sl-color-accent);
+}
+
+/* The dock fills the space it is given. */
+.dockview-theme-hylo.dv-dockview,
+.dockview-theme-hylo .dv-dockview {
+  height: 100%;
+}
+.dockview-theme-hylo .dv-tabs-and-actions-container {
+  border-bottom: 1px solid var(--sl-color-gray-5);
+}
+/* Room above a tab and none below, so that its underline lies on the bar's edge, as the views'. */
+.dockview-theme-hylo .dv-tab {
+  padding-block: 0.25rem 0;
+}
+
+/* An editor of a file, filling its panel. */
+.pg-dock-editor {
+  height: 100%;
+}
+
+/* A file's tab: its name, which double-clicking renames, and a button removing the file. */
+.pg-dock-tab {
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  height: 100%;
+  padding: 0 0.35rem 0 0.75rem;
+  border-bottom: 2px solid transparent;
+  font-family: var(--__sl-font-mono, monospace);
+  white-space: nowrap;
+  cursor: pointer;
+}
+.dv-tab.dv-active-tab .pg-dock-tab {
+  border-bottom-color: var(--sl-color-gray-4);
+}
+.dv-groupview.dv-active-group .dv-tab.dv-active-tab .pg-dock-tab {
+  border-bottom-color: var(--sl-color-green);
+}
+.pg-dock-tab-close,
+.pg-dock-add {
+  display: inline-grid;
+  place-items: center;
+  width: 1.2rem;
+  height: 1.2rem;
+  padding: 0;
+  border: 0;
+  border-radius: 0.25rem;
+  background: none;
+  color: inherit;
+  cursor: pointer;
+}
+.pg-dock-tab-close svg,
+.pg-dock-add svg {
+  width: 0.8rem;
+  height: 0.8rem;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+}
+.pg-dock-tab-close:hover,
+.pg-dock-tab-close:focus-visible,
+.pg-dock-add:hover,
+.pg-dock-add:focus-visible {
+  background: var(--sl-color-gray-5);
+  color: var(--sl-color-white);
+}
+/* A tab's button shows on the tab shown and on the one under the pointer. */
+.dv-tab:not(.dv-active-tab) .pg-dock-tab:not(:hover, :focus-within) .pg-dock-tab-close {
+  visibility: hidden;
+}
+.pg-dock-tab-input {
+  min-width: 6ch;
+  padding: 0.05rem 0.3rem;
+  border: 1px solid var(--sl-color-gray-4);
+  border-radius: 0.25rem;
+  background: var(--sl-color-black);
+  color: var(--sl-color-white);
+  font: inherit;
+  outline: none;
+}
+.pg-dock-tab-input:focus {
+  border-color: var(--sl-color-accent);
+}
+.pg-dock-tab-input[aria-invalid] {
+  border-color: var(--pg-color-failure);
+}
+/* The button adding a file, after the tabs. */
+.pg-dock-actions {
+  display: flex;
+  align-items: center;
+  height: 100%;
+  padding-inline: 0.35rem;
+  color: var(--sl-color-gray-3);
+}
+
+/* A view's tab: its title, as the files' names, and, for the diagnostics, how many errors. */
+.pg-dock-view-tab {
+  padding-inline: 0.75rem;
+  font-family: inherit;
+}
+.pg-dock-view-tab .count:not(:empty) {
+  margin-left: 0.35rem;
+  color: var(--sl-color-red-high);
+}
+/* A view the final phase chosen keeps requests from producing. */
+.dv-tab:has(> .pg-dock-view-tab[data-unavailable]) {
+  display: none;
+}
+/* A view, filling its panel, scrolling. */
+.pg-dock-view.pg-panel {
+  box-sizing: border-box;
+  height: 100%;
+  max-height: none;
+}
+
+/* The panel of a file, which its editor fills. */
+.pg-dock-file {
+  position: relative;
+  height: 100%;
+}
+/* The button adding files after the tabs of a group, which only a group holding files has. */
+.pg-dock-actions[hidden] {
+  display: none;
+}
+/*
+ * The button adding a file over the program's lone file, whose group shows no tabs, nor the
+ * button after them: faint until the pointer or the keyboard comes to it.
+ */
+.pg-dock-add.pg-dock-add-alone {
+  display: none;
+  position: absolute;
+  top: 0.5rem;
+  right: 1.25rem;
+  z-index: 5;
+  width: 1.75rem;
+  height: 1.75rem;
+  border: 1px solid var(--sl-color-gray-5);
+  background: var(--sl-color-gray-6);
+  color: var(--sl-color-gray-2);
+  opacity: 0.4;
+  transition: opacity 0.15s;
+}
+[data-alone] > .pg-dock-add.pg-dock-add-alone {
+  display: inline-grid;
+}
+.pg-dock-add.pg-dock-add-alone:hover,
+.pg-dock-add.pg-dock-add-alone:focus-visible {
+  opacity: 1;
+}
