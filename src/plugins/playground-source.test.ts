@@ -77,6 +77,30 @@ test('puts each fence in the file its title names', () => {
   ]);
 });
 
+test('puts a fence in the file its `file` names, whatever its title', () => {
+  const [p] = playgrounds(
+    playground(
+      'expect="ok"',
+      fence('p', 'hidden file="point.hylo"'),
+      fence('m', 'file="main.hylo" title="The fix"'),
+      fence('q', "hidden file='point.hylo' title=\"other.hylo\""),
+    ),
+  );
+  expect(p.shown).toMatchObject([{ file: 'main.hylo' }]);
+  expect(assembleProgram(p)).toEqual([
+    { name: 'point.hylo', contents: 'p\nq' },
+    { name: 'main.hylo', contents: 'm' },
+  ]);
+});
+
+test("names a playground's own file after the files its fences name with `file`", () => {
+  const [p] = playgrounds(playground('expect="ok"', fence('a', 'hidden file="main.hylo"'), fence('b')));
+  expect(assembleProgram(p)).toEqual([
+    { name: 'main.hylo', contents: 'a' },
+    { name: 'main2.hylo', contents: 'b' },
+  ]);
+});
+
 test('starts from the files of the playground continued, continuing the files fences name', () => {
   const [, , third] = playgrounds(
     page(
@@ -208,6 +232,7 @@ test.each([
   ['only hidden fences', [fence('a', 'hidden')], 'show a code fence'],
   ['a title that is not a file', [fence('a', 'title="Example"')], '`title="Example"` does not name a'],
   ['a title outside the program', [fence('a', 'title="../a.hylo"')], '`title="../a.hylo"` does not'],
+  ['a file that is not Hylo', [fence('a', 'file="a.txt" title="a.hylo"')], '`file="a.txt"` does not'],
 ])('refuses a playground wrapping %s, naming where it is', (_, children, problem) => {
   expect(() => playgrounds(`\n\n${playground('expect="ok"', ...children)}`)).toThrow(
     `<Playground> in /docs/page.mdx:3: ${problem}`,

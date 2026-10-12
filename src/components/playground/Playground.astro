@@ -23,8 +23,9 @@
  * the page.
  *
  * A snippet can compile code it does not show: fences marked `hidden` are compiled with those
- * shown, in order. Each fence goes into the file its `title` names, or into the snippet's own
- * file; fences of the same file follow one another in it. A snippet that `continues` another,
+ * shown, in order. Each fence goes into the file its `file` names, without showing it, or else its
+ * `title`, or into the snippet's own file; fences of the same file follow one another in it. A
+ * snippet that `continues` another,
  * earlier on the page, which it names by its `name`, starts from all the files of that one; one
  * with `contributes={false}` still does, but leaves its own code out of those continuing it.
  *

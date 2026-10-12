@@ -295,9 +295,11 @@ compiled with it, and "Open in the playground" opens the program as it stands th
 
 A program can have several files. A fence goes into the file its `title` names, which the code
 block shows as a file name, and adds its code at the end of it, so a later snippet can continue a
-file an earlier one started. A fence without a title goes into the snippet's own file:
-`main.hylo`, or `main2.hylo` and so on if the program already has one of that name. Diagnostics
-name the files. A snippet can show a fence of each of several files, which it shows as tabs.
+file an earlier one started. To name the file without showing its name, use `file` instead, such
+as `file="point.hylo"`; a fence with a `file` may still have a `title`, which is then any caption,
+such as `title="The fix"`. A fence naming no file goes into the snippet's own file: `main.hylo`,
+or `main2.hylo` and so on if the program already has one of that name. Diagnostics name the
+files. A snippet can show a fence of each of several files, which it shows as tabs.
 
 A snippet says what it builds on: the snippet it continues, linking to it, the files it compiles
 without showing them, and, above a file's code, whether the file continues from an earlier snippet
