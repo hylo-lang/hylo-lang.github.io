@@ -18,45 +18,6 @@ hylo-playground [data-part='source'] .expressive-code {
   margin: 0;
 }
 
-/* What a snippet builds on: the snippet it continues, and the files it compiles without showing. */
-.pg-context {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.25rem 1rem;
-  margin: 0 0 0.4rem;
-  font-size: var(--sl-text-xs, 0.8rem);
-  color: var(--sl-color-gray-3);
-}
-.pg-context > span {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.3rem;
-}
-.pg-context a {
-  color: var(--sl-color-text-accent);
-}
-.pg-context code {
-  font-size: inherit;
-  padding: 0 0.25rem;
-  border-radius: 0.25rem;
-  background: var(--sl-color-gray-6);
-}
-
-/* How much of a file the snippet does not show, above or below the code it shows. */
-.pg-hidden-code {
-  display: flex;
-  align-items: center;
-  gap: 0.35rem;
-  margin: 0.25rem 0;
-  padding-inline: 0.75rem;
-  font-family: var(--__sl-font-mono, monospace);
-  font-size: var(--sl-text-xs, 0.8rem);
-  color: var(--sl-color-gray-3);
-}
-.pg-hidden-code[data-continued] {
-  color: var(--sl-color-text-accent);
-}
-
 /*
  * The files a snippet shows, as tabs if there are several, which name the files, in place of the
  * code blocks' titles. Without the script, they are shown one after another, with their titles.

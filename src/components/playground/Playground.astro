@@ -47,10 +47,8 @@
  *     ```
  *     </Playground>
  *
- * A snippet showing fences of several files shows them as tabs, named after the files. Above the
- * code, a snippet says which earlier snippet it continues, linking to it, and which files it
- * compiles without showing them; above and below the code of a file, it says how much of the file
- * it does not show, and whether that continues the file from an earlier snippet.
+ * A snippet showing fences of several files shows them as tabs, named after the files, marking
+ * those that continue a file of an earlier snippet.
  *
  * Only works in MDX pages: the code comes from the Markdown plugin
  * `src/plugins/playground-source.ts`, which documents how fences make files, sets `files` and
@@ -64,10 +62,8 @@
  * from the `data-` attributes set here.
  */
 import {
-  CornerDownRight,
   Ellipsis,
   ExternalLink,
-  EyeOff,
   LoaderCircle,
   Pencil,
   Play,
@@ -75,13 +71,7 @@ import {
 } from '@lucide/astro';
 import type { Phase } from '@hylo-lang/hylo-wasm/protocol';
 import { DEFAULT_SETTINGS, OPTIMIZATION_LEVELS, PHASES } from './settings';
-import type { SourceFile } from '@hylo-lang/hylo-wasm/protocol';
-import {
-  EXPECTATION_FORMS,
-  lineCount,
-  parseExpectation,
-  type ShownFile,
-} from './snippet';
+import { EXPECTATION_FORMS, parseExpectation, type ShownFile } from './snippet';
 import { VIEWS, VIEW_TITLES, type View } from './views';
 import Stages from './Stages.astro';
 import './playground.css';
@@ -137,8 +127,6 @@ const {
   stopAfter,
   editable = true,
   expect,
-  name,
-  continues,
   files,
   shown,
 } = Astro.props;
@@ -172,12 +160,7 @@ if (parseExpectation(expect) === null) {
 if ([files, shown].some((code) => typeof code !== 'string')) {
   fail('no code: use it in an MDX page, where `src/plugins/playground-source.ts` gives it its code');
 }
-const program = JSON.parse(files) as SourceFile[];
 const shownFiles = JSON.parse(shown) as ShownFile[];
-/** The files compiled but not shown, from this snippet's hidden fences or the snippet it continues. */
-const hiddenFiles = program
-  .map((f) => f.name)
-  .filter((f) => !shownFiles.some((shownFile) => shownFile.file === f));
 
 // The slot is the code blocks of the fences shown, one after another, each of which Expressive Code
 // renders as a `div.expressive-code`.
@@ -188,15 +171,9 @@ if (blocks.length !== shownFiles.length) {
   fail(`expected a code block for each of ${shownFiles.length} files shown, found ${blocks.length}`);
 }
 const tabs = shownFiles.length > 1;
-
-/** Returns `n` lines, in words. */
-const lines = (n: number) => (n === 1 ? '1 line' : `${n} lines`);
-/** The id of the snippet named `name`, which those continuing it link to. */
-const anchor = (name: string) => `pg-${name}`;
 ---
 
 <hylo-playground
-  id={name && anchor(name)}
   data-views={views.join(',')}
   data-ir-functions={splitList(focus).join(',') || undefined}
   data-optimization={optimization}
@@ -207,30 +184,6 @@ const anchor = (name: string) => `pg-${name}`;
   data-shown={shown}
   class="not-content"
 >
-  {
-    (continues || hiddenFiles.length > 0) && (
-      <p class="pg-context">
-        {continues && (
-          <span>
-            <CornerDownRight class="pg-icon" aria-hidden="true" />
-            Continues <a href={`#${anchor(continues)}`}>an earlier snippet</a>
-          </span>
-        )}
-        {hiddenFiles.length > 0 && (
-          <span>
-            <EyeOff class="pg-icon" aria-hidden="true" />
-            Also compiles{' '}
-            {hiddenFiles.map((f, i) => (
-              <>
-                {i > 0 && ', '}
-                <code>{f}</code>
-              </>
-            ))}
-          </span>
-        )}
-      </p>
-    )
-  }
   <div data-part="files" class:list={['pg-files', { 'pg-has-tabs': tabs }]}>
     {
       tabs && (
@@ -252,39 +205,19 @@ const anchor = (name: string) => `pg-${name}`;
       )
     }
     {
-      shownFiles.map((f, i) => {
-        const above = lineCount(f.prelude);
-        const below = lineCount(f.epilogue);
-        const hiddenAbove = above - f.continuedLines;
-        return (
-          <div
-            data-file-panel={i}
-            data-selected={i === 0 ? '' : undefined}
-            role={tabs ? 'tabpanel' : undefined}
-            aria-label={tabs ? f.file : undefined}
-          >
-            {above > 0 && (
-              <p class="pg-hidden-code" data-continued={f.continuedLines > 0 ? '' : undefined}>
-                <Ellipsis class="pg-icon" aria-hidden="true" />
-                {f.continuedLines > 0
-                  ? `Continues ${f.file} from an earlier snippet (${lines(f.continuedLines)})` +
-                    (hiddenAbove > 0 ? `, and ${lines(hiddenAbove)} not shown` : '')
-                  : `${lines(above)} not shown`}
-              </p>
-            )}
-            <div data-part="source">
-              <Fragment set:html={blocks[i]} />
-            </div>
-            {editable && <div data-part="editor" class="pg-editor" hidden />}
-            {below > 0 && (
-              <p class="pg-hidden-code">
-                <Ellipsis class="pg-icon" aria-hidden="true" />
-                {`${lines(below)} not shown`}
-              </p>
-            )}
+      shownFiles.map((f, i) => (
+        <div
+          data-file-panel={i}
+          data-selected={i === 0 ? '' : undefined}
+          role={tabs ? 'tabpanel' : undefined}
+          aria-label={tabs ? f.file : undefined}
+        >
+          <div data-part="source">
+            <Fragment set:html={blocks[i]} />
           </div>
-        );
-      })
+          {editable && <div data-part="editor" class="pg-editor" hidden />}
+        </div>
+      ))
     }
   </div>
   <div class="pg-toolbar">
