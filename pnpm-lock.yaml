@@ -20,6 +20,9 @@ importers:
       '@expressive-code/core':
         specifier: ^0.44.2
         version: 0.44.2
+      '@expressive-code/plugin-collapsible-sections':
+        specifier: ^0.44.2
+        version: 0.44.2
       '@fontsource-variable/jetbrains-mono':
         specifier: ^5.3.0
         version: 5.3.0
@@ -63,6 +66,9 @@ importers:
         specifier: ^1.5.0
         version: 1.5.0
     devDependencies:
+      satteri:
+        specifier: 0.10.5
+        version: 0.10.5
       vitest:
         specifier: ^5.0.1
         version: 5.0.1(@types/node@24.12.4)(vite@8.2.2(@types/node@24.12.4)(esbuild@0.28.2)(jiti@2.7.0))
@@ -447,6 +453,9 @@ packages:
 
   '@expressive-code/core@0.44.2':
     resolution: {integrity: sha512-Yw5KonQCD1HoOO2P89y4wifqS9qrJcGVY0LkVMUsVZjhi++bhz4WwQ37inenKFNOEVo50P7cjoVsCdaVnUbq8w==}
+
+  '@expressive-code/plugin-collapsible-sections@0.44.2':
+    resolution: {integrity: sha512-iT8PPitb32Te5tGd1LiIlVeZve/HDZUtygwLjqg3f47aHR3AeUreDXDZUis5qMHr+/Vrt8tKfQSWtT7qm8Fkng==}
 
   '@expressive-code/plugin-frames@0.44.2':
     resolution: {integrity: sha512-gVLm6TQMNIRWIaM7o+mCtxkGNjLZY5/2faSTLoXeo9wv/Pkj/0QAtZyXPVPrRsPARqiipATNFmfvQFLJudxPHQ==}
@@ -2463,6 +2472,10 @@ snapshots:
       postcss-nested: 6.2.0(postcss@8.5.15)
       unist-util-visit: 5.1.0
       unist-util-visit-parents: 6.0.2
+
+  '@expressive-code/plugin-collapsible-sections@0.44.2':
+    dependencies:
+      '@expressive-code/core': 0.44.2
 
   '@expressive-code/plugin-frames@0.44.2':
     dependencies:

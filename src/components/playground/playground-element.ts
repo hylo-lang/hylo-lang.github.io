@@ -2,7 +2,10 @@
  * `<hylo-playground>`: makes the code block inside it runnable, and editable if it allows it.
  *
  * Rendered by `Playground.astro`, which documents the attributes and checks them as the site
- * builds, and sets the code as `data-source`. The code block inside is whatever Expressive Code
+ * builds, and sets the code shown as `data-source`, and the code compiled before and after it
+ * without being shown, if any, as `data-prelude` and `data-epilogue`. The reader only sees and
+ * edits the code shown, and is only shown the diagnostics in it in the editor; the full-screen
+ * playground opens on the whole program. The code block inside is whatever Expressive Code
  * rendered for the author's fence, and stays on the page until the reader edits it, so a snippet
  * looks like every other code block and works without JavaScript.
  *
@@ -11,6 +14,7 @@
  * disconnects and connects it at once) keeps its editor and results; removing it resets it,
  * stopping its run and releasing its editor, as `reset` does.
  */
+import type { Diagnostic } from '@hylo-lang/hylo-wasm/protocol';
 import type { Result } from './compiler';
 import type { Editor } from './editor';
 import { compiler } from './page-compiler';
@@ -18,7 +22,13 @@ import { ResultPane } from './pane';
 import { renderView, showCompilerStatus, summarize } from './rendering';
 import { DEFAULT_SETTINGS, parseOptimizationLevel, parsePhase } from './settings';
 import { playgroundURL } from './share';
-import { snippetRequest, type SnippetSettings } from './snippet';
+import {
+  assembleProgram,
+  shownCodeOffset,
+  snippetRequest,
+  type SnippetCode,
+  type SnippetSettings,
+} from './snippet';
 import { connectTabs } from './tabs';
 import { VIEWS, type View } from './views';
 
@@ -52,8 +62,8 @@ function readSettings(dataset: DOMStringMap): SnippetSettings {
 class HyloPlayground extends HTMLElement {
   /** The settings, read from the attributes once connected. */
   #settings!: SnippetSettings;
-  /** The code as the author wrote it, which `Playground.astro` sets as `data-source`. */
-  #originalSource = '';
+  /** The code as the author wrote it, which `Playground.astro` sets as `data-` attributes. */
+  #originalCode: SnippetCode = { prelude: '', source: '', epilogue: '' };
   /** The editor, from the moment the reader asks to edit, while it loads and after. */
   #editorLoading: Promise<Editor> | null = null;
   /** The editor, once it is loaded. */
@@ -96,7 +106,11 @@ class HyloPlayground extends HTMLElement {
   /** Reads the settings and the code, and makes the buttons work. */
   #setUpOnce(): void {
     this.#settings = readSettings(this.dataset);
-    this.#originalSource = this.dataset.source ?? '';
+    this.#originalCode = {
+      prelude: this.dataset.prelude ?? '',
+      source: this.dataset.source ?? '',
+      epilogue: this.dataset.epilogue ?? '',
+    };
     this.#part('run')!.addEventListener('click', () => void this.compileAndRun());
     this.#part('edit')?.addEventListener('click', () => void this.edit()?.catch(() => {}));
     this.#part('reset')?.addEventListener('click', () => this.reset());
@@ -119,8 +133,12 @@ class HyloPlayground extends HTMLElement {
             onReveal:
               this.#part('edit') !== null
                 ? (line, column) =>
-                    void this.edit()?.then((editor) => editor.reveal(line, column), () => {})
+                    void this.edit()?.then(
+                      (editor) => editor.reveal(line - this.#shownCodeOffset, column),
+                      () => {},
+                    )
                 : undefined,
+            canReveal: (line) => this.#isShown(line),
           }),
       },
       this.#settings.views[0],
@@ -150,7 +168,7 @@ class HyloPlayground extends HTMLElement {
     this.#part('results')!.hidden = false;
     // The compiler's loading, until there is a result to show instead.
     this.#stopShowingLoading = showCompilerStatus(compiler, this.#pane, statusLine);
-    const result = await compiler.compileAndRun(snippetRequest(this.#source, this.#settings), {
+    const result = await compiler.compileAndRun(snippetRequest(this.#program, this.#settings), {
       signal: thisRun.signal,
       onProgress: (progress) => void this.#pane.showProgress(progress),
     });
@@ -160,7 +178,7 @@ class HyloPlayground extends HTMLElement {
     this.#endRun();
     this.#lastResult = result;
     statusLine.textContent = summarize(result);
-    this.#editor?.showDiagnostics(result.compilation.diagnostics);
+    this.#editor?.showDiagnostics(this.#diagnosticsInShownCode(result));
     await this.#pane.showAnswer(result);
   }
 
@@ -218,7 +236,41 @@ class HyloPlayground extends HTMLElement {
 
   /** The code as the reader sees it now. */
   get #source(): string {
-    return this.#editor?.value ?? this.#originalSource;
+    return this.#editor?.value ?? this.#originalCode.source;
+  }
+
+  /** The program compiled: the code the reader sees now, with the code they do not. */
+  get #program(): string {
+    return assembleProgram({ ...this.#originalCode, source: this.#source });
+  }
+
+  /** What to subtract from a line of `#program` to get the line of the code shown. */
+  get #shownCodeOffset(): number {
+    return shownCodeOffset(this.#originalCode);
+  }
+
+  /** Returns whether the 1-based `line` of `#program` is in the code shown. */
+  #isShown(line: number): boolean {
+    const shownLine = line - this.#shownCodeOffset;
+    return shownLine >= 1 && shownLine <= this.#source.split('\n').length;
+  }
+
+  /**
+   * Returns the diagnostics of `result` in the code shown, at their lines in it rather than in
+   * the program.
+   */
+  #diagnosticsInShownCode(result: Result): Diagnostic[] {
+    const offset = this.#shownCodeOffset;
+    return result.compilation.diagnostics
+      .filter((diagnostic) => this.#isShown(diagnostic.site.line))
+      .map((diagnostic) => ({
+        ...diagnostic,
+        site: {
+          ...diagnostic.site,
+          line: diagnostic.site.line - offset,
+          endLine: diagnostic.site.endLine - offset,
+        },
+      }));
   }
 
   /**
@@ -233,7 +285,7 @@ class HyloPlayground extends HTMLElement {
       const { createEditor } = await import('./editor');
       host.hidden = false;
       const editor = await createEditor(host, {
-        value: this.#originalSource,
+        value: this.#originalCode.source,
         fitContent: true,
         onChange: () => {
           // Once the reader has run the snippet, its results follow their edits.
@@ -255,7 +307,7 @@ class HyloPlayground extends HTMLElement {
       this.#part('source')!.hidden = true;
       this.#part('edit')!.hidden = true;
       this.#part('reset')!.hidden = false;
-      if (this.#lastResult) editor.showDiagnostics(this.#lastResult.compilation.diagnostics);
+      if (this.#lastResult) editor.showDiagnostics(this.#diagnosticsInShownCode(this.#lastResult));
       editor.focus();
       return editor;
     } catch (error) {
@@ -287,13 +339,13 @@ class HyloPlayground extends HTMLElement {
   /**
    * Points the link to the full-screen playground at the code as it is now, with the snippet's
    * settings and the view selected. (Not the IR functions shown: the full-screen playground shows
-   * all of the IR.)
+   * all of the IR.) The code is the whole program, including the code the snippet does not show.
    */
   #pointLinkAtCurrentCode(): void {
     const { optimization, standardLibrary, stopAfter } = this.#settings;
     const link = this.#part('open') as HTMLAnchorElement;
     link.href = playgroundURL({
-      source: this.#source,
+      source: this.#program,
       optimization,
       standardLibrary,
       stopAfter,

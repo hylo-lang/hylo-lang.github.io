@@ -229,6 +229,104 @@ fun sum(_ p: Pair) -> Int32 { p.a + p.b }
 ```
 </Playground>
 
+### Compiling code the reader does not see
+
+A snippet may wrap more than one fence, of which exactly one is shown: the others say `hidden`,
+and are compiled with it, in the order written, but not shown. Their code is put together into one
+file, so a hidden fence may well open what the shown one closes. Readers edit only the code they
+see, and the full-screen playground opens on all of it.
+
+`````mdx
+<Playground expect="exit 42">
+```hylo hidden
+public fun main() -> Int32 {
+```
+```hylo
+  var x: Int32 = 40
+  &x = x + (2 as Int32)
+  return x
+```
+```hylo hidden
+}
+```
+</Playground>
+`````
+
+<Playground expect="exit 42">
+```hylo hidden
+public fun main() -> Int32 {
+```
+```hylo
+  var x: Int32 = 40
+  &x = x + (2 as Int32)
+  return x
+```
+```hylo hidden
+}
+```
+</Playground>
+
+Code that is shown but beside the point can be folded instead, with `collapse={…}`, which works
+on every code block: readers see that it is there, and unfold it if they want to.
+
+<Playground expect="exit 120">
+```hylo collapse={1-8}
+fun factorial(n: sink Int32) -> Int32 {
+  var m: Int32 = 1
+  while n > (0 as Int32) {
+    &m = m * n
+    &n = n - (1 as Int32)
+  }
+  return m
+}
+
+public fun main() -> Int32 {
+  factorial(5 as Int32)
+}
+```
+</Playground>
+
+### Building on an earlier snippet
+
+A snippet named with `name` can be continued by any snippet after it on the same page, with
+`continues`: the later one compiles all of the earlier one's code, hidden or not, before its own.
+A chain of snippets can so build a program up as the prose explains it.
+
+`````mdx
+<Playground name="pair" stopAfter="typing" expect="ok">
+```hylo
+struct Pair is Deinitializable { … }
+```
+</Playground>
+
+<Playground continues="pair" expect="exit 5">
+```hylo
+public fun main() -> Int32 { … }
+```
+</Playground>
+`````
+
+<Playground name="pair" stopAfter="typing" expect="ok">
+```hylo
+struct Pair is Deinitializable {
+  public memberwise init
+  public var a: Int32
+  public var b: Int32
+}
+```
+</Playground>
+
+Once `Pair` is declared, a program can use it:
+
+<Playground continues="pair" expect="exit 5">
+```hylo
+public fun main() -> Int32 {
+  let p = Pair(a: 2 as Int32, b: 3 as Int32)
+  return p.a + p.b
+}
+```
+</Playground>
+
 The [Hylo IR](/docs/reference/ir/) and the WebAssembly assembly LLVM prints have code fence
 languages of their own, `hylo-ir` and `wasm-asm`:
 

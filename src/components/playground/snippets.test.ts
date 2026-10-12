@@ -7,70 +7,37 @@
  */
 import { readdirSync, readFileSync } from 'node:fs';
 import path from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 import { type Compiler, load } from '@hylo-lang/hylo-wasm';
+import { mdxToMdast } from 'satteri';
 import { beforeAll, describe, expect, test } from 'vitest';
+import { collectPlaygrounds, type PlaygroundCode } from '../../plugins/playground-source';
 import { parseOptimizationLevel, PHASES } from './settings';
-import { parseExpectation, snippetRequest } from './snippet';
+import { assembleProgram, parseExpectation, snippetRequest } from './snippet';
 import type { View } from './views';
 
 const root = fileURLToPath(new URL('../../..', import.meta.url));
 
-/** A `<Playground>` snippet: where it is, its attributes, and its code fence. */
-interface Snippet {
+/** A `<Playground>` snippet: what the site's plugin makes of it, and the page it is in. */
+interface Snippet extends PlaygroundCode {
   file: string;
-  line: number;
-  attributes: Record<string, string>;
-  /** How many code fences it wraps, of which there must be one. */
-  fences: number;
-  /** The language of the first fence, or `undefined` if there is none. */
-  language?: string;
-  source: string;
 }
 
 /**
- * Returns `mdx` without the code blocks other than `hylo` ones and without inline code, where a
- * `<Playground>` is an example of the syntax rather than a snippet. Lines are blanked rather than
- * removed, so that line numbers stay right.
+ * Returns the snippets in the MDX files under `dir`, read as the site reads them: parsed by
+ * Sätteri, and collected by `src/plugins/playground-source.ts`, which throws if one is misused.
  */
-function withoutExamples(mdx: string): string {
-  const lines = mdx.split('\n');
-  let fence: { ticks: number; blank: boolean } | null = null;
-  for (const [i, line] of lines.entries()) {
-    const m = /^(`{3,})(.*)$/.exec(line);
-    if (fence === null) {
-      if (m) fence = { ticks: m[1].length, blank: !/^hylo\b/.test(m[2]) };
-      if (fence?.blank) lines[i] = '';
-    } else {
-      if (fence.blank) lines[i] = '';
-      if (m && m[1].length >= fence.ticks && m[2].trim() === '') fence = null;
-    }
-  }
-  return lines.join('\n').replace(/(?<!`)`[^`\n]+`(?!`)/g, '');
-}
-
-/** Returns the snippets in the MDX files under `dir`. */
 function snippets(dir: string): Snippet[] {
   return readdirSync(dir, { recursive: true, withFileTypes: true })
     .filter((e) => e.isFile() && e.name.endsWith('.mdx'))
     .flatMap((e) => {
       const file = path.join(e.parentPath, e.name);
-      const text = withoutExamples(readFileSync(file, 'utf8'));
-      return [...text.matchAll(/<Playground\b([^>]*)>([\s\S]*?)<\/Playground>/g)].map((m) => {
-        const fence = /^\s*```(\S*)[^\n]*\n([\s\S]*?)```\s*$/.exec(m[2]);
-        // Every fence opens and closes on a line starting with backticks.
-        const fences = (m[2].match(/^\s*```/gm) ?? []).length / 2;
-        return {
-          file: path.relative(root, file),
-          line: text.slice(0, m.index).split('\n').length,
-          attributes: Object.fromEntries(
-            [...m[1].matchAll(/(\w+)=(?:"([^"]*)"|\{([^}]*)\})/g)].map((a) => [a[1], a[2] ?? a[3]]),
-          ),
-          fences,
-          language: fence?.[1],
-          source: fence?.[2] ?? '',
-        };
-      });
+      const tree = mdxToMdast(readFileSync(file, 'utf8'));
+      const playgrounds = collectPlaygrounds(tree, pathToFileURL(file).pathname);
+      return [...playgrounds.values()].map((playground) => ({
+        ...playground,
+        file: path.relative(root, file),
+      }));
     });
 }
 
@@ -81,8 +48,6 @@ test('the site has runnable snippets to check', () => {
 });
 
 test.each(all.map((s) => [`${s.file}:${s.line}`, s] as const))('%s is well formed', (_, s) => {
-  expect(s.fences, 'a snippet wraps exactly one code fence').toBe(1);
-  expect(s.language, 'a snippet wraps a `hylo` code fence').toBe('hylo');
   expect(parseExpectation(s.attributes.expect ?? ''), 'a snippet says what it does').not.toBeNull();
 });
 
@@ -99,7 +64,7 @@ describe('snippets, with the compiler', () => {
 
     // The request the snippet makes in the browser.
     const response = compiler.compile(
-      snippetRequest(snippet.source, {
+      snippetRequest(assembleProgram(snippet), {
         views: (attributes.outputs ?? 'result').split(/[\s,]+/).filter((view) => view !== '') as View[],
         optimization: parseOptimizationLevel(attributes.optimization ?? '0'),
         standardLibrary: attributes.standardLibrary !== 'false',

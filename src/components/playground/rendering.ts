@@ -23,6 +23,12 @@ export interface RenderOptions {
    * diagnostics cannot be clicked.
    */
   onReveal?: (line: number, column: number) => void;
+  /**
+   * Returns whether the 1-based `line` is in code the reader can be taken to; every line is if
+   * absent. A diagnostic elsewhere, such as in code a snippet compiles without showing, cannot be
+   * clicked.
+   */
+  canReveal?: (line: number) => boolean;
 }
 
 /**
@@ -293,8 +299,8 @@ function diagnosticList(diagnostics: readonly Diagnostic[], options: RenderOptio
     button.type = 'button';
     button.append(preformatted(diagnostic.rendered));
     const reveal = options.onReveal;
-    if (reveal) {
-      const { line, column } = diagnostic.site;
+    const { line, column } = diagnostic.site;
+    if (reveal && (options.canReveal?.(line) ?? true)) {
       button.addEventListener('click', () => reveal(line, column));
     } else {
       button.disabled = true;
