@@ -24,7 +24,7 @@ jobs:
           version: latest
 
       - name: Setup Node.js
-        uses: actions/setup-node@v7.0.0
+        uses: actions/setup-node@v7.1.0
         with:
           node-version: 24
           cache: pnpm
@@ -48,7 +48,7 @@ jobs:
           version: latest
 
       - name: Setup Node.js
-        uses: actions/setup-node@v7.0.0
+        uses: actions/setup-node@v7.1.0
         with:
           node-version: 24
           cache: pnpm
@@ -79,7 +79,7 @@ jobs:
         uses: actions/checkout@v7.0.1
 
       - name: Run typos
-        uses: crate-ci/typos@v1.50.3
+        uses: crate-ci/typos@v1.51.1
 
   links:
     name: Link check (lychee)

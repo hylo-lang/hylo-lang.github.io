@@ -54,7 +54,7 @@ jobs:
       # `withastro/action` sets up Node itself, but only after this step, and the
       # runner's default Node may be too old to run a TypeScript file directly.
       - name: Setup Node.js
-        uses: actions/setup-node@v7.0.0
+        uses: actions/setup-node@v7.1.0
         with:
           node-version: 24
       - name: Record the release to build against
