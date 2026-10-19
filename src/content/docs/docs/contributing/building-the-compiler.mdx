@@ -174,15 +174,15 @@ import WindowsDevMode from './windows-dev-mode.png';
             1. **Install Swift 6.3.2 or newer**, using [swiftly](https://github.com/swiftlang/swiftly), Swift's
                toolchain installer.
 
-            2. **Install pkg-config**, which Swift Package Manager uses to find LLVM.
+            2. **Install pkg-config**, which Swift Package Manager uses to find LLVM, and **zstd** for decompression.
 
                ```bash frame=none
-               sudo apt install pkg-config
+               sudo apt install pkg-config zstd
                ```
 
             3. **Download Hylo's latest LLVM build** from
                [the llvm-build releases page](https://github.com/hylo-lang/llvm-build/releases) and extract it
-               somewhere permanent. Unless you are debugging the LLVM code generation part of Hylo, you
+               somewhere permanent (`tar --zstd -xvf llvm.tar.zst`). Unless you are debugging the LLVM code generation part of Hylo, you
                probably want the `MinSizeRel` variant, as the `Debug` variant slows down testing considerably.
 
                We build LLVM for x64 and arm64, requiring glibc 2.39+ (Ubuntu 24.04+). If your platform is not among
