@@ -75,7 +75,7 @@
   height: 100%;
   padding: 0 0.35rem 0 0.75rem;
   border-bottom: 2px solid transparent;
-  font-family: var(--__sl-font-mono, monospace);
+  font-family: inherit;
   white-space: nowrap;
   cursor: pointer;
 }

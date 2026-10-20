@@ -37,7 +37,7 @@ hylo-playground [data-part='source'] .expressive-code {
   border: 0;
   border-bottom: 2px solid transparent;
   background: none;
-  font-family: var(--__sl-font-mono, monospace);
+  font-family: inherit;
   font-size: var(--sl-text-xs, 0.8rem);
   color: var(--sl-color-gray-3);
   cursor: pointer;
