@@ -5,7 +5,8 @@
   "scripts": {
     "dev": "astro dev",
     "start": "astro dev",
-    "build": "astro build",
+    "build": "astro check && astro build",
+    "check": "astro check",
     "preview": "astro preview",
     "astro": "astro",
     "test": "vitest run"
@@ -33,7 +34,9 @@
     "valibot": "^1.5.0"
   },
   "devDependencies": {
+    "@astrojs/check": "^0.9.10",
     "satteri": "0.10.5",
+    "typescript": "^6.0.3",
     "vitest": "^5.0.1"
   }
 }

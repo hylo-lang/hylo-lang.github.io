@@ -107,8 +107,11 @@ export interface Editor {
 
 /** How `createEditor` creates an editor. */
 export interface EditorOptions {
-  /** The Hylo code the editor starts with. */
-  value: string;
+  /**
+   * The Hylo code the editor starts with, or what returns it once the editor is loaded, for code
+   * that may change while it loads.
+   */
+  value: string | (() => string);
   /**
    * Whether the editor grows with its content, as one embedded in prose does, rather than filling
    * its container.
@@ -136,7 +139,7 @@ export interface EditorOptions {
 export async function createEditor(host: HTMLElement, options: EditorOptions): Promise<Editor> {
   await monacoReady;
   const editor = monaco.editor.create(host, {
-    value: options.value,
+    value: typeof options.value === 'function' ? options.value() : options.value,
     language: 'hylo',
     theme: codeThemeOfPage(),
     fontFamily: [siteCodeFont, 'ui-monospace, SFMono-Regular, Menlo, Consolas, monospace']
@@ -174,12 +177,16 @@ export async function createEditor(host: HTMLElement, options: EditorOptions): P
   if (options.fitContent) {
     const fit = (): void => {
       // The host's borders as well, which its height includes: the code has its height inside
-      // them, rather than scrolling by their width. The host's `max-height` may cap it.
-      const borders = host.offsetHeight - host.clientHeight;
+      // them, rather than scrolling by their width. The host's `max-height` may cap it. They are
+      // read from its style, which a host not displayed, as in a tab not shown, has too.
+      const style = getComputedStyle(host);
+      const borders = parseFloat(style.borderTopWidth) + parseFloat(style.borderBottomWidth);
       host.style.height = `${editor.getContentHeight() + borders}px`;
       editor.layout();
     };
-    editor.onDidContentSizeChange(fit);
+    editor.onDidContentSizeChange((event) => {
+      if (event.contentHeightChanged) fit();
+    });
     fit();
   }
   editor.onDidChangeModelContent(() => options.onChange?.());

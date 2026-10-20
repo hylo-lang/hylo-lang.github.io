@@ -28,14 +28,20 @@ import { VIEW_TITLES, type View } from './views';
 
 /** What the playground is told of the dock. */
 export interface PlaygroundDockOptions {
-  /** Called after every edit of a file. */
+  /** Called after every edit the reader makes to a file. */
   onEdit: () => void;
   /** Called when the reader presses Ctrl+Enter (⌘+Enter on a Mac) in an editor. */
   onRun: () => void;
-  /** Called when a file is added, removed or renamed, or another one is shown. */
+  /**
+   * Called when a file is added, removed or renamed, or another one is shown, or when `setFiles`
+   * replaces the code of files.
+   */
   onFilesChange: () => void;
-  /** Called when the reader removes the file `name`, with what puts it back. */
-  onRemove: (name: string, undo: () => void) => void;
+  /**
+   * Called after files are removed, by the reader or by `setFiles` asked to report it, with their
+   * names, and what puts the files back as they were.
+   */
+  onRemove: (names: string[], undo: () => void) => void;
   /** Called when the panel of `view` is shown or hidden, as its group shows another. */
   onViewVisibility: (view: View, visible: boolean) => void;
 }
@@ -94,6 +100,10 @@ export class PlaygroundDock {
    * told nothing.
    */
   #built = false;
+  /** Whether files are being replaced, until which the playground is not told of their changes. */
+  #settingFiles = false;
+  /** Whether a view is one requests can produce, as `setAvailableViews` last said. */
+  #isAvailable: (view: View) => boolean = () => true;
 
   /**
    * Creates a dock in `host` of `files`, showing `active` or the first file, and of `views`,
@@ -134,11 +144,15 @@ export class PlaygroundDock {
     });
     this.#api.onDidAddPanel(() => this.#updateTabs());
     this.#api.onDidRemovePanel(() => this.#updateTabs());
-    this.#api.onDidLayoutChange(() => this.#updateTabs());
+    this.#api.onDidLayoutChange(() => {
+      this.#updateTabs();
+      // Panels moved or removed may leave a group showing an unavailable view.
+      this.#showAvailable();
+    });
     this.#api.onDidActivePanelChange(({ panel }) => {
       const file = this.#fileOf(panel);
       if (file) this.#lastActiveFile = file;
-      if (this.#built && file) this.#options.onFilesChange();
+      if (this.#built && !this.#settingFiles && file) this.#options.onFilesChange();
     });
 
     for (const file of files) this.#open(file);
@@ -191,37 +205,79 @@ export class PlaygroundDock {
   /** Shows `view` in its group. */
   showView(view: View): void {
     const panel = this.#api.getPanel(viewPanelId(view));
-    // Without making its group the active one, which takes the keyboard from the editor.
-    panel?.api.group.model.openPanel(panel, { skipSetActive: true });
+    if (panel) this.#show(panel);
   }
 
-  /** Shows the tab of `view` iff `available`, as views a request cannot produce are not. */
-  setViewAvailable(view: View, available: boolean): void {
-    this.viewTab(view).toggleAttribute('data-unavailable', !available);
+  /** Shows `panel` in its group. */
+  #show(panel: IDockviewPanel): void {
+    // Without making its group the active one, which takes the keyboard from the editor.
+    panel.api.group.model.openPanel(panel, { skipSetGroupActive: true });
+  }
+
+  /**
+   * Shows the tabs of the views `isAvailable` accepts, and only those, as views a request cannot
+   * produce are not. A group showing a view made unavailable shows the result in its place if it
+   * holds it, or else another of its views available, or else a file; a group of views none of
+   * which is available is hidden. This holds as the reader moves or removes panels too.
+   */
+  setAvailableViews(isAvailable: (view: View) => boolean): void {
+    this.#isAvailable = isAvailable;
+    for (const { view, tab } of this.#views) {
+      tab.toggleAttribute('data-unavailable', !isAvailable(view));
+    }
+    this.#showAvailable();
+  }
+
+  /** Shows only the available views, as `setAvailableViews` says, as the layout is now. */
+  #showAvailable(): void {
+    const isUnavailable = (panel: IDockviewPanel): boolean => {
+      const view = this.#viewOfPanel(panel.id);
+      return view !== undefined && !this.#isAvailable(view.view);
+    };
+    for (const group of this.#api.groups) {
+      // Hidden while none of its panels is available, keeping its place for when one is.
+      const hidden = group.panels.length > 0 && group.panels.every(isUnavailable);
+      if (group.api.isVisible === hidden) group.api.setVisible(!hidden);
+      if (hidden || !group.activePanel || !isUnavailable(group.activePanel)) continue;
+      const available = group.panels.filter((p) => !isUnavailable(p));
+      const views = available.filter((p) => this.#viewOfPanel(p.id) !== undefined);
+      this.#show(views.find((p) => p.id === viewPanelId('result')) ?? views[0] ?? available[0]);
+    }
   }
 
   /**
    * Replaces the files with `files`, showing `active` or the first one: a file of the same name
    * keeps its editor, whose code is replaced as an edit the reader can undo, and the others are
-   * removed or added.
+   * removed, which the playground is told of iff `report`, or added.
    */
-  setFiles(files: readonly SourceFile[], active?: string): void {
-    for (const file of [...this.#files]) {
-      if (!files.some((f) => f.name === file.name)) this.#close(file);
+  setFiles(files: readonly SourceFile[], active?: string, report = true): void {
+    const names = new Set(files.map((f) => f.name));
+    const removed = this.#files.filter((f) => !names.has(f.name));
+    const before = report && removed.length > 0 ? { files: this.files, active: this.active } : null;
+    this.#settingFiles = true;
+    try {
+      // Added before the others are removed, so that they go where the files are.
+      const replaced = files.map(({ name, contents }) => {
+        const file = this.#files.find((f) => f.name === name);
+        if (file === undefined) return this.#open({ name, contents });
+        if (!file.editor) file.contents = contents;
+        else if (file.editor.value !== contents) file.editor.replace(contents);
+        return file;
+      });
+      for (const file of removed) this.#close(file);
+      this.#files = replaced;
+      this.#showFile(active) ?? this.#showFile(files[0]?.name);
+    } finally {
+      this.#settingFiles = false;
     }
-    for (const { name, contents } of files) {
-      const file = this.#files.find((f) => f.name === name);
-      if (file === undefined) this.#open({ name, contents });
-      else if (file.editor) {
-        if (file.editor.value !== contents) file.editor.replace(contents);
-      } else file.contents = contents;
-    }
-    this.#files.sort(
-      (a, b) =>
-        files.findIndex((f) => f.name === a.name) - files.findIndex((f) => f.name === b.name),
-    );
-    this.#showFile(active) ?? this.#showFile(files[0]?.name);
     this.#options.onFilesChange();
+    if (before) {
+      // Putting them back removes no file the reader would want back.
+      this.#options.onRemove(
+        removed.map((file) => file.name),
+        () => this.setFiles(before.files, before.active, false),
+      );
+    }
   }
 
   /** Adds a file of a fresh name, in `group` or by the files, shows it, and lets the reader name it. */
@@ -281,19 +337,12 @@ export class PlaygroundDock {
   remove(id: string): void {
     const file = this.#files.find((f) => f.id === id);
     if (!file || this.#files.length === 1) return;
-    const index = this.#files.indexOf(file);
-    const removed = { name: file.name, contents: file.editor?.value ?? file.contents };
-    this.#close(file);
-    this.#options.onFilesChange();
-    this.#options.onRemove(removed.name, () => {
-      if (this.#files.some((f) => f.name === removed.name)) return;
-      const restored = this.#open(removed);
-      // Back where it was in the program.
-      this.#files.splice(this.#files.indexOf(restored), 1);
-      this.#files.splice(Math.min(index, this.#files.length), 0, restored);
-      this.#showFile(removed.name);
-      this.#options.onFilesChange();
-    });
+    const active = this.active === file.name ? this.#neighbourOf(file) : this.active;
+    this.setFiles(
+      this.files.filter((f) => f.name !== file.name),
+      active,
+      true,
+    );
   }
 
   /** Called by a file's content once its panel is created: loads its editor into `host`. */
@@ -301,8 +350,12 @@ export class PlaygroundDock {
     const file = this.#files.find((f) => f.id === id);
     if (!file) return;
     const editor = await createEditor(host, {
-      value: file.contents,
-      onChange: () => this.#options.onEdit(),
+      // As set when the editor is loaded, which `setFiles` may have changed meanwhile.
+      value: () => file.contents,
+      // The files changing at once are told of as one change, once they all have.
+      onChange: () => {
+        if (!this.#settingFiles) this.#options.onEdit();
+      },
       onRun: () => this.#options.onRun(),
     });
     if (!this.#files.includes(file)) {
@@ -373,15 +426,14 @@ export class PlaygroundDock {
     return file;
   }
 
-  /** Removes the panel of `file`, and its group if it leaves it empty. */
+  /** Removes `file`, with its panel, and its group if that leaves it empty. */
   #close(file: DockFile): void {
+    const panel = this.#api.getPanel(file.id);
+    // Before the file is forgotten, so that `detach` finds its editor. Dockview removes the group
+    // if this leaves it empty.
+    if (panel) this.#api.removePanel(panel);
     this.#files.splice(this.#files.indexOf(file), 1);
     if (this.#lastActiveFile === file) this.#lastActiveFile = undefined;
-    const panel = this.#api.getPanel(file.id);
-    if (!panel) return;
-    const group = panel.api.group;
-    this.#api.removePanel(panel);
-    if (group.panels.length === 0 && this.#api.groups.length > 1) this.#api.removeGroup(group);
   }
 
   /** Shows the file `name`, if there is one, returning `null` if there is none. */
@@ -412,6 +464,15 @@ export class PlaygroundDock {
         }
       }
     }
+  }
+
+  /** Returns the name of the file next to `file` in its group, after it or else before it. */
+  #neighbourOf(file: DockFile): string | undefined {
+    const panels = this.#api.getPanel(file.id)?.api.group.panels ?? [];
+    const i = panels.findIndex((p) => p.id === file.id);
+    return [...panels.slice(i + 1), ...panels.slice(0, i).reverse()]
+      .map((p) => this.#fileOf(p)?.name)
+      .find((name) => name !== undefined);
   }
 
   /** Returns the file of `panel`. */

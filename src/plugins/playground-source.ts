@@ -30,6 +30,7 @@
  * not earlier on the page, reuses a name, or sets one of the attributes this plugin sets.
  */
 import type { SatteriProcessorOptions } from '@astrojs/markdown-satteri';
+import { MetaOptions } from '@expressive-code/core';
 import {
   joinLines,
   type ShownFile,
@@ -85,24 +86,21 @@ export interface PlaygroundCode extends SnippetCode {
   fences: Code[];
 }
 
-/** Returns whether `fence` is compiled but not shown: whether its meta says `hidden`. */
-const isHidden = (fence: Code): boolean => /(?:^|\s)hidden(?:\s|$)/.test(fence.meta ?? '');
+/** Returns the options of `fence`'s meta, read by Expressive Code's parser, as its code block is. */
+const metaOf = (fence: Code): MetaOptions => new MetaOptions(fence.meta ?? '');
 
-/** Returns the value of the meta attribute `name` of `fence`, quoted either way, if it has one. */
-const metaValue = (fence: Code, name: string): string | undefined =>
-  new RegExp(`(?:^|\\s)${name}=(?:"([^"]*)"|'([^']*)')`)
-    .exec(fence.meta ?? '')
-    ?.slice(1)
-    .find((value) => value !== undefined);
+/** Returns whether `fence` is compiled but not shown: whether its meta says `hidden`. */
+const isHidden = (fence: Code): boolean => metaOf(fence).getBoolean('hidden') === true;
 
 /**
  * Returns the file `fence` names, and how: with its `file`, or else with its `title`; `undefined`
  * if it names none.
  */
 function fileNameOf(fence: Code): { name: string; by: 'file' | 'title' } | undefined {
-  const file = metaValue(fence, 'file');
+  const meta = metaOf(fence);
+  const file = meta.getString('file');
   if (file !== undefined) return { name: file, by: 'file' };
-  const title = metaValue(fence, 'title');
+  const title = meta.getString('title');
   return title === undefined ? undefined : { name: title, by: 'title' };
 }
 

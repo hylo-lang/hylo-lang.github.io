@@ -93,6 +93,38 @@ test('puts a fence in the file its `file` names, whatever its title', () => {
   ]);
 });
 
+test('reads names written without quotes, as Expressive Code does', () => {
+  const [p] = playgrounds(
+    playground(
+      'expect="ok"',
+      fence('p', 'hidden title=point.hylo'),
+      fence('m', 'file=rect.hylo title="Rectangles"'),
+    ),
+  );
+  expect(assembleProgram(p)).toEqual([
+    { name: 'point.hylo', contents: 'p' },
+    { name: 'rect.hylo', contents: 'm' },
+  ]);
+});
+
+test('reads `hidden` only as a word of its own, not in a quoted value', () => {
+  const [p] = playgrounds(
+    playground('expect="ok"', fence('m', 'title="The hidden helper" file="main.hylo"')),
+  );
+  expect(p.shown).toMatchObject([{ file: 'main.hylo', source: 'm' }]);
+  const [q] = playgrounds(
+    playground('expect="ok"', fence('m', '/a hidden b/ file="main.hylo" title="x \\" hidden"')),
+  );
+  expect(q.shown).toMatchObject([{ source: 'm' }]);
+});
+
+test('reads quotes escaped in a quoted value', () => {
+  const [p] = playgrounds(
+    playground('expect="ok"', fence('m', 'file="main.hylo" title="The \\"fix\\""')),
+  );
+  expect(p.shown).toMatchObject([{ file: 'main.hylo' }]);
+});
+
 test("names a playground's own file after the files its fences name with `file`", () => {
   const [p] = playgrounds(playground('expect="ok"', fence('a', 'hidden file="main.hylo"'), fence('b')));
   expect(assembleProgram(p)).toEqual([

@@ -157,8 +157,15 @@ let linkProblem =
 let latestRequest: AbortController | null = null;
 /** The diagnostics the editors and the error count show, as their `viewSignature`. */
 let diagnosticsShownInEditor = '';
-/** The file the reader last removed, and what puts it back, until they edit the code again. */
-let lastRemoval: { name: string; undo: () => void } | null = null;
+/**
+ * The last change the reader can undo, a removal of files or a link followed, as the hint says
+ * it, and what undoes it, until the reader edits the code again, or, if it changed the settings,
+ * the settings.
+ */
+let lastChange: { said: string; undo: () => void; ofSettings?: true } | null = null;
+
+/** Lists names in prose, as `a, b, and c`. */
+const PROSE_LIST = new Intl.ListFormat('en');
 
 /** The view the reader last looked at, which a link to the page shows. */
 let selectedView: View = openingState.view;
@@ -202,12 +209,13 @@ const dock = new PlaygroundDock(
   onRun: () => void compileAndRun(),
   onFilesChange: () => {
     scheduleSave();
-    // Adding, removing or renaming a file changes the program; showing another does not.
+    // Adding, removing or renaming a file, or replacing code, changes the program; showing another
+    // file does not.
     const files = JSON.stringify(dock.files);
     if (files !== filesShown) codeEdited();
   },
-  onRemove: (name, undo) => {
-    lastRemoval = { name, undo };
+  onRemove: (names, undo) => {
+    lastChange = { said: `Removed ${PROSE_LIST.format(names)}.`, undo };
     updateHint();
   },
   onViewVisibility: (view, visible) => {
@@ -261,14 +269,13 @@ const allPanes = {
 const errorCountBadge = document.createElement('span');
 errorCountBadge.className = 'count';
 dock.viewTab('diagnostics').append(errorCountBadge);
-document.body.toggleAttribute('data-files', true);
 
 /** Saves the code, and runs it unless auto-run is off, once the reader has edited it. */
 function codeEdited(): void {
   filesShown = JSON.stringify(dock.files);
   linkProblem = undefined;
-  if (lastRemoval) {
-    lastRemoval = null;
+  if (lastChange) {
+    lastChange = null;
     updateHint();
   }
   scheduleSave();
@@ -419,22 +426,23 @@ function markStale(): void {
 }
 
 /**
- * Says what the reader should know: a link that did not open, a file they removed, which they can
- * put back, or how to run the code.
+ * Says what the reader should know: a link that did not open, the last change they can undo, or
+ * how to run the code.
  */
 function updateHint(): void {
-  if (lastRemoval) {
-    const { name, undo } = lastRemoval;
+  // A link that did not open is said first, over what can be undone.
+  if (lastChange && linkProblem === undefined) {
+    const { said, undo } = lastChange;
     const button = document.createElement('button');
     button.type = 'button';
     button.className = 'undo';
     button.textContent = 'Undo';
     button.addEventListener('click', () => {
-      lastRemoval = null;
+      lastChange = null;
       undo();
       updateHint();
     });
-    hintLine.replaceChildren(`Removed ${name}. `, button);
+    hintLine.replaceChildren(`${said} `, button);
     return;
   }
   const stale = document.body.hasAttribute('data-stale');
@@ -449,20 +457,23 @@ function updateHint(): void {
 
 /**
  * Shows the tabs of the views that requests can produce with the final phase chosen, and only
- * those, showing the result in place of a view they cannot produce.
+ * those (see `PlaygroundDock.setAvailableViews`).
  */
 function updateAvailableViews(): void {
   const stopAfter = parsePhase(stopAfterSelect.value);
-  for (const view of VIEWS) {
-    dock.setViewAvailable(view, canProduce(view, stopAfter));
-    if (!canProduce(view, stopAfter) && view === selectedView) dock.showView('result');
+  dock.setAvailableViews((view) => canProduce(view, stopAfter));
+  // A view in a group hidden as none of its views can be produced is not one a link should show:
+  // the result is. (A view another shows in place of is selected as it is shown.)
+  if (!canProduce(selectedView, stopAfter)) {
+    selectedView = 'result';
+    scheduleSave();
   }
 }
 updateAvailableViews();
 
 /**
  * Opens the state in `location.hash`, if it holds one, when a link to the page is followed from
- * the page itself: the code replaces the editor's as an edit the reader can undo.
+ * the page itself, replacing the program (see `PlaygroundDock.setFiles`).
  */
 function openFollowedLink(): void {
   const linked = takeLinkedState();
@@ -473,11 +484,33 @@ function openFollowedLink(): void {
     return;
   }
   linkProblem = undefined;
-  applySettings(linked.state);
-  dock.setFiles(linked.state.files, linked.state.active);
-  dock.showView(linked.state.view);
-  updateAvailableViews();
-  void compileAndRun();
+  const { files, active, view } = linked.state;
+  // A link to what is shown, such as one followed twice, changes nothing to undo.
+  const linkedActive = active === files[0].name ? undefined : active;
+  if (serialize({ ...linked.state, active: linkedActive }) === serialize(currentState())) {
+    updateHint();
+    return;
+  }
+  const before = {
+    files: dock.files,
+    active: dock.active,
+    settings: currentSettings(),
+    view: selectedView,
+  };
+  const open = (state: typeof before): void => {
+    applySettings(state.settings);
+    // Its files removed are said as the link's, not on their own.
+    dock.setFiles(state.files, state.active, false);
+    dock.showView(state.view);
+    // Even if shown in a group of its own already, which dockview then says nothing of.
+    selectedView = state.view;
+    updateAvailableViews();
+    void compileAndRun();
+  };
+  open({ files, active, settings: linked.state, view });
+  // After the change of the code, which forgets the change before.
+  lastChange = { said: 'Opened the link.', undo: () => open(before), ofSettings: true };
+  updateHint();
 }
 
 // Loading is shown until there is a result to show instead.
@@ -489,7 +522,6 @@ for (const select of examplesSelects) {
     const example = EXAMPLES.find((candidate) => candidate.name === select.value);
     select.value = '';
     if (!example) return;
-    // Through the editor, so that the change is one the reader can undo, if it is in main.hylo.
     dock.setFiles([{ name: DEFAULT_FILE_NAME, contents: example.source }]);
     dock.focus();
   });
@@ -497,6 +529,11 @@ for (const select of examplesSelects) {
 stopAfterSelect.addEventListener('change', updateAvailableViews);
 for (const control of [optimizationSelect, stopAfterSelect, standardLibraryCheckbox]) {
   control.addEventListener('change', () => {
+    // Undoing a change of the settings before would undo this too.
+    if (lastChange?.ofSettings) {
+      lastChange = null;
+      updateHint();
+    }
     markMoreMenuIfModified();
     scheduleSave();
     void compileAndRun();

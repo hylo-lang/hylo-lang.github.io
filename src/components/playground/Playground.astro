@@ -191,7 +191,7 @@ const tabs = shownFiles.length > 1;
               type="button"
               role="tab"
               data-file-tab={i}
-              aria-selected={String(i === 0)}
+              aria-selected={i === 0 ? 'true' : 'false'}
               tabindex={i === 0 ? 0 : -1}
             >
               {f.file}
