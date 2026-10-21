@@ -137,6 +137,7 @@ import { FileTree } from '@astrojs/starlight/components';
 ## Runnable snippets
 
 import Playground from '../../../../components/playground/Playground.astro';
+import Example from '../../../../components/Example.astro';
 
 Wrap a code block in `<Playground>` to let readers run it in their browser, edit it, and open it in
 the [full-screen playground](/playground/). The code block renders as any other, highlights and
@@ -146,22 +147,49 @@ when a reader first runs a snippet. That is about 15 MB compressed, once, which 
 caches.
 
 Only make a snippet runnable if the compiler can run it today. The `expect` attribute says what it
-does (`exit N`, `trap`, `error` or `ok`), and the site's tests check every snippet still does it;
-the site does not build if a snippet has none.
+does, and the site's tests check every snippet still does it; the site does not build if a snippet
+has none, or if it misuses an attribute.
 
 The import path is relative to the page: from a page in `src/content/docs/docs/<section>/`, the
 component is four directories up.
 
-````mdx
+```mdx
 import Playground from '../../../../components/playground/Playground.astro';
-
-<Playground expect="exit 42">
-```hylo
-public fun main() -> Int32 { ... }
 ```
-</Playground>
-````
 
+### Reference
+
+Every attribute of `<Playground>` and every marker of its code fences, with an example. Each
+example shows its MDX and, under Preview, what it renders, which runs.
+
+| Attribute | Values | Default |
+| --- | --- | --- |
+| [`expect`](#expect) | `exit N`, `trap`, `error`, `ok` | required |
+| [`outputs`](#outputs) | `result`, `diagnostics`, `raw-ir`, `ir`, `llvm`, `assembly` | `result` |
+| [`focus`](#focus) | names of functions | every function |
+| [`optimization`](#optimization) | `{0}` to `{3}` | `{0}` |
+| [`stopAfter`](#stopafter) | `parsing`, `scoping`, `typing`, `lowering` | runs the program |
+| [`standardLibrary`](#standardlibrary) | `{true}`, `{false}` | `{true}` |
+| [`editable`](#editable) | `{true}`, `{false}` | `{true}` |
+| [`name`](#name-and-continues) | a name, unique on the page | none |
+| [`continues`](#name-and-continues) | the `name` of an earlier snippet of the page | none |
+| [`contributes`](#contributes) | `{true}`, `{false}` | `{true}` |
+
+| Fence marker | Effect |
+| --- | --- |
+| [`hidden`](#hidden) | compiled, not shown |
+| [`title="…"`](#title) | the file, shown as the caption |
+| [`file="…"`](#file) | the file, not shown |
+| [Several shown fences](#several-files-as-tabs) | tabs, one per file |
+| [Expressive Code's markers](#expressive-codes-markers) | as in any code block |
+
+#### `expect`
+
+What the snippet does, which the site's tests check: `exit N` (it runs and exits with status `N`),
+`trap` (it runs and traps), `error` (it does not compile), or `ok` (it compiles, and runs to
+completion if it is a program). Required.
+
+<Example>
 <Playground expect="exit 42">
 ```hylo
 public fun main() -> Int32 {
@@ -171,19 +199,53 @@ public fun main() -> Int32 {
 }
 ```
 </Playground>
+</Example>
 
-### Showing what the compiler makes of it
+A snippet that does not compile shows its diagnostics; clicking one takes the reader to it.
 
-`outputs` lists what to show once the code has run, as tabs: `result` (the default), `diagnostics`,
-`raw-ir`, `ir`, `llvm` and `assembly`. `focus` limits Hylo IR to the functions named, and
-`optimization` sets LLVM's level. Code fence attributes still apply: line 4 is highlighted here.
-
-```mdx
-<Playground outputs="result ir llvm assembly" focus="factorial" optimization={2} expect="exit 120">
+<Example>
+<Playground expect="error">
+```hylo
+public fun main() -> Int32 {
+  40 + 2 // Integer literals are `Int` unless something says otherwise.
+}
 ```
+</Playground>
+</Example>
 
-<Playground outputs="result ir llvm assembly" focus="factorial" optimization={2} expect="exit 120">
-```hylo {4}
+<Example>
+<Playground expect="trap">
+```hylo
+public fun main() -> Int32 {
+  let divisor: Int32 = 0
+  return (1 as Int32) / divisor
+}
+```
+</Playground>
+</Example>
+
+#### `outputs`
+
+What to show once the code has run, as tabs, in this order: `result` (the exit status, what the
+program printed, and the diagnostics), `diagnostics`, `raw-ir` (Hylo IR before the mandatory
+transformations), `ir` (Hylo IR), `llvm` (LLVM IR) and `assembly` (WebAssembly).
+
+<Example>
+<Playground outputs="result diagnostics ir llvm assembly" expect="exit 7">
+```hylo
+public fun main() -> Int32 { 7 }
+```
+</Playground>
+</Example>
+
+#### `focus`
+
+The functions to show in Hylo IR, by name, rather than all of them: `main` shows `main`,
+`factorial` shows `factorial(n:)`, and `Int32.infix+` shows that operator.
+
+<Example>
+<Playground outputs="ir" focus="factorial" expect="exit 120">
+```hylo
 fun factorial(n: sink Int32) -> Int32 {
   var m: Int32 = 1
   while n > (0 as Int32) {
@@ -193,30 +255,38 @@ fun factorial(n: sink Int32) -> Int32 {
   return m
 }
 
-public fun main() -> Int32 {
-  factorial(5 as Int32)
-}
+public fun main() -> Int32 { factorial(5 as Int32) }
 ```
 </Playground>
+</Example>
 
-### Showing an error
+#### `optimization`
 
-A snippet that does not compile shows its diagnostics; clicking one takes the reader to it.
+LLVM's optimization level, from `{0}` to `{3}`. Here the whole program folds to a constant.
 
-<Playground expect="error">
+<Example>
+<Playground outputs="result llvm" optimization={2} expect="exit 120">
 ```hylo
-public fun main() -> Int32 {
-  40 + 2 // Integer literals are `Int` unless something says otherwise.
+fun factorial(n: sink Int32) -> Int32 {
+  var m: Int32 = 1
+  while n > (0 as Int32) {
+    &m = m * n
+    &n = n - (1 as Int32)
+  }
+  return m
 }
+
+public fun main() -> Int32 { factorial(5 as Int32) }
 ```
 </Playground>
+</Example>
 
-### Checking code that is not a program
+#### `stopAfter`
 
-`stopAfter="typing"` only type checks, for a snippet with no `main`; `stopAfter="lowering"` also
-produces its IR. `editable={false}` keeps the reader from editing a snippet, and
-`standardLibrary={false}` compiles it without the standard library.
+The phase after which compilation stops, for code that is not a program: `typing` checks it,
+`lowering` also produces its Hylo IR. The button says Check rather than Run.
 
+<Example>
 <Playground stopAfter="lowering" outputs="result ir" focus="sum" expect="ok">
 ```hylo
 struct Pair is Deinitializable {
@@ -228,6 +298,198 @@ struct Pair is Deinitializable {
 fun sum(_ p: Pair) -> Int32 { p.a + p.b }
 ```
 </Playground>
+</Example>
+
+#### `standardLibrary`
+
+`{false}` compiles the code without the standard library.
+
+<Example>
+<Playground standardLibrary={false} stopAfter="typing" expect="ok">
+```hylo
+trait Shape {}
+struct Point is Shape {}
+fun identity<T>(_ x: sink T) -> T { x }
+```
+</Playground>
+</Example>
+
+#### `editable`
+
+`{false}` keeps the reader from editing the snippet; it still runs.
+
+<Example>
+<Playground editable={false} expect="exit 3">
+```hylo
+public fun main() -> Int32 { 3 }
+```
+</Playground>
+</Example>
+
+#### `name` and `continues`
+
+A snippet named with `name` can be continued by any snippet after it on the same page, with
+`continues`: the later one starts from all the files of the earlier one, hidden code included, so
+a chain of snippets builds a program up as the prose explains it. Nothing of the snippets after one
+is compiled with it, and "Open in the playground" opens the program as it stands there.
+
+<Example>
+<Playground name="ref-point" stopAfter="typing" expect="ok">
+```hylo
+public struct Point is Deinitializable {
+  public memberwise init
+  public var x: Int32
+  public var y: Int32
+}
+```
+</Playground>
+
+<Playground continues="ref-point" expect="exit 3">
+```hylo
+public fun main() -> Int32 {
+  let p = Point(x: 1 as Int32, y: 2 as Int32)
+  return p.x + p.y
+}
+```
+</Playground>
+</Example>
+
+#### `contributes`
+
+`{false}` leaves the snippet's own code out of the snippets continuing it, which start from what it
+continues instead: a mistake or a digression does not end up in the program.
+
+<Example>
+<Playground name="ref-mistake" continues="ref-point" contributes={false} expect="error">
+```hylo
+public fun main() -> Int32 {
+  Point(x: 1, y: 2).x
+}
+```
+</Playground>
+
+<Playground continues="ref-mistake" expect="exit 1">
+```hylo
+public fun main() -> Int32 {
+  Point(x: 1 as Int32, y: 2 as Int32).x
+}
+```
+</Playground>
+</Example>
+
+#### `hidden`
+
+A fence marked `hidden` is compiled with the snippet but not shown. Each fence adds its code at
+the end of its file, in the order written, so a hidden fence may open what a shown one closes.
+Readers edit only the code they see.
+
+<Example>
+<Playground expect="exit 42">
+```hylo hidden
+public fun main() -> Int32 {
+```
+```hylo
+  var x: Int32 = 40
+  &x = x + (2 as Int32)
+  return x
+```
+```hylo hidden
+}
+```
+</Playground>
+</Example>
+
+#### `title`
+
+The file the fence goes into, which the code block shows as its caption. A fence naming no file
+goes into the snippet's own file: `main.hylo`, or `main2.hylo` and so on if the program already
+has a file of that name. A later snippet continues a file by naming it. Diagnostics name the files.
+
+<Example>
+<Playground name="ref-shapes" stopAfter="typing" expect="ok">
+```hylo title="shape.hylo"
+trait Shape {
+  fun area() -> Int32
+}
+```
+</Playground>
+
+<Playground continues="ref-shapes" stopAfter="typing" expect="ok">
+```hylo title="shape.hylo"
+fun twice<T is Shape>(s: T) -> Int32 { s.area() + s.area() }
+```
+</Playground>
+</Example>
+
+#### `file`
+
+The file the fence goes into, without showing its name; a `title` is then any caption.
+
+<Example>
+<Playground expect="exit 6">
+```hylo hidden file="rect.hylo"
+struct Rect is Deinitializable {
+  public memberwise init
+  public var w: Int32
+  public var h: Int32
+}
+```
+```hylo file="main.hylo" title="Using a type from another file"
+public fun main() -> Int32 {
+  let r = Rect(w: 2 as Int32, h: 3 as Int32)
+  return r.w * r.h
+}
+```
+</Playground>
+</Example>
+
+#### Several files, as tabs
+
+A snippet shows at most one fence of each file, and shows the fences of several files as tabs,
+named after the files. Editing it gives each its own editor, and a diagnostic takes the reader to
+the right tab.
+
+<Example>
+<Playground expect="exit 10">
+```hylo title="main.hylo"
+public fun main() -> Int32 { triangle(4 as Int32) }
+```
+```hylo title="triangle.hylo"
+/// Returns 1 + 2 + … + n.
+fun triangle(n: Int32) -> Int32 {
+  var total: Int32 = 0
+  var i: Int32 = 1
+  while i <= n {
+    &total = total + i
+    &i = i + (1 as Int32)
+  }
+  return total
+}
+```
+</Playground>
+</Example>
+
+#### Expressive Code's markers
+
+The markers of every code block apply to the fences shown, such as highlighting lines (`{7}`) and
+folding them away until the reader unfolds them (`collapse={1-3}`).
+
+<Example>
+<Playground expect="exit 120">
+```hylo {7} collapse={1-3}
+fun factorial(n: sink Int32) -> Int32 {
+  var m: Int32 = 1
+  while n > (0 as Int32) {
+    &m = m * n
+    &n = n - (1 as Int32)
+  }
+  return m
+}
+
+public fun main() -> Int32 { factorial(5 as Int32) }
+```
+</Playground>
+</Example>
 
 The [Hylo IR](/docs/reference/ir/) and the WebAssembly assembly LLVM prints have code fence
 languages of their own, `hylo-ir` and `wasm-asm`:

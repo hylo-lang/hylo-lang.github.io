@@ -18,11 +18,13 @@ export interface RenderOptions {
    * `main`, `factorial` shows `factorial(_:)`, and `Int32.infix+` shows that operator.
    */
   irFunctions?: readonly string[];
+  /** Called with a diagnostic when the reader clicks it; if absent, diagnostics cannot be clicked. */
+  onReveal?: (diagnostic: Diagnostic) => void;
   /**
-   * Called with the 1-based line and column of a diagnostic when the reader clicks it; if absent,
-   * diagnostics cannot be clicked.
+   * Returns whether `diagnostic` is in code the reader can be taken to; every one is if absent. A
+   * diagnostic elsewhere, such as in code a snippet compiles without showing, cannot be clicked.
    */
-  onReveal?: (line: number, column: number) => void;
+  canReveal?: (diagnostic: Diagnostic) => boolean;
 }
 
 /**
@@ -293,9 +295,8 @@ function diagnosticList(diagnostics: readonly Diagnostic[], options: RenderOptio
     button.type = 'button';
     button.append(preformatted(diagnostic.rendered));
     const reveal = options.onReveal;
-    if (reveal) {
-      const { line, column } = diagnostic.site;
-      button.addEventListener('click', () => reveal(line, column));
+    if (reveal && (options.canReveal?.(diagnostic) ?? true)) {
+      button.addEventListener('click', () => reveal(diagnostic));
     } else {
       button.disabled = true;
     }

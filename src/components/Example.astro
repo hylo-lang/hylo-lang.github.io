@@ -1,0 +1,42 @@
+---
+/**
+ * An example of MDX: tabs showing the MDX it wraps, as the author wrote it, and what that renders.
+ *
+ *     // From a page in `src/content/docs/docs/<section>/`.
+ *     import Example from '../../../../components/Example.astro';
+ *
+ *     <Example>
+ *     <Playground expect="ok">
+ *     ```hylo
+ *     fun f() {}
+ *     ```
+ *     </Playground>
+ *     </Example>
+ *
+ * Only works in MDX pages: the MDX comes from the Markdown plugin `src/plugins/example-source.ts`,
+ * which sets `source`. Every example of a page shows the same tab, MDX or Preview, as the reader
+ * last chose.
+ */
+import { Code, TabItem, Tabs } from '@astrojs/starlight/components';
+
+interface Props {
+  /** The MDX the example wraps, which `example-source.ts` sets; not for authors to set. */
+  source: string;
+}
+
+const { source } = Astro.props;
+if (typeof source !== 'string') {
+  throw new Error(
+    `<Example> in ${Astro.url.pathname}: use it in an MDX page, where \`src/plugins/example-source.ts\` gives it its source`,
+  );
+}
+---
+
+<Tabs syncKey="example">
+  <TabItem label="MDX">
+    <Code code={source} lang="mdx" />
+  </TabItem>
+  <TabItem label="Preview">
+    <slot />
+  </TabItem>
+</Tabs>

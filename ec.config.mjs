@@ -1,4 +1,5 @@
 import { defineEcConfig } from '@astrojs/starlight/expressive-code';
+import { pluginCollapsibleSections } from '@expressive-code/plugin-collapsible-sections';
 import { CODE_THEMES, GRAMMARS } from './src/assets/syntax/code-style.ts';
 import { pluginErrorPreview } from './src/components/error-preview-plugin.ts';
 
@@ -15,5 +16,6 @@ export default defineEcConfig({
     // The grammars' JSON is typed loosely; Shiki checks it as it loads it.
     langs: /** @type {any[]} */ (GRAMMARS),
   },
-  plugins: [pluginErrorPreview()],
+  // `collapse={2-5}` folds lines away until the reader unfolds them.
+  plugins: [pluginErrorPreview(), pluginCollapsibleSections()],
 });

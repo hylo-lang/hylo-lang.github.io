@@ -94,6 +94,11 @@ export interface Editor {
   showDiagnostics(diagnostics: readonly Diagnostic[]): void;
   /** Moves the caret to the 1-based `line` and `column`, scrolls it into view, and focuses. */
   reveal(line: number, column: number): void;
+  /**
+   * Measures the host again and redraws the editor: for an editor created, or kept, while its host
+   * was not displayed, which Monaco then laid out at no size, once the host is displayed.
+   */
+  layout(): void;
   /** Gives the editor the keyboard focus. */
   focus(): void;
   /** Removes the editor from its host and releases what it holds. */
@@ -102,13 +107,22 @@ export interface Editor {
 
 /** How `createEditor` creates an editor. */
 export interface EditorOptions {
-  /** The Hylo code the editor starts with. */
-  value: string;
+  /**
+   * The Hylo code the editor starts with, or what returns it once the editor is loaded, for code
+   * that may change while it loads.
+   */
+  value: string | (() => string);
   /**
    * Whether the editor grows with its content, as one embedded in prose does, rather than filling
    * its container.
    */
   fitContent?: boolean;
+  /**
+   * The number of the first line, 1 by default: the line of its file at which the code starts,
+   * when the file has code before it that the editor does not show, so that the editor numbers
+   * lines as the compiler's diagnostics do.
+   */
+  firstLineNumber?: number;
   /** Called after every edit; `Editor.value` is the code. */
   onChange?: () => void;
   /** Called when the reader presses Ctrl+Enter (⌘+Enter on a Mac) in the editor. */
@@ -125,7 +139,7 @@ export interface EditorOptions {
 export async function createEditor(host: HTMLElement, options: EditorOptions): Promise<Editor> {
   await monacoReady;
   const editor = monaco.editor.create(host, {
-    value: options.value,
+    value: typeof options.value === 'function' ? options.value() : options.value,
     language: 'hylo',
     theme: codeThemeOfPage(),
     fontFamily: [siteCodeFont, 'ui-monospace, SFMono-Regular, Menlo, Consolas, monospace']
@@ -140,6 +154,9 @@ export async function createEditor(host: HTMLElement, options: EditorOptions): P
     automaticLayout: true,
     renderLineHighlight: 'line',
     lineNumbersMinChars: 3,
+    ...(options.firstLineNumber !== undefined && {
+      lineNumbers: (n: number) => String(n + options.firstLineNumber! - 1),
+    }),
     padding: { top: 12, bottom: 12 },
     overviewRulerLanes: 0,
     overviewRulerBorder: false,
@@ -159,10 +176,17 @@ export async function createEditor(host: HTMLElement, options: EditorOptions): P
 
   if (options.fitContent) {
     const fit = (): void => {
-      host.style.height = `${editor.getContentHeight()}px`;
+      // The host's borders as well, which its height includes: the code has its height inside
+      // them, rather than scrolling by their width. The host's `max-height` may cap it. They are
+      // read from its style, which a host not displayed, as in a tab not shown, has too.
+      const style = getComputedStyle(host);
+      const borders = parseFloat(style.borderTopWidth) + parseFloat(style.borderBottomWidth);
+      host.style.height = `${editor.getContentHeight() + borders}px`;
       editor.layout();
     };
-    editor.onDidContentSizeChange(fit);
+    editor.onDidContentSizeChange((event) => {
+      if (event.contentHeightChanged) fit();
+    });
     fit();
   }
   editor.onDidChangeModelContent(() => options.onChange?.());
@@ -218,6 +242,10 @@ export async function createEditor(host: HTMLElement, options: EditorOptions): P
       editor.setPosition({ lineNumber: line, column });
       editor.revealLineInCenterIfOutsideViewport(line);
       editor.focus();
+    },
+    layout() {
+      editor.layout();
+      editor.render(true);
     },
     focus: () => editor.focus(),
     dispose: () => editor.dispose(),

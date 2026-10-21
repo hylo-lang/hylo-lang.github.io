@@ -8,6 +8,7 @@
 ^https?://dl\.acm\.org/
 ^https?://doi\.org/10\.1145/
 ^https://repository\.tudelft\.nl/file/.*
+^https://www\.npmjs\.com/package/@hylo-lang/hylo-wasm
 
 # Links into the Slack workspace itself (message permalinks, channel archives).
 # Unlike the invite link above these are not merely bot-protected: workspace
