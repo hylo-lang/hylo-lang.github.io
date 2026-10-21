@@ -2,6 +2,9 @@ name: CI
 
 on:
   push:
+  # Pull requests from forks, which push no branch here. Those from this repository's branches
+  # are already checked by their pushes, so each job skips them.
+  pull_request:
 
 permissions:
   contents: read
@@ -13,6 +16,7 @@ concurrency:
 jobs:
   test:
     name: Unit tests
+    if: &not-a-pull-request-from-here github.event_name == 'push' || github.event.pull_request.head.repo.full_name != github.repository
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -37,6 +41,7 @@ jobs:
 
   build:
     name: Build site
+    if: *not-a-pull-request-from-here
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -73,6 +78,7 @@ jobs:
 
   typos:
     name: Spell check (typos)
+    if: *not-a-pull-request-from-here
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
