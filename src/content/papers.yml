@@ -275,8 +275,8 @@ debugging-hylo:
   publishedAt: "Delft University of Technology"
   year: 2025
   month: 6
-  url: "https://repository.tudelft.nl/record/uuid:6211f244-1c7b-47ca-bf0f-7e6b6123f125"
-  pdf: "https://repository.tudelft.nl/file/File_fbc6ad08-6db5-4468-99b9-ad036ba2b56e"
+  url: "https://web.archive.org/web/20260331234747/https://repository.tudelft.nl/record/uuid:6211f244-1c7b-47ca-bf0f-7e6b6123f125"
+  pdf: "https://web.archive.org/web/20260331234802/http://repository.tudelft.nl/file/File_fbc6ad08-6db5-4468-99b9-ad036ba2b56e"
 
 val-object-model:
   title: The Val Object Model
