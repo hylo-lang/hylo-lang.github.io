@@ -18,11 +18,14 @@ export interface RenderOptions {
    * `main`, `factorial` shows `factorial(_:)`, and `Int32.infix+` shows that operator.
    */
   irFunctions?: readonly string[];
-  /** Called with a diagnostic when the reader clicks it; if absent, diagnostics cannot be clicked. */
+  /**
+   * Called with a diagnostic, at the location the reader clicks in it, its own or a note's; if
+   * absent, locations cannot be clicked.
+   */
   onReveal?: (diagnostic: Diagnostic) => void;
   /**
    * Returns whether `diagnostic` is in code the reader can be taken to; every one is if absent. A
-   * diagnostic elsewhere, such as in code a snippet compiles without showing, cannot be clicked.
+   * location elsewhere, such as in code a snippet compiles without showing, cannot be clicked.
    */
   canReveal?: (diagnostic: Diagnostic) => boolean;
 }
@@ -282,8 +285,47 @@ function resultView(result: Result, options: RenderOptions): Node[] {
 }
 
 /**
- * Returns a list of `diagnostics`, each shown as the compiler renders it, notes included; one in
- * the code takes the reader to its site when clicked, if `options.onReveal` is given.
+ * How long a click on a location waits before taking the reader there, in case it is the first of
+ * a double or triple click selecting its text, which then takes them nowhere.
+ */
+const MULTI_CLICK_MILLISECONDS = 300;
+
+/** A place in a program the compiler names in a rendered diagnostic. */
+export type SourceLocation = Pick<Diagnostic, 'file' | 'site'>;
+
+/**
+ * Matches a location as the compiler renders it, such as `hylo:///main.hylo:4.11-15` or
+ * `hylo:///main.hylo:4.11-5.3`, capturing the path of its URL, its line and column, and where it
+ * ends: a column of the same line, or a line and a column.
+ */
+const LOCATION = /[a-z][a-z0-9+.-]*:\/\/[^/\s]*(\/[^\s:]*):(\d+)\.(\d+)(?:-(\d+)(?:\.(\d+))?)?/g;
+
+/**
+ * Returns `text`, a rendered diagnostic, as its parts: text, and the locations it names, each
+ * with the text naming it. The parts' texts are `text` in order.
+ */
+export function splitLocations(text: string): (string | { text: string; location: SourceLocation })[] {
+  const parts: (string | { text: string; location: SourceLocation })[] = [];
+  let end = 0;
+  for (const match of text.matchAll(LOCATION)) {
+    if (match.index > end) parts.push(text.slice(end, match.index));
+    const [, file, line, column, to, toColumn] = match;
+    const start = { line: Number(line), column: Number(column) };
+    const site =
+      toColumn !== undefined
+        ? { ...start, endLine: Number(to), endColumn: Number(toColumn) }
+        : { ...start, endLine: start.line, endColumn: to === undefined ? start.column : Number(to) };
+    parts.push({ text: match[0], location: { file, site } });
+    end = match.index + match[0].length;
+  }
+  if (end < text.length) parts.push(text.slice(end));
+  return parts;
+}
+
+/**
+ * Returns a list of `diagnostics`, each shown as the compiler renders it, notes included, as text
+ * the reader can select. Each location it names in the code takes the reader there when clicked,
+ * if `options.onReveal` is given.
  */
 function diagnosticList(diagnostics: readonly Diagnostic[], options: RenderOptions): HTMLElement {
   const list = document.createElement('ul');
@@ -291,16 +333,43 @@ function diagnosticList(diagnostics: readonly Diagnostic[], options: RenderOptio
   for (const diagnostic of diagnostics) {
     const item = document.createElement('li');
     item.dataset.level = diagnostic.level;
-    const button = document.createElement('button');
-    button.type = 'button';
-    button.append(preformatted(diagnostic.rendered));
-    const reveal = options.onReveal;
-    if (reveal && (options.canReveal?.(diagnostic) ?? true)) {
-      button.addEventListener('click', () => reveal(diagnostic));
-    } else {
-      button.disabled = true;
+    const block = preformatted('');
+    for (const part of splitLocations(diagnostic.rendered)) {
+      if (typeof part === 'string') {
+        block.append(part);
+        continue;
+      }
+      // The diagnostic, at the location: what the reader is taken to.
+      const target: Diagnostic = { ...diagnostic, ...part.location };
+      const reveal = options.onReveal;
+      if (!reveal || !(options.canReveal?.(target) ?? true)) {
+        block.append(part.text);
+        continue;
+      }
+      // A span rather than a button or a link, whose text could not be selected, or not easily.
+      const link = document.createElement('span');
+      link.className = 'pg-location';
+      link.textContent = part.text;
+      link.setAttribute('role', 'link');
+      link.tabIndex = 0;
+      let pendingReveal: ReturnType<typeof setTimeout> | undefined;
+      link.addEventListener('click', (event) => {
+        clearTimeout(pendingReveal);
+        // Not when the click selects text: by dragging, or as the second or third of a click.
+        if (event.detail > 1) return;
+        pendingReveal = setTimeout(() => {
+          if (document.getSelection()?.isCollapsed === false) return;
+          reveal(target);
+        }, MULTI_CLICK_MILLISECONDS);
+      });
+      link.addEventListener('keydown', (event) => {
+        if (event.key !== 'Enter') return;
+        event.preventDefault();
+        reveal(target);
+      });
+      block.append(link);
     }
-    item.append(button);
+    item.append(block);
     list.append(item);
   }
   return list;

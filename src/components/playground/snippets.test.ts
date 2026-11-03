@@ -11,7 +11,7 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 import { type Compiler, load } from '@hylo-lang/hylo-wasm';
 import { mdxToMdast } from 'satteri';
 import { beforeAll, describe, expect, test } from 'vitest';
-import { collectPlaygrounds, type PlaygroundCode } from '../../plugins/playground-source';
+import { readPlaygrounds, type PlaygroundCode } from '../../plugins/playground-source';
 import { parseOptimizationLevel, PHASES } from './settings';
 import { assembleProgram, parseExpectation, snippetRequest } from './snippet';
 import type { View } from './views';
@@ -28,21 +28,25 @@ interface Snippet extends PlaygroundCode {
  * Returns the snippets in the MDX files under `dir`, read as the site reads them: parsed by
  * Sätteri, and collected by `src/plugins/playground-source.ts`, which throws if one is misused.
  */
-function snippets(dir: string): Snippet[] {
-  return readdirSync(dir, { recursive: true, withFileTypes: true })
-    .filter((e) => e.isFile() && e.name.endsWith('.mdx'))
-    .flatMap((e) => {
+async function snippets(dir: string): Promise<Snippet[]> {
+  const pages = readdirSync(dir, { recursive: true, withFileTypes: true }).filter(
+    (e) => e.isFile() && e.name.endsWith('.mdx'),
+  );
+  const perPage = await Promise.all(
+    pages.map(async (e) => {
       const file = path.join(e.parentPath, e.name);
       const tree = mdxToMdast(readFileSync(file, 'utf8'));
-      const playgrounds = collectPlaygrounds(tree, pathToFileURL(file).pathname);
+      const playgrounds = await readPlaygrounds(tree, pathToFileURL(file).pathname);
       return [...playgrounds.values()].map((playground) => ({
         ...playground,
         page: path.relative(root, file),
       }));
-    });
+    }),
+  );
+  return perPage.flat();
 }
 
-const all = snippets(path.join(root, 'src/content'));
+const all = await snippets(path.join(root, 'src/content'));
 
 test('the site has runnable snippets to check', () => {
   expect(all.length).toBeGreaterThan(0);

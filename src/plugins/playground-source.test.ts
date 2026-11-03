@@ -5,11 +5,14 @@
 import { mdxToJs, mdxToMdast } from 'satteri';
 import { expect, test } from 'vitest';
 import { assembleProgram } from '../components/playground/snippet';
-import { collectPlaygrounds, playgroundSource } from './playground-source';
+import { collectPlaygrounds, playgroundSource, readPlaygrounds } from './playground-source';
 
-/** Returns the code of the playgrounds of `mdx`, a page called `/docs/page.mdx`, in order. */
+/**
+ * Returns the code of the playgrounds of `mdx`, a page called `/docs/page.mdx`, in order, each
+ * fence's code being its text.
+ */
 const playgrounds = (mdx: string) => [
-  ...collectPlaygrounds(mdxToMdast(mdx), '/docs/page.mdx').values(),
+  ...collectPlaygrounds(mdxToMdast(mdx), '/docs/page.mdx', (fence) => fence.value).values(),
 ];
 
 /** Returns the files of the program of each playground of `mdx`, as `{ name: contents }`. */
@@ -324,4 +327,25 @@ test('as a plugin, sets the code as attributes and keeps only the fences shown',
   // The hidden fence is compiled, not shown: it is in `shown`, as a prelude, and nowhere else.
   expect(code.match(/hiddenBefore/g)).toHaveLength(1);
   expect(code.match(/language-hylo/g)).toHaveLength(3);
+});
+
+test("compiles each fence as the site's Expressive Code plugins leave it, wherever it goes", async () => {
+  const marked = 'var x = ~~y~~ //! error: no y';
+  const tree = mdxToMdast(
+    page(
+      playground('name="one" expect="error"', fence(marked, 'error-preview')),
+      playground(
+        'continues="one" expect="error"',
+        fence(marked, 'hidden error-preview file="other.hylo"'),
+        fence('shown'),
+      ),
+    ),
+  );
+  const [first, second] = (await readPlaygrounds(tree, '/docs/page.mdx')).values();
+  expect(first.shown[0].source).toBe('var x = y');
+  expect(Object.fromEntries(assembleProgram(second).map((f) => [f.name, f.contents]))).toEqual({
+    'main.hylo': 'var x = y',
+    'other.hylo': 'var x = y',
+    'main2.hylo': 'shown',
+  });
 });

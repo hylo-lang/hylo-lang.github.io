@@ -162,7 +162,7 @@ hylo-playground:not([data-ready]) .pg-toolbar {
 .pg-input:focus-visible,
 .pg-link:focus-visible,
 .pg-tabs [role='tab']:focus-visible,
-.pg-diagnostics button:focus-visible {
+.pg-location:focus-visible {
   outline: 2px solid var(--sl-color-green);
   outline-offset: 2px;
 }
@@ -457,25 +457,22 @@ hylo-playground:not([data-ready]) .pg-toolbar {
 }
 .pg-diagnostics li {
   margin: 0;
-}
-.pg-diagnostics button {
-  display: block;
-  width: 100%;
-  font: inherit;
-  text-align: left;
   padding: 0 0 0 0.75rem;
-  border: 0;
   border-left: 3px solid var(--sl-color-gray-4);
-  background: none;
-  color: inherit;
-  cursor: pointer;
 }
-.pg-diagnostics button:disabled {
-  cursor: default;
-}
-.pg-diagnostics li[data-level='error'] button {
+.pg-diagnostics li[data-level='error'] {
   border-left-color: var(--sl-color-red-high);
 }
-.pg-diagnostics li[data-level='warning'] button {
+.pg-diagnostics li[data-level='warning'] {
   border-left-color: var(--sl-color-orange-high);
+}
+/* A location in the code, which takes the reader there; its text can be selected as the rest. */
+.pg-location {
+  cursor: pointer;
+  text-decoration: underline dotted;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 0.2em;
+}
+.pg-location:hover {
+  text-decoration-style: solid;
 }

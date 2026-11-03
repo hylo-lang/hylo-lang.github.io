@@ -6,7 +6,8 @@ import { pluginErrorPreview } from './src/components/error-preview-plugin.ts';
 /**
  * Expressive-code configuration.
  *
- * Starlight reads this file for both code fences and `<Code>`.
+ * Starlight reads this file for both code fences and `<Code>`, and `src/plugins/playground-source.ts`
+ * for the code a `<Playground>` compiles: the text its plugins leave of each fence.
  */
 export default defineEcConfig({
   defaultProps: { hangingIndent: 2 },

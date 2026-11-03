@@ -4,8 +4,11 @@
  * of them, between what code, is the code it shows.
  *
  * The component itself only receives its slot rendered, by Expressive Code, as HTML; reading the
- * code back from that HTML would depend on how Expressive Code renders it. Here the code is still
- * the fences' text, as the author wrote it.
+ * code back from that HTML would depend on how Expressive Code renders it. Here the fences are
+ * still the text the author wrote, which Expressive Code's plugins may change as they render it:
+ * the error preview takes its markup out, for instance. So the code of a fence is the text an
+ * engine configured as the site's (`ec.config.mjs`) leaves of it, whatever its plugins do (see
+ * `codeOf`), and every fence, shown or hidden, goes into the program as that code.
  *
  * A `<Playground>` wraps `hylo` code fences. Each goes into a file of the program: the one its
  * `file` names, such as `file="point.hylo"`, which the code block does not show; or else the one
@@ -31,6 +34,12 @@
  */
 import type { SatteriProcessorOptions } from '@astrojs/markdown-satteri';
 import { MetaOptions } from '@expressive-code/core';
+import {
+  createRenderer,
+  type RehypeExpressiveCodeOptions,
+  type RehypeExpressiveCodeRenderer,
+} from '@astrojs/starlight/expressive-code';
+import ecConfig from '../../ec.config.mjs';
 import {
   joinLines,
   type ShownFile,
@@ -58,7 +67,7 @@ interface Node {
 }
 
 /** A code fence. */
-interface Code extends Node {
+export interface Code extends Node {
   type: 'code';
   lang?: string | null;
   meta?: string | null;
@@ -104,23 +113,73 @@ function fileNameOf(fence: Code): { name: string; by: 'file' | 'title' } | undef
   return title === undefined ? undefined : { name: title, by: 'title' };
 }
 
+/** What `codeOf` renders fences with, made once, when first needed, as Expressive Code makes it. */
+let renderer: Promise<RehypeExpressiveCodeRenderer> | undefined;
+
+/**
+ * Returns the code `fence` shows: its text, as the site's Expressive Code plugins leave it once
+ * they have rendered it, which is what the reader sees, edits and copies.
+ *
+ * Only the text of the rendered block is kept. Starlight's own additions to the configuration
+ * style blocks without changing their text, so an engine configured with `ec.config.mjs` alone
+ * leaves the text Starlight's does.
+ */
+export async function codeOf(fence: Code): Promise<string> {
+  renderer ??= createRenderer(ecConfig as RehypeExpressiveCodeOptions);
+  const { renderedGroupContents } = await (await renderer).ec.render({
+    code: fence.value,
+    language: fence.lang ?? '',
+    meta: fence.meta ?? '',
+  });
+  return renderedGroupContents[0].codeBlock.code;
+}
+
 /** Returns a string identifying where `node` is in its page. */
 const key = (node: Node): string => `${node.position?.start.line}:${node.position?.start.column}`;
 
 /**
  * Returns the code of every `<Playground>` in `root`, the tree of the page `page`, keyed by where
- * it starts (see `key`).
+ * it starts (see `key`), each fence's code being what `codeOf` says.
  *
  * Throws if one is misused, as the module's documentation says, naming `page` and the line.
  */
-export function collectPlaygrounds(root: Node, page: string): Map<string, PlaygroundCode> {
+export async function readPlaygrounds(
+  root: Node,
+  page: string,
+): Promise<Map<string, PlaygroundCode>> {
+  const fences: Code[] = [];
+  const visit = (node: Node): void => {
+    if (node.type === 'mdxJsxFlowElement' && (node as Element).name === COMPONENT) {
+      // Anything else a playground wraps is refused by `collectPlaygrounds`.
+      for (const child of node.children ?? []) {
+        if (child.type === 'code' && (child as Code).lang === 'hylo') fences.push(child as Code);
+      }
+    } else node.children?.forEach(visit);
+  };
+  visit(root);
+  const codes = new Map(await Promise.all(fences.map(async (f) => [f, await codeOf(f)] as const)));
+  return collectPlaygrounds(root, page, (fence) => codes.get(fence)!);
+}
+
+/**
+ * Returns the code of every `<Playground>` in `root`, the tree of the page `page`, keyed by where
+ * it starts (see `key`), given the code of each of their fences, which `readPlaygrounds` gives as
+ * the site shows it.
+ *
+ * Throws if one is misused, as the module's documentation says, naming `page` and the line.
+ */
+export function collectPlaygrounds(
+  root: Node,
+  page: string,
+  code: (fence: Code) => string,
+): Map<string, PlaygroundCode> {
   const playgrounds = new Map<string, PlaygroundCode>();
   /** The program a playground continuing each named one so far starts from, by name. */
   const continued = new Map<string, Program>();
 
   const visit = (node: Node): void => {
     if (node.type === 'mdxJsxFlowElement' && (node as Element).name === COMPONENT) {
-      const { playground, program } = read(node as Element, page, continued);
+      const { playground, program } = read(node as Element, page, continued, code);
       playgrounds.set(key(node), playground);
       const name = playground.attributes.name;
       if (name !== undefined) continued.set(name, program);
@@ -134,12 +193,14 @@ export function collectPlaygrounds(root: Node, page: string): Map<string, Playgr
 
 /**
  * Returns the code of `element`, a `<Playground>` of `page`, given the program a playground
- * continuing each named one before it starts from, and the program one continuing it starts from.
+ * continuing each named one before it starts from and the code of each fence, and the program one
+ * continuing it starts from.
  */
 function read(
   element: Element,
   page: string,
   continued: ReadonlyMap<string, Program>,
+  code: (fence: Code) => string,
 ): { playground: PlaygroundCode; program: Program } {
   const line = element.position?.start.line ?? 0;
   const fail = (problem: string): never => {
@@ -207,7 +268,7 @@ function read(
       if (shownPart.has(files[i])) fail(`show one code fence of \`${files[i]}\`, not several`);
       shownPart.set(files[i], parts.length);
     }
-    parts.push(fence.value);
+    parts.push(code(fence));
   }
   const shown = [...shownPart].map(([file, k]): ShownFile => {
     const parts = program.get(file)!;
@@ -242,8 +303,8 @@ export const playgroundSource: MdastPlugin = (page) => {
     name: 'hylo:playground-source',
     // The positions name the line of a misused `<Playground>`, and tell playgrounds apart.
     options: { position: true },
-    before(root) {
-      playgrounds = collectPlaygrounds(root as Node, page.fileURL?.pathname ?? 'a page');
+    async before(root) {
+      playgrounds = await readPlaygrounds(root as Node, page.fileURL?.pathname ?? 'a page');
     },
     mdxJsxFlowElement(element) {
       const playground = element.name === COMPONENT ? playgrounds.get(key(element)) : undefined;
