@@ -2,6 +2,8 @@
 title: Functions and methods
 ---
 
+import Playground from '../../../../../components/playground/Playground.astro';
+
 Functions are blocks of reusable code that performs a single action, or group of related actions. They are an essential tool for managing the complexity of a program as it grows.
 
 _Note: Though Hylo should not be considered a functional programming language, functions are first-class citizens, and functional programming style is well-supported. In fact, Hylo's mutable value semantics can be freely mixed with purely functional code without eroding that code's local reasoning properties._
@@ -11,15 +13,15 @@ _Note: Though Hylo should not be considered a functional programming language, f
 A function declaration is introduced with the `fun` keyword, followed by the function's name, its signature, and finally its body:
 
 ```hylo
-typealias Vector2 = {x: Float64, y: Float64}
+type Vector2 = {Float64, Float64}
 
-fun norm(_ v: Vector2) -> Float64 {
-  Float64.sqrt(v.x * v.x + v.y * v.y)
+fun norm(v: Vector2) -> Float64 {
+  (v.0 * v.0 + v.1 * v.1).squareRoot()
 }
 
 public fun main() {
-  let velocity = (x: 3.0, y: 4.0)
-  print(norm(velocity)) // 5.0
+  let velocity = (3.0, 4.0)
+  precondition(norm(velocity) == 5.0)
 }
 ```
 
@@ -29,39 +31,42 @@ A function's signature describes its parameter and return types. The return type
 
 A function is called using its name followed by its arguments and any argument labels, enclosed in parentheses. Here, `norm` is called to compute the norm of the vector `(x: 3.0, y: 4.0)` with the expression `norm(velocity)`.
 
-Notice that the name of the parameter to that function is prefixed by an underscore (i.e., `_`), signaling that the parameter is unlabeled. If this underscore were omitted, a call to `norm` would require its argument to be labeled by the parameter name `v`.
-
-You can specify a label different from the parameter name by replacing the underscore with an identifier. This feature can be used to create APIs that are clear and economical at the use site, especially for functions that accept multiple parameters:
+You can specify an argument label for a parameter that must be spelled out on the call site. This feature can be used to create APIs that are clear and ergonomic at the use site, especially for functions that accept multiple parameters:
 
 ```hylo
-typealias Vector2 = {x: Float64, y: Float64}
+type Vector2 = {Float64, Float64}
 
-fun scale(_ v: Vector2, by factor: Vector2) -> Vector2 {
-  (x: v.x * factor.x, y: v.y * factor.y)
+fun scale(v: Vector2, by factor: Vector2) -> Vector2 {
+  (v.0 * factor.0, v.1 * factor.1)
 }
 
-let extent = (x: 4, y: 7)
-let half = (x: 0.5, y: 0.5)
+fun main() {
+  let extent = (4.0, 7.0)
+  let half = (0.5, 0.5)
+  let middle = scale(extent, by: half) // <- see `by`.
 
-let middle = scale(extent, by: half)
+  precondition(middle.0 == 2.0)
+  precondition(middle.1 == 3.5)
+}
 ```
+
 
 Argument labels are also useful to distinguish between different variants of the same operation.
 
 ```hylo
-typealias Vector2 = {x: Float64, y: Float64}
+type Vector2 = {Float64, Float64}
 
 fun scale(_ v: Vector2, by factor: Vector2) -> Vector2 {
-  (x: v.x * factor.x, y: v.y * factor.y)
+  (v.0 * factor.0, v.1 * factor.1)
 }
 fun scale(_ v: Vector2, uniformly_by factor: Float64) -> Vector2 {
-  (x: v.x * factor, y: v.y * factor)
+  (v.0 * factor, v.1 * factor)
 }
 ```
 
 The two `scale` functions above are similar, but not identical. The first accepts a vector as the scaling factor, the second a scalar, a difference that is captured in the argument labels. Argument labels are part of the full function name, so the first function can be referred to as `scale(_,by:)` and the second as `scale(_,uniformly_by:)`. In fact, Hylo does not support type-based overloading, so the _only_ way for two functions to share the same base name is to have different argument labels. _Note: many of the use cases for type-based overloading in other languages can best be handled by using method bundles._
 
-A function with multiple statements that does not return `Void` must execute one `return` statement each time it is called.
+A function with multiple statements that does not return `Void` must execute one `return` statement on each exit path.
 
 ```hylo
 fun round(_ n: Float64, digits: Int) -> Float64 {
@@ -73,13 +78,13 @@ fun round(_ n: Float64, digits: Int) -> Float64 {
 To avoid warnings from the compiler, every non-`Void` value returned from a function must either be used, or be explicitly discarded by binding it to `_`.
 
 ```hylo
-fun round(_ n: Float64, digits: Int) -> Float64 {
+fun round(n: Float64, _ digits: Int) -> Float64 {
   let factor = 10.0 ^ Float64(digits)
   return (n * factor).round() / factor
 }
 
 public fun main() {
-  _ = round(3.14159, 3) // explicitly discards the result of `round(_:digits:)`
+  _ = round(3.14159, digits: 3) // explicitly discards the result of `round(_:digits:)`
 }
 ```
 
@@ -102,7 +107,7 @@ _Note: A default argument expression is evaluated at each call site._
 A parameter passing convention describes how an argument is passed from caller to callee. In Hylo, there are four: `let`, `inout`, `sink` and `set`. In the next series of examples, we will define four corresponding functions to offset this 2-dimensional vector type:
 
 ```hylo
-typealias Vector2 = {x: Float64, y: Float64}
+type Vector2 = {Float64, Float64}
 ```
 
 We will also show how Hylo's parameter passing conventions relate to other programming languages, namely C++ and Rust.
@@ -112,25 +117,25 @@ We will also show how Hylo's parameter passing conventions relate to other progr
 Let's start with the `let` convention. Parameter passing conventions are always written before the parameter type:
 
 ```hylo
-fun offset_let(_ v: let Vector2, by delta: let Vector2) -> Vector2 {
-  (x: v.x + delta.x, y: v.y + delta.y)
+fun offset_let(v: let Vector2, by delta: let Vector2) -> Vector2 {
+  (x: v.0 + delta.0, y: v.1 + delta.1)
 }
 ```
 
 `let` is the default convention, so the declaration above is equivalent to
 
 ```hylo
-fun offset_let(_ v: Vector2, by delta: Vector2) -> Vector2 {
-  (x: v.x + delta.x, y: v.y + delta.y)
+fun offset_let(v: Vector2, by delta: Vector2) -> Vector2 {
+  (x: v.0 + delta.0, y: v.1 + delta.1)
 }
 ```
 
 `let` parameters are (notionally) passed by value, and are truly immutable. The compiler wouldn't allow us to modify `v` or `delta` inside the body of `offset_let` if we tried:
 
 ```hylo error-preview
-fun offset_let(_ v: Vector2, by delta: Vector2) -> Vector2 {
-  ~~&v.x~~ += delta.x  //! error: v is immutable
-  ~~&v.y~~ += delta.y
+fun offset_let(v: Vector2, by delta: Vector2) -> Vector2 {
+  ~~&v.0~~ += delta.0  //! error: v is immutable
+  ~~&v.1~~ += delta.1
   return v
 }
 ```
@@ -140,10 +145,10 @@ fun offset_let(_ v: Vector2, by delta: Vector2) -> Vector2 {
 Though `v` cannot be modified, `Vector2` is copyable, so we can copy `v` into a mutable variable and modify _that_.
 
 ```hylo
-fun offset_let(_ v: Vector2, by delta: Vector2) -> Vector2 {
+fun offset_let(v: Vector2, by delta: Vector2) -> Vector2 {
   var temporary = v.copy()
-  &temporary.x += delta.x
-  &temporary.y += delta.y
+  &temporary.0 += delta.0
+  &temporary.1 += delta.1
   return temporary
 }
 ```
@@ -175,7 +180,7 @@ The only difference between an immutable borrow in Rust and a `let` in Hylo is t
 The `let` convention does not transfer ownership of the argument to the callee, meaning, for example, that without first copying it, a `let` parameter can't be returned, or stored anywhere that outlives the call.
 
 ```hylo error-preview
-fun duplicate(_ v: Vector2) -> Vector2 {
+fun duplicate(v: Vector2) -> Vector2 {
   return ~~v~~  //! error: `v` cannot escape; return `v.copy()` instead.
 }
 ```
@@ -185,9 +190,9 @@ fun duplicate(_ v: Vector2) -> Vector2 {
 The `inout` convention enables mutation across function boundaries, allowing a parameter's value to be modified in place:
 
 ```hylo
-fun offset_inout(_ target: inout Vector2, by delta: Vector2) {
-  &target.x += delta.x
-  &target.y += delta.y
+fun offset_inout(target: inout Vector2, by delta: Vector2) {
+  &target.0 += delta.0
+  &target.1 += delta.1
 }
 ```
 
@@ -195,8 +200,8 @@ Again, the compiler imposes some restrictions and offers guarantees in return. F
 
 ```hylo
 fun main() {
-  var v = (x: 3, y: 4)               // v is mutable.
-  offset_inout(&v, by: (x: 1, y: 1)) // ampersand indicates mutation.
+  var v = (3, 4)               // v is mutable.
+  offset_inout(&v, by: (1, 1)) // ampersand indicates mutation.
 }
 ```
 
@@ -255,11 +260,11 @@ Just as with `let` parameters, `inout` parameters are not owned by the callee, a
 Although `inout` parameters are required to be valid at function entry and exit, a callee is entitled to do anything with the value of such parameters, including destroying them, as long as it puts a value back before returning:
 
 ```hylo
-fun offset_inout(_ v: inout Vector2, by delta: Vector2) {
+fun offset_inout(v: inout Vector2, by delta: Vector2) {
   let temporary = v.copy()
   v.deinit()
   // `v` is not bound to any value here
-  v = (x: temporary.x + delta.x, y: temporary.y + delta.y)
+  v = (temporary.0 + delta.0, temporary.1 + delta.1)
 }
 ```
 
@@ -272,9 +277,9 @@ _Note: A Rust developer can understand explicit deinitialization as a call to `d
 The `sink` convention indicates a transfer of ownership, so unlike previous examples the parameter _can_ escape the lifetime of the callee.
 
 ```hylo
-fun offset_sink(_ base: sink Vector2, by delta: Vector2) -> Vector2 {
-  &base.x += delta.x
-  &base.y += delta.y
+fun offset_sink(base: sink Vector2, by delta: Vector2) -> Vector2 {
+  &base.0 += delta.0
+  &base.1 += delta.1
   return base        // OK; base escapes here!
 }
 ```
@@ -325,12 +330,12 @@ fn main() {
 The `sink` and `inout` conventions are closely related; so much so that `offset_sink` can be written in terms of `offset_inout`, and vice versa.
 
 ```hylo
-fun offset_sink2(_ v: sink Vector2, by delta: Vector2) -> Vector2 {
+fun offset_sink2(v: sink Vector2, by delta: Vector2) -> Vector2 {
   offset_inout(&v, by: delta)
   return v
 }
 
-fun offset_inout2(_ v: inout Vector2, by delta: Vector2) {
+fun offset_inout2(v: inout Vector2, by delta: Vector2) {
   v = offset_sink(v, by: delta)
 }
 ```
@@ -340,8 +345,8 @@ fun offset_inout2(_ v: inout Vector2, by delta: Vector2) {
 The `set` convention lets a callee initialize an uninitialized value. The compiler will only accept uninitialized objects as arguments to a set parameter.
 
 ```hylo error-preview
-fun init_vector(_ target: set Vector2, x: sink Float64, y: sink Float64) {
-  target = (x: x, y: y)
+fun init_vector(target: set Vector2, x: sink Float64, y: sink Float64) {
+  target = (x, y)
 }
 
 public fun main() {
@@ -374,7 +379,7 @@ int main() {
 A method is a function associated with a particular type, called the **receiver**, on which it primarily operates. Method declaration syntax is the same as that of a free function, except that a method is always declared in the scope of its receiver type, and the receiver parameter is omitted.
 
 ```hylo
-type Vector2 {
+struct Vector2 {
   public var x: Float64
   public var y: Float64
   public memberwise init
@@ -390,7 +395,7 @@ The program above declares `Vector2`, a structure with a method, `offset_let(by:
 For concision, `self` can be omitted from most expressions in a method. Therefore, we can rewrite `offset_let` this way:
 
 ```hylo
-type Vector2 {
+struct Vector2 {
   // ...
   public fun offset_let(by delta: Vector2) -> Vector2 {
     Vector2(x: x + delta.x, y: y + delta.y)
@@ -418,7 +423,7 @@ When the method is accessed through its type, instead of through an instance, we
 As usual, the default passing convention of the receiver is `let`. Other passing conventions must be specified explicitly, just after the closing parenthesis of the method's parameter list. In the following example, `self` is passed `inout`, making this a mutating method:
 
 ```hylo
-type Vector2 {
+struct Vector2 {
   // ...
   public fun offset_inout(by delta: Vector2) inout -> Vector2 {
     &x += delta.x
@@ -442,7 +447,7 @@ fun main() {
 When multiple methods have the same functionality but differ only in the passing convention of their receiver, they can be grouped into a single _bundle_.
 
 ```hylo
-type Vector2 {
+struct Vector2 {
   public var x: Float64
   public var y: Float64
   public memberwise init
@@ -486,7 +491,7 @@ Thanks to the link between the `sink` and `inout` conventions, the compiler is a
 This feature can be used to avoid code duplication in cases where custom implementations of the different variants do not offer any performance benefit, or where performance is not a concern. For example, in the case of `Vector2.offset(by:)`, it is sufficient to write the following declaration and let the compiler synthesize the missing variants.
 
 ```hylo
-type Vector2 {
+struct Vector2 {
   // ...
   public fun offset(by delta: Vector2) -> Vector2 {
     let { Vector2(x: x + delta.x, y: y + delta.y) }
@@ -503,7 +508,7 @@ A global function declared in the namespace of a type is called a _static method
 A static method is declared with `static`:
 
 ```hylo
-type Vector2 {
+struct Vector2 {
   // ...
   public static fun random(in range: Range<Float64>) -> Vector2 {
     Vector2(x: Float64.random(in: range), y: Float64.random(in: range))
@@ -540,7 +545,7 @@ public fun main() {
 Some methods of the standard library use closures to implement certain algorithms. For example, the type `T[n]` has a method `reduce(into:_:)` that accepts a closure as second argument to describe how its elements should be combined.
 
 ```hylo
-fun combine(_ partial_result: inout Int, _ element: Int) {
+fun combine(partial_result: inout Int, _ element: Int) {
   &partial_result += element
 }
 
@@ -556,7 +561,7 @@ When the sole purpose of a function is to be used as a closure, it may be more c
 
 ```hylo
 public fun main() {
-  let sum = [1, 2, 3].reduce(into: 0, fun(_ partial_result, _ element) {
+  let sum = [1, 2, 3].reduce(into: 0, fun(partial_result: inout Int, element: Int) {
     &partial_result += element
   })
   print(sum)
@@ -572,7 +577,7 @@ A `let` capture occurs when a function accesses a binding immutably. For example
 ```hylo
 public fun main() {
   let offset = 2
-  let result = [1, 2, 3].map(fun(_ n) { n + offset })
+  let result = [1, 2, 3].map(fun(n) { n + offset })
   print(result) // [3, 4, 5]
 }
 ```
@@ -582,7 +587,7 @@ An `inout` capture occurs when a function accesses a binding mutably. For exampl
 ```hylo
 public fun main() {
   var sum = 0
-  let result = [1, 2, 3].for_each(fun(_ n) { &sum += n })
+  let result = [1, 2, 3].for_each(fun(n) { &sum += n })
   print(sum) // 6
 }
 ```

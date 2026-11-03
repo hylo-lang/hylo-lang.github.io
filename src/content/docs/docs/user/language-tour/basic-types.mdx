@@ -2,51 +2,48 @@
 title: Basic types
 ---
 
+import Playground from '../../../../../components/playground/Playground.astro';
+
 Hylo is statically typed: the type of a binding must always match the type of the object it is bound to. For instance, it is impossible to assign a floating point number to an integer binding:
 
+<Playground expect="error">
 ```hylo error-preview
 public fun main() {
   var length = 1
   &length = ~~2.3~~ //! error: expected type `Int`, found `Float64`
 }
 ```
+</Playground>
 
 The type of a binding is determined at declaration. If an initializing expression is present, such as in all previous examples, the binding is given the type of that expression. Alternatively, we can state the type of a binding explicitly:
 
+<Playground expect="ok">
 ```hylo
 public fun main() {
   var weight: Float64 = 1.0
   &weight = 2.3
-  print(weight) // 2.3
+  precondition(weight == 2.3)
 }
 ```
+</Playground>
 
-The type of an expression can be retrieved, without evaluating the expression, using `type(of:)`:
-
-```hylo
-public fun main() {
-  let weight = 2.3
-  print(type(of: weight)) // Float64
-  print(type(of: "Hey!")) // String
-}
-```
-
-Hylo's standard library defines the types that are most commonly used, including numeric types (e.g., `Int`, `Float64`), text strings (`String`), Booleans (`Bool`), and types to represent data structures. The remainder of this section gives an overview of the most important ones.
+Hylo's standard library defines the types that are most commonly used, including numeric types (e.g., `Int`, `Float64`), text strings (`String` (TODO)), Booleans (`Bool`), and types to represent data structures. The remainder of this section gives an overview of the most important ones.
 
 ### Booleans, numbers, and strings
 
 A [Boolean](https://en.wikipedia.org/wiki/Boolean\_data\_type) is a value that is either `true` or `false`. In Hylo, those are represented by the type `Bool`:
 
+<Playground expect="ok">
 ```hylo
 public fun main() {
-  let is_two_greater_than_one = 2 > 1
-  print(type(of: is_two_greater_than_one)) // Bool
+  let is_two_greater_than_one: Bool = 2 > 1
 }
 ```
+</Playground>
 
 Integer numbers are typically represented by the type `Int`, which represents a machine-size integer (usually 64 bits on modern computers). Hylo also provides types to represent integers of different sizes and signedness. For example, `UInt16` represents a 16-bit unsigned number and `Int8` a 8-bit signed number, independently of the machine for which the program is compiled.
 
-_Note: The type `Int` should be preferred unless you need a different variant for a specific reason (e.g., representing a hardware register, storage optimization)._ _This convention aids code consistency and interoperability._
+_Note: The type `Int` should be preferred unless you need a different variant for a specific reason (e.g., storage optimization)._ _This convention aids code consistency and interoperability._
 
 Floating point numbers are represented by the types `Float32` and `Float64`, denoting [IEEE](https://en.wikipedia.org/wiki/IEEE\_754) single and double-precision values respectively.
 
@@ -54,13 +51,15 @@ _Note: For the same reasons as `Int` should be preferred for every integer value
 
 Hylo does not support any kind of implicit conversion between numeric types. For example, the following program is illegal:
 
+<Playground expect="error">
 ```hylo error-preview
 public fun main() {
   let n = 3.2
   let m = 8
-  print(~~n * m~~) //! error: cannot pass value of type 'Int' to parameter 'let Float64'
+  let r = n * ~~m~~ //! error: cannot pass value of type 'Int' to parameter 'Float64'
 }
 ```
+</Playground>
 
 All numeric conversions must be written explicitly by calling the appropriate initializer. For example, we can fix the program above by converting `m` to `Float64` before the multiplication:
 
@@ -71,14 +70,13 @@ public fun main() {
   print(n * Float64(m)) // 25.6
 }
 ```
-
 By default, integer literals are interpreted as `Int` and floating-point as `Float64`. However, a literal may be interpreted as a different type depending on the context in which it appears:
 
 ```hylo
 public fun main() {
   var n: Float64 = 2
-  &n *= 10
-  print(n) // prints 20.0
+  &n *= (10 as Float64)
+  precondition(n == 20.0)
 }
 ```
 
@@ -87,6 +85,8 @@ In the above example, `n` is explicitly declared to have type `Float64`. As a re
 _Note: the ampersand in `&n += 10` indicates that `n` is being mutated in-place._ _We will come back to it later._
 
 Text is represented by the type `String` and has two literal forms. Simple string literals are sequences of characters surrounded by double quotes on a single line (e.g., `"Hello, World!"`). Multiline literals are surrounded by sequences of three double quotes on either side and may contain new lines.
+
+> Note: strings are not yet implemented in the compiler.
 
 ```hylo
 public fun main() {
@@ -116,66 +116,65 @@ public fun main() {
 
 ### Tuples
 
-A tuple is a composition of zero or more values, each of which can have any type. It can be created with a comma-separated list of values, enclosed in parentheses, and each value can (optionally) be labeled. Of course, tuples can contain other tuples.
+A tuple is a composition of zero or more values, each of which can have any type. It can be created with a comma-separated list of values, enclosed in parentheses.
+Of course, tuples can contain other tuples.
 
+The elements of a tuple are accessed by appending `.n` to a tuple expression, where `n` denotes the `n`th element of the tuple, starting at zero.
+
+<Playground expect="ok">
 ```hylo
 public fun main() {
-  let circle = (origin: (x: 6.3, y: 1.0), radius: 2.3)
-  print(circle)
+  let a = ((42, 1.0), 2.3, 3)
+
+  precondition(a.2 == 3)
+  precondition((a.0).1 == 1.0)
 }
 ```
-
-_The elements of a tuple are laid out contiguously in memory, with potential padding to account for alignment._
-
-The elements of a tuple are accessed by appending `.n` to a tuple expression, where `n` denotes the `n`th element of the tuple, stating at zero. An element can also be referred to by its label, if any.
-
-```hylo
-public fun main() {
-  var circle = (origin: (x: 6.3, y: 1.0), radius: 2.3)
-  &circle.0.1 = 3.6
-  print(circle.origin) // (x: 6.3, y: 3.6)
-}
-```
+</Playground>
 
 The values of a tuple can be unpacked to local bindings through a process called "destructuring". Irrelevant elements can be ignored by using an underscore:
 
+<Playground expect="ok">
 ```hylo
 public fun main() {
-  let circle = (origin: (x: 6.3, y: 1.0), radius: 2.3)
+  let circle = ((6.3, 1.0), 2.3)
   
-  // Bind to px to circle.origin.x and r to circle.radius,
-  // ignoring circle.origin.y
-  let (origin: (x: px, y: _), radius: r) = circle
-  
-  print((px, r))  // (6.3, 2.3)
+  // Bind `px` to `circle.0.0` and `r` to `circle.2`, ignoring `circle.0.1`.
+  let ((px, _), r) = circle
+
+  precondition(px == 6.3)
+  precondition(r == 2.3)
 }
 ```
+</Playground>
 
 ### Buffers, arrays, and slices
 
-A buffer is a fixed-size collection of homogeneous elements laid out contiguously in memory. It can be created with a comma-separated list of values, enclosed in square brackets. The elements of a buffer can be accessed by _subscripting_ a buffer expression with an integer index:
+A buffer is a fixed-size collection of homogeneous elements laid out contiguously in memory (with padding inserted when stride != size).
+It can be created with a comma-separated list of values, enclosed in square brackets. The elements of a buffer can be accessed by _subscripting_ a buffer expression with an integer index:
 
 ```hylo
 public fun main() {
   let triangle = [
-    (x: 0.0, y: 0.0),
-    (x: 1.0, y: 0.0),
-    (x: 0.0, y: 1.0),
+    (0.0, 0.0),
+    (1.0, 0.0),
+    (0.0, 1.0),
   ]
-  print(triangle[1]) // (x: 1.0, y: 0.0)
 }
 ```
+
+> Note: currently, buffer types are limited in the compiler. You can only declare them like this, as if it was a tuple: `let x: Point[3] = ((0, 1), (2, 3), (4, 5))`.
 
 _Note: indexing a buffer outside of its bounds is either caught as a compile-time error, or causes the program to terminate at runtime._
 
 The type of a buffer is written either `T[n]` or `Buffer<T, n>`, where `T` is a type and `n` the number of elements in the buffer. All elements of a buffer must be initialized at the same time as the buffer itself, either by the means of a buffer literal expression, as in the program above, or by calling a buffer _initializer_:
 
 ```hylo
-typealias Point = {x: Float64, y: Float64}
+type Point = {Float64, Float64}
 public fun main() {
-  var triangle = Point[3](fun(i) { (x: Float64(i), y: 0.0) }) // <== HERE
+  var triangle = Point[3](fun(i) { (Float64(i), 0.0) }) // <== HERE
   &triangle[1].y = 2.5
-  print(triangle[1]) // (x: 1.0, y: 2.5)
+  print(triangle[1]) // (1.0, 2.5)
 }
 ```
 
@@ -184,12 +183,12 @@ In the program above, `triangle` is created by calling `Buffer.init(_:)`, which 
 An array is like a buffer that can be resized dynamically:
 
 ```hylo
-typealias Point = {x: Float64, y: Float64}
+type Point = {Float64, Float64}
 public fun main() {
   var points = Array<Point>()
-  print(points.count())            // 0
-  &points.append((x: 6.3, y: 1.0)) // <== HERE
-  print(points.count())            // 1
+  print(points.count())      // 0
+  &points.append((6.3, 1.0)) // <== HERE
+  print(points.count())      // 1
 }
 ```
 
@@ -209,7 +208,7 @@ Just like a tuple, a structure is a container composed of zero or more heterogen
 A structure is declared with the keyword `type` and contains typed properties declared as bindings:
 
 ```hylo
-type Matrix3 {
+struct Matrix3 {
   public var components: Float64[3][3]
   public memberwise init
 }
@@ -218,21 +217,22 @@ type Matrix3 {
 The type declaration above defines a type `Matrix3` with a single property of type `Float64[3][3]`. The second declaration exposes the default memberwise initializer of the type, allowing us to create matrices by calling `Matrix3.init(components:)`:
 
 ```hylo
-type Matrix3 {
+struct Matrix3 is Deinitializable {
   public var components: Float64[3][3]
   public memberwise init
 }
 
 public fun main() {
   var m = Matrix3(components: [
-    [0, 0, 0],
-    [0, 0, 0],
-    [0, 0, 0],
+    [0.0, 0.0, 0.0],
+    [0.0, 0.0, 0.0],
+    [0.0, 0.0, 0.0],
   ])
   &m.components[0][0] = 1.0
-  &m.components[1][1] = 1.0
-  &m.components[2][2] = 1.0
-  print(m)
+  &m.components[1][1] = 2.0
+  &m.components[2][2] = 3.0
+  
+  precondition((m.components[1])[1] == 2.0)
 }
 ```
 
@@ -245,7 +245,7 @@ A structure can also define static properties. Those are not part of structure i
 Static properties are declared with `static`. They can only be declared with `let` and are therefore always immutable:
 
 ```hylo
-type Matrix3 {
+struct Matrix3 {
   // ...
   public static let zero = Matrix3(components: [
     [0, 0, 0],
@@ -259,26 +259,22 @@ public fun main() {
 }
 ```
 
-### Unions
+### Enums
 
-Two or more types can form a union type, also known as a [sum type](https://en.wikipedia.org/wiki/Tagged\_union). In Hylo, a union is a supertype of all its element types, so any element type can be used in an expression where the union type is expected:
+Hylo has enums (discriminated unions), which is a [sum type](https://en.wikipedia.org/wiki/Tagged\_union) with 0 or more variants.
 
 ```hylo
+public enum Either is Regular {
+  case left(x: Int)
+  case right(y: Int)
+
+  fun deinit() sink {}
+}
+
 public fun main() {
-  var x: Union<Int, String> = "Hello, World!"
-  print(x) // Hello, World!
-  &x = 42
-  print(x) // 42
+  var x: Either = .left(21)
+  &x = .right(42)
+
+  precondition(x == .right(42))
 }
 ```
-
-It is often convenient to create (generic) type aliases to denote unions. For example, Hylo's standard library defines [optionals](https://en.wikipedia.org/wiki/Option\_type) as follows:
-
-```hylo
-public typealias Optional<T> = Union<T, Nil<T>>
-public type Nil<T>: Linear {
-  public init() {}
-}
-```
-
-Here, the type `Nil` is an empty structure used only to mark the absence of a `T`. The type `Optional<T>` is the union of any type `T` and `Nil`, which can be used to indicate that a particular value might be absent.

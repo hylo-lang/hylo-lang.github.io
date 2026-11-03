@@ -31,8 +31,8 @@ Concurrency in Hylo is based on the following principles:
 ### Hello, concurrent world
 
 ```hylo
-fun main() {
-  var handle = spawn(() => print("Hello, concurrent world!"))
+public fun main() {
+  var handle = spawn(fun () => print("Hello, concurrent world!"))
   // do some other things
   handle.await()
 }
@@ -45,11 +45,11 @@ This code will print `Hello, concurrent world!` and will do this (most likely) f
 Let's have a slightly more complicated example:
 
 ```hylo
-fun do_greet(): Int {
+fun do_greet() -> Int {
   print("Hello, concurrent world!")
   return 17
 }
-fun prime_number(): Int {
+fun prime_number() -> Int {
   13
 }
 fun concurrent_greeting() {
@@ -100,7 +100,7 @@ fun my_concurrent_sort(_ a: inout ArraySlice<Element>) {
   }
 }
 
-fun sort_partition(_ a: inout ArraySlice<Element>): Int {
+fun sort_partition(_ a: inout ArraySlice<Element>) -> Int {
     let mid_value = median9(a)
     return a.partition(by: (val) => val > mid_value)
 }
@@ -218,7 +218,7 @@ fun read_data(from c: FileContext) throws -> Buffer {
   return result
 }
 
-let handle = spawn(scheduler:ioScheduler, fun() -> Buffer { readData(c) })
+let handle = spawn(scheduler: ioScheduler, fun() -> Buffer { readData(c) })
 ...
 do {
   let fileContent = try handle.await()
@@ -240,7 +240,7 @@ fun handle_incoming_connection(_ connection: HttpConnection) {
     // Handle the request.
     let response = try handle_request(request)
     // Send back the response.
-    send_response(response)
+    send_response(response, to: connection)
   } catch InvalidRequestError(let details) {
     send_response(BadRequestResponse(details), to: connection)
   } catch CancelledError {
@@ -290,7 +290,7 @@ fun handle_request(_ request: HttpRequest) throws {
   main_scheduler.activate()
 }
 
-fun send_response(_ response: HttpResponse, connection: inout HttpConnection) throws {
+fun send_response(_ response: HttpResponse, to connection: inout HttpConnection) throws {
   // Do the writing on the network I/O scheduler.
   net_scheduler.activate()
   // Get buffers out of the response, and send them as packets over the network.

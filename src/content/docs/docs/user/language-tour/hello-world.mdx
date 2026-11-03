@@ -1,0 +1,31 @@
+---
+title: Hello, World!
+
+---
+
+import Playground from '../../../../../components/playground/Playground.astro';
+
+Tradition says language guides should start with a program that displays "Hello, World!" on the screen. Let's oblige!
+
+```hylo
+public fun main() {
+  print("Hello, World!")
+}
+``` 
+
+Every Hylo executable must define a `main` function, with no parameters. The return value can be either `Void` or `Int32`. Here, `main` contains a single statement, which is a call to a global function `print` with a string argument.
+
+Note: The above program doesn't work yet until strings are implemented, but here is a simpler example you can try:
+
+<Playground expect="ok">
+```hylo
+public fun main() {
+  let b = 4 + 38
+  precondition(b == 42)
+}
+```
+</Playground>
+
+Once you have [installed the compiler](/docs/user/installation/), you can also follow these steps:
+* Copy that `main` function into a file called `hello.hylo`.
+* Run `hc hello.hylo`, `./hello`.
