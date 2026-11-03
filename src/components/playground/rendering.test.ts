@@ -1,5 +1,5 @@
 import { expect, test } from 'vitest';
-import { describeFailure, filterIRFunctions } from './rendering';
+import { describeFailure, filterIRFunctions, splitLocations } from './rendering';
 
 // Function headers as the compiler prints them.
 const ir = `fun main(set %p0: Int32) {
@@ -44,4 +44,26 @@ test('describeFailure says which stage did not finish within the time limit', ()
   expect(describeFailure({ ...stopped('skipped', 'failed'), timedOut: 1 })).toBe(
     'Compilation did not finish within 1 second.',
   );
+});
+
+test('splitLocations finds the locations a rendered diagnostic names, keeping all its text', () => {
+  const rendered =
+    "hylo:///main.hylo:4.11-15: error: undefined symbol 'nope'\n  let y = nope\n          ~~~~\n" +
+    'hylo:///lib/point.hylo:2.3-5.1: note: declared here';
+  const parts = splitLocations(rendered);
+  expect(parts.map((p) => (typeof p === 'string' ? p : p.text)).join('')).toBe(rendered);
+  expect(parts.filter((p) => typeof p !== 'string')).toEqual([
+    {
+      text: 'hylo:///main.hylo:4.11-15',
+      location: { file: '/main.hylo', site: { line: 4, column: 11, endLine: 4, endColumn: 15 } },
+    },
+    {
+      text: 'hylo:///lib/point.hylo:2.3-5.1',
+      location: { file: '/lib/point.hylo', site: { line: 2, column: 3, endLine: 5, endColumn: 1 } },
+    },
+  ]);
+});
+
+test('splitLocations leaves text naming no location whole', () => {
+  expect(splitLocations('error: something went wrong')).toEqual(['error: something went wrong']);
 });

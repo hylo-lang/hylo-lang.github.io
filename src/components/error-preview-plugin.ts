@@ -1,5 +1,19 @@
-import { definePlugin, ExpressiveCodeAnnotation, type AnnotationRenderOptions } from '@expressive-code/core'
-import { h } from '@expressive-code/core/hast'
+import {
+    definePlugin,
+    ExpressiveCodeAnnotation,
+    type AnnotationRenderOptions,
+    type ExpressiveCodeLine,
+} from '@expressive-code/core'
+import { getClassNames, h, type Element } from '@expressive-code/core/hast'
+
+/**
+ * Shows errors in the code blocks whose meta says `error-preview`: `~~code~~` squiggles `code`,
+ * and a `//! message` comment shows `message` at the end of its line, as the compiler might.
+ *
+ * Both are markup, not code: the block's text, which is what the reader copies and what a
+ * `<Playground>` compiles, is the code without them. The message is not in the text at all, but
+ * drawn after it.
+ */
 
 class SquigglesAnnotation extends ExpressiveCodeAnnotation {
     render({ nodesToTransform }: AnnotationRenderOptions) {
@@ -9,13 +23,11 @@ class SquigglesAnnotation extends ExpressiveCodeAnnotation {
     }
 }
 
-class ErrorMessageAnnotation extends ExpressiveCodeAnnotation {
-    render({ nodesToTransform }: AnnotationRenderOptions) {
-        return nodesToTransform.map((node) => {
-            return h('span.error-message', node)
-        })
-    }
-}
+/** Matches a `//!` comment surrounded by spaces, with the spaces before it, capturing its text. */
+const MESSAGE = /(?:^|\s+)\/\/!\s(.*)$/
+
+/** The message each line of a block shows, which its text no longer holds. */
+const messages = new WeakMap<ExpressiveCodeLine, string>()
 
 export function pluginErrorPreview() {
     return definePlugin({
@@ -37,11 +49,8 @@ export function pluginErrorPreview() {
         background: #f002;
         padding-inline: 0.4rem;
         border-radius: 0.2rem;
-        /* Prevent inline annotations from overriding our styles */
-        & span {
-          color: inherit;
-          font-style: inherit;
-        }
+        /* Not part of the code: not selected with it */
+        user-select: none;
       }
     `,
         hooks: {
@@ -50,6 +59,13 @@ export function pluginErrorPreview() {
                 if (!context.codeBlock.meta.includes('error-preview')) return
 
                 context.codeBlock.getLines().forEach((line) => {
+                    // Take the message out of the code
+                    const message = MESSAGE.exec(line.text)
+                    if (message !== null) {
+                        messages.set(line, message[1])
+                        line.editText(message.index, line.text.length, '')
+                    }
+
                     // Find all squiggles markup in the line
                     const matches = [...line.text.matchAll(/~~[^~]+~~/g)].reverse()
                     matches.forEach((match) => {
@@ -69,27 +85,15 @@ export function pluginErrorPreview() {
                     })
                 })
             },
-            postprocessAnalyzedCode: (context) => {
-                // Only apply this to code blocks with the `error-preview` meta
-                if (!context.codeBlock.meta.includes('error-preview')) return
-
-                context.codeBlock.getLines().forEach((line) => {
-                    // Find a `//!` comment surrounded by spaces
-                    const messageIdx = line.text.match(/(?<=^|\s)\/\/!\s/)?.index
-                    if (messageIdx !== undefined) {
-                        // Add an error message annotation to the match
-                        line.addAnnotation(
-                            new ErrorMessageAnnotation({
-                                inlineRange: {
-                                    columnStart: messageIdx,
-                                    columnEnd: line.text.length,
-                                },
-                            })
-                        )
-                        // Remove the comment markup from the code plaintext
-                        line.editText(messageIdx, messageIdx + 4, '')
-                    }
-                })
+            postprocessRenderedLine: ({ line, renderData }) => {
+                const message = messages.get(line)
+                if (message === undefined) return
+                // Drawn after the line's code, in the element holding it
+                const code = renderData.lineAst.children.find(
+                    (child): child is Element =>
+                        child.type === 'element' && getClassNames(child).includes('code')
+                )
+                ;(code ?? renderData.lineAst).children.push(h('span.error-message', message))
             },
         },
     })

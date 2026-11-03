@@ -60,6 +60,9 @@
         },
         {
           "include": "#trait"
+        },
+        {
+          "include": "#struct"
         }
       ],
       "repository": {
@@ -90,6 +93,30 @@
         "type": {
           "name": "meta.definition.type.hylo",
           "begin": "\\b(type )",
+          "beginCaptures": {
+            "1": {
+              "name": "storage.type.type.hylo"
+            },
+            "2": {
+              "name": "entity.name.type.hylo"
+            }
+          },
+          "end": "(?<=\\})|$",
+          "patterns": [
+            {
+              "include": "#comments"
+            },
+            {
+              "include": "#generic-parameter-clause"
+            },
+            {
+              "include": "#keywords"
+            }
+          ]
+        },
+        "struct": {
+          "name": "meta.definition.type.hylo",
+          "begin": "\\b(struct )",
           "beginCaptures": {
             "1": {
               "name": "storage.type.type.hylo"
