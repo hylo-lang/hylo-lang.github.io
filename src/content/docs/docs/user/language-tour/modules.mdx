@@ -2,9 +2,11 @@
 title: Modules
 ---
 
+import Playground from '../../../../../components/playground/Playground.astro';
+
 A Hylo program is composed of **modules**, each of which is composed of one or more files. A module that defines a public `main` function is called an **entry module**, of which there must be exactly one per program.
 
-The [Hello, World!](../hello-world) program we wrote earlier is made of two modules. The first contains the `hello.hylo` file and is the program's entry module. The second is Hylo's standard library, which is always implicitly imported, and defines commonly-used components like the `Int` and `String` types, and the `print` function used in `hello.hylo`.
+The [Hello, World](../hello-world) program we wrote earlier is made of two modules. The first contains the `hello.hylo` file and is the program's entry module. The second is Hylo's standard library, which is always implicitly imported, and defines commonly-used components like the `Int` and `String` types, and the `print` function used in `hello.hylo`.
 
 Each module defines an API resilience boundary: only public declarations are visible outside the module, and changes to non-public declarations, or to the bodies of public functions in the module cannot cause code outside the module to fail compilation. A module _may_ also define an ABI resilience boundary, within which code and details such as type layout are never encoded into other compiled modules (e.g. via inlining).
 
@@ -19,9 +21,11 @@ public fun main() {
 }
 
 // In `Greet.hylo`
-fun greet(_ name: String) {
+internal fun greet(_ name: String) {
   print("Hello, ${name}!")
 }
+
+// Note: expected to fail compilation until strings are implemented.
 ```
 
 Here, we declare a function `greet` that takes a single argument of type `String`. The underscore (i.e., `_`) before the parameter name means that arguments passed here must be unlabeled. We'll come back to argument labels later.
@@ -33,7 +37,18 @@ To run this program:
 
 _Alternatively, you can put both source files in a subdirectory, say `Sources/`, and compile the program with `hc Sources -o hello`._
 
-Note that `greet` need not be `public` to be visible from another file in the module. All entities declared at the top level of a file are visible everywhere in a module, but not beyond that module's boundary.
+Note that `greet` must be declared as `internal` to be visible from another file in the same module. By default, all declarations are `fileprivate`.
+Use `public` to make a declaration visible outside of the module.
+
+To expose a non-public function for inlining in other modules, you can use the `@exposed` annotation. The function's intermediate representation (IR) will be included in the module bundle, but we still can't call it directly from other modules.
+
+```hylo
+@exposed
+internal fun double(x: Int32) -> Int32 {
+  return x + 2
+}
+```
+
 
 ### Bundling modules
 
@@ -67,7 +82,5 @@ The statement `import Greetings` at the top of `Hello.hylo` tells the compiler i
 
 Notice that `greet` had to be made public so it could be visible to other modules. As such, it can be called from `Hello.hylo`.
 
-To run this program:
-
-* Run the command `hc --modules Sources/Hello Sources/Greetings -o hello`
-* Run the command `./hello`
+To build this program, you can [set up CMake as your build system](/docs/user/tooling/build-systems/) or contribute integration for another one.
+In the future, we are planning to add a dedicated build system and package manager for Hylo.

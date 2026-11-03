@@ -2,9 +2,13 @@
 title: Bindings
 ---
 
+import Playground from '../../../../../components/playground/Playground.astro';
+
 The object denoted by a mutable binding can be modified, whereas that of an immutable binding cannot.
 
 Immutable bindings are declared with `let` and can be initialized with the `=` operator. It is not possible to modify the bound object during the lifetime of the binding.
+
+<Playground expect="error">
 
 ```hylo error-preview
 public fun main() {
@@ -13,7 +17,15 @@ public fun main() {
 }
 ```
 
+</Playground>
+
 Mutable bindings are typically declared with `var`.
+
+<Playground expect="ok">
+```hylo hidden
+// Note: `print` is not implemented yet in the standard library.
+fun print(x: Int){}
+```
 
 ```hylo
 public fun main() {
@@ -22,17 +34,21 @@ public fun main() {
   print(length) // 2
 }
 ```
+</Playground>
 
 Bindings declared with `inout` are also mutable but operate differently. They _project_ the value of an object, or part of its value, mutably.
 
+<Playground expect="ok">
 ```hylo
 public fun main() {
-  var point = (x: 0.0, y: 1.0)
-  inout x = &point.x
-  &x = 3.14
-  print(point) // (x: 3.14, y: 1.0)
+  var point = (3, 4)
+  inout x = &point.0
+  &x = 42
+  precondition(point.0 == 42)
+  precondition(point.1 == 4)
 }
 ```
+</Playground>
 
 Note however that such a projection is not a reference in the usual sense; it has full ownership over the value it projects, which cannot be accessed except through that projection.
 
@@ -40,6 +56,7 @@ Note however that such a projection is not a reference in the usual sense; it ha
 
 The _lifetime_ of a binding denotes the region of the program where the value of that binding is accessed. The lifetime always ends after the last expression in which the binding occurs. For example, the lifetime of `weight` ends after the first call to `print` in the program below:
 
+<Playground expect="ok">
 ```hylo
 public fun main() {
   let weight = 1.0
@@ -48,23 +65,36 @@ public fun main() {
   print(length) // 2.0
 }
 ```
+```hylo hidden
+fun print(x: Float64) {
+  // TODO: implement printing floats
+}
+```
+</Playground>
 
 Some operations are said to be _consuming_, because they force-end the lifetime of a binding. In other words, they _must_ be the last use of the consumed binding. For example, assigning into a `var` binding consumes the source of the assignment. Similarly, forming new wholes --such as when initializing a tuple-- consumes the source values.
 
+<Playground expect="error">
 ```hylo
 public fun main() {
-  let weight = 1.0
-  let base_length = 2.0
+  var weight = 1.0
+  var base_length = 2.0
   var length = base_length // <----------------------------------------------------+
   &length += 3.0           //                                                      |
   let measurements = (     //                                                      |
-    w: weight,             // <-----------------------------------------------+    |
-    l: length)             //                                                 |    |
+    weight,                // <-----------------------------------------------+    |
+    length)                //                                                 |    |
   print(weight)            // error: `weight` used after being consumed here -+    |
                            //                                                      |
   print(base_length)       // error: `base_length` used after being consumed here -+
 }
 ```
+```hylo hidden
+fun print(x: Float64) {
+  // TODO: implement printing floats
+}
+```
+</Playground>
 
 The program above is illegal because the values of `weight` and `base_length` are used after being consumed to initialize other objects. The Hylo compiler will suggest that you change the code to consume _copies_ of `weight` and `base_length` instead, and will offer to insert these copies for you. This design follows from two of Hylo's core principles:
 
