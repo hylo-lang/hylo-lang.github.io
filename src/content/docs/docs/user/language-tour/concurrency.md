@@ -32,7 +32,7 @@ Concurrency in Hylo is based on the following principles:
 
 ```hylo
 public fun main() {
-  var handle = spawn(fun () => print("Hello, concurrent world!"))
+  var handle = spawn(fun() { print("Hello, concurrent world!") })
   // do some other things
   handle.await()
 }
@@ -52,13 +52,13 @@ fun do_greet() -> Int {
 fun prime_number() -> Int {
   13
 }
-fun concurrent_greeting() {
+fun concurrent_greeting() -> Int {
   var handle = spawn(do_greet)
   let x = prime_number()
   let y = handle.await() // switching threads
   return x + y
 }
-fun main() {
+public fun main() {
   print(concurrent_greeting())
 }
 ```
@@ -70,7 +70,7 @@ Hello, concurrent world!
 30
 ```
 
-The `spawn` on line 6 will create a new thread of execution and call `do_greet()` on that thread. On multi-core machines, this may be executed in parallel with the call to `prime_number()`. The call to `await` will join the two threads; it will return the value produced by the spawned thread in the context of the original thread.
+The `spawn` on line 9 will create a new thread of execution and call `do_greet()` on that thread. On multi-core machines, this may be executed in parallel with the call to `prime_number()`. The call to `await` will join the two threads; it will return the value produced by the spawned thread in the context of the original thread.
 
 Assuming that there are two OS threads for this program, the call to `await` will not block any of these threads. Instead, it will continue on the OS thread that finishes last. In our example, this is most probably the spawn thread. This leads to an interesting arrangement: the OS thread on which  `concurrent_greeting()` finishes is different than the OS thread on which this function is started. We call this _thread inversion_.
 
@@ -81,7 +81,7 @@ The OS thread that starts `concurrent_greeting()` will be returned to the middle
 The following code shows a basic implementation of a quick-sort algorithm that can take advantage of multicore systems:
 
 ```hylo
-fun my_concurrent_sort(_ a: inout ArraySlice<Element>) {
+fun my_concurrent_sort(a: inout ArraySlice<Element>) {
   if a.count < size_threshold {
     // Use serial sort under a certain threshold.
     a.sort()
@@ -92,7 +92,7 @@ fun my_concurrent_sort(_ a: inout ArraySlice<Element>) {
     &rhs.drop_first(1)
 
     // Spawn work to sort the right-hand side.
-    let handle = spawn(() => my_concurrent_sort(&rhs))
+    let handle = spawn(fun() { my_concurrent_sort(&rhs) })
     // Execute the sorting on the left side, on the current thread.
     my_concurrent_sort(&lhs)
     // We are done when both sides are done.
@@ -100,11 +100,11 @@ fun my_concurrent_sort(_ a: inout ArraySlice<Element>) {
   }
 }
 
-fun sort_partition(_ a: inout ArraySlice<Element>) -> Int {
+fun sort_partition(a: inout ArraySlice<Element>) -> Int {
     let mid_value = median9(a)
-    return a.partition(by: (val) => val > mid_value)
+    return a.partition(by: fun(val: Element) -> Bool { val > mid_value })
 }
-fun median9(_ a: inout ArraySlice<Element>) -> Element { ... } 
+fun median9(a: ArraySlice<Element>) -> Element { ... } 
 ```
 
 We break the initial array into two parts, based on a pivot element. All the elements in the left side are less or equal to the pivot element, and all the elements on the right side are greater than the pivot element. This operation is happening on a single thread. Then, we sort the two slices of the array recursively; in this case, sorting the left side happens concurrently with the sorting of the right side.
@@ -125,10 +125,10 @@ The user will get performance improvements of the concurrent algorithm when the 
 In the previous examples, we could only fork a thread of execution into two threads of executions. While this is enough from a theoretical perspective, in practice we want to to create multiple threads of executions from a single invocation. Here is a simple example on how can this be achieved:
 
 ```hylo
-fun greet(_ index: Int) {
+fun greet(index: Int) {
   print("Hello, from thread ${index}")
 }
-fun main() {
+public fun main() {
   let handle = spawn(bulk: 19, greet)
   handle.await()
 }
@@ -156,7 +156,7 @@ default_scheduler().activate() // switching threads
 ...
 ```
 
-On line 3, we are actually switching threads. The old thread is released back to the `ioScheduler`, while a new thread from the default scheduler is used to continue the work.
+On line 3, we are actually switching threads. The old thread is released back to the `io_scheduler`, while a new thread from the default scheduler is used to continue the work.
 
 ### Cancellation
 
@@ -206,7 +206,7 @@ There is another case that involves cancellation: the spawned work is stopped wi
 
 ```hylo
 fun read_data(from c: FileContext) throws -> Buffer {
-  var result: Buffer
+  var result = Buffer()
   while c.needs_more_data() {
     do {
       &result.append(try c.read_data())
@@ -218,10 +218,10 @@ fun read_data(from c: FileContext) throws -> Buffer {
   return result
 }
 
-let handle = spawn(scheduler: ioScheduler, fun() -> Buffer { readData(c) })
+let handle = spawn(scheduler: io_scheduler, fun() -> Buffer { read_data(from: c) })
 ...
 do {
-  let fileContent = try handle.await()
+  let file_content = try handle.await()
 } catch {
   // report I/O error
 }
@@ -232,21 +232,21 @@ do {
 Let's discuss an example that is drawn from real-life, and that covers control flow. We are trying to build an HTTP server driver, in which we need to dispatch work when a new request comes on a new connection.
 
 ```hylo
-fun handle_incoming_connection(_ connection: HttpConnection) {
+fun handle_incoming_connection(connection: inout HttpConnection) {
   do {
     // Read the HTTP request from the socket.
-    let request = try get_request(connection)
+    let request = try get_request(&connection)
     request.validate()
     // Handle the request.
     let response = try handle_request(request)
     // Send back the response.
-    send_response(response, to: connection)
+    send_response(response, to: &connection)
   } catch InvalidRequestError(let details) {
-    send_response(BadRequestResponse(details), to: connection)
+    send_response(BadRequestResponse(details), to: &connection)
   } catch CancelledError {
-    send_response(GatewayTimeoutResponse(), to: connection)
+    send_response(GatewayTimeoutResponse(), to: &connection)
   } catch {
-    send_response(InternalServerErrorResponse(), to: connection)
+    send_response(InternalServerErrorResponse(), to: &connection)
   }
 }
 ```
@@ -254,7 +254,7 @@ fun handle_incoming_connection(_ connection: HttpConnection) {
 At the first glance, there is no concurrency expressed in this code. This is because the concurrency concerns are encapsulated in the called function. The three main functions here, `get_request()`, `handle_request()`, and `send_response` are all doing concurrent work.
 
 ```hylo
-fun get_request(_ connection: inout HttpConnection) throws: HttpRequest {
+fun get_request(connection: inout HttpConnection) throws -> HttpRequest {
   // Do the reading on the network I/O scheduler.
   net_scheduler.activate()
   // Read the incoming data in chunks, and parse the request while doing it.
@@ -269,32 +269,31 @@ fun get_request(_ connection: inout HttpConnection) throws: HttpRequest {
   return parser.request
 }
 
-fun handle_request(_ request: HttpRequest) throws {
+fun handle_request(request: HttpRequest) throws -> HttpResponse {
   if request.path == "/isalive" {
     return OkResponse(content: "still breathing")
   }
-  
+
   // Perform any processing on a different scheduler.
   processing_scheduler.activate()
-  
-  switch request.path {
-  case "/isalive":
-    return OkResponse(content: "still breathing")
-  case "/lengthy":
+  let response = if request.path == "/lengthy" {
     // May involve other, more specialized, schedulers.
     // Most probably will use multiple threads.
-    return process_lengthy_operation(request)
+    try process_lengthy_operation(request)
+  } else {
+    NotFoundResponse()
   }
-  
+
   // Get back to the main scheduler.
   main_scheduler.activate()
+  return response
 }
 
-fun send_response(_ response: HttpResponse, to connection: inout HttpConnection) throws {
+fun send_response(response: HttpResponse, to connection: inout HttpConnection) {
   // Do the writing on the network I/O scheduler.
   net_scheduler.activate()
   // Get buffers out of the response, and send them as packets over the network.
-  let buffers: ResponseBuffers(response)
+  let buffers = ResponseBuffers(response)
   for buffer in buffers {
     &connection.write(buffer) // may be an async operation
   }
