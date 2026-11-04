@@ -1,76 +1,371 @@
 /**
- * Programs the full-screen playground offers to start from. Each compiles and runs with the
- * compiler as it is today, which has no printing yet: a program reports its result as its exit
- * status.
+ * Programs the full-screen playground offers to start from, each with what it does when run, which
+ * `examples.test.ts` checks with the compiler the site is built with.
+ *
+ * The standard library has no printing yet: a program reports its result as its exit status, or
+ * checks it with `precondition`.
  */
-export const EXAMPLES: readonly { name: string; source: string }[] = [
+import type { Expectation } from './snippet';
+
+export const EXAMPLES: readonly { name: string; source: string; expect: Expectation }[] = [
   {
     name: 'Exit status',
-    source: `// A program reports its result as its exit status.
+    expect: { kind: 'exit', status: 42 },
+    source: `// There is no \`print\` yet. A program reports its result through its exit
+// status, and checks what it expects with \`precondition\`, which traps if the
+// condition is false.
 public fun main() -> Int32 {
-  var x = 40
-  &x = x + 2
-  return if x == 42 { 42 } else { 1 }
+  let answer = 6 * 7
+  precondition(answer == 42)
+  return Int32(answer)
 }
 `,
   },
   {
     name: 'Factorial',
-    source: `fun factorial(n: sink Int32) -> Int32 {
-  var m: Int32 = 1
-  while n > (0 as Int32) {
-    &m = m * n
-    &n = n - (1 as Int32)
+    expect: { kind: 'exit', status: 120 },
+    source: `// \`n\` is a \`sink\` parameter: the function owns its argument, so it may count
+// it down. Every mutation is marked with \`&\`.
+fun factorial(n: sink Int) -> Int {
+  var result = 1
+  while n > 1 {
+    &result *= n
+    &n -= 1
   }
-  return m
+  return result
 }
 
 public fun main() -> Int32 {
-  factorial(5 as Int32)
+  Int32(factorial(5))
 }
 `,
   },
   {
     name: 'Fibonacci',
-    source: `fun fibonacci(n: sink Int32) -> Int32 {
-  if n > (1 as Int32) {
-    fibonacci(n - (1 as Int32)) + fibonacci(n - (2 as Int32))
-  } else {
-    n
-  }
+    expect: { kind: 'exit', status: 55 },
+    source: `// \`if\` is an expression, so it can be the whole body of a function. \`n\` is a
+// \`let\` parameter, so returning it takes an explicit copy.
+fun fibonacci(n: Int) -> Int {
+  if n < 2 { n.copy() } else { fibonacci(n - 1) + fibonacci(n - 2) }
 }
 
 public fun main() -> Int32 {
-  fibonacci(10 as Int32)
+  Int32(fibonacci(10))
+}
+`,
+  },
+  {
+    name: 'Parameter conventions',
+    expect: { kind: 'ok' },
+    source: `// A parameter's convention says what the function may do with its argument.
+
+/// Returns \`x + 1\`. \`x\` is \`let\`, the default: it can only be read.
+fun successor(x: Int) -> Int { x + 1 }
+
+/// Adds one to \`x\`, in place.
+fun increment(x: inout Int) { &x += 1 }
+
+/// Initializes \`x\` to zero. \`x\` is uninitialized before the call.
+fun clear(x: set Int) { &x = 0 }
+
+/// Returns \`x\`, consuming it.
+fun take(x: sink Int) -> Int { x }
+
+public fun main() {
+  var n: Int
+  clear(&n)
+  increment(&n)
+  precondition(successor(n) == 2)
+
+  let m = take(n)
+  // \`n\` has been consumed, so reading it here would be an error, but it can be
+  // initialized again.
+  clear(&n)
+  precondition(m == 1)
+  precondition(n == 0)
+}
+`,
+  },
+  {
+    name: 'Sink methods',
+    expect: { kind: 'ok' },
+    source: `// \`Order\` isn't \`Deinitializable\`: it can't just be dropped, it has to be
+// consumed by one of its \`sink\` methods. The compiler checks every path.
+struct Order is Movable {
+  var items: Int
+  memberwise init
+
+  /// Adds an item to the order.
+  fun add() inout {
+    &self.items += 1
+  }
+
+  /// Ships the order, returning how many items it had.
+  fun ship() sink -> Int {
+    self.items
+  }
+}
+
+public fun main() {
+  var order = Order(items: 0)
+  &order.add()
+  &order.add()
+  precondition(order.ship() == 2)
+
+  // \`order\` has been consumed: \`&order.add()\` here would be an error. So would
+  // leaving out the call to \`ship\`.
+}
+`,
+  },
+  {
+    name: 'Subscripts',
+    expect: { kind: 'ok' },
+    source: `// A subscript projects a value instead of returning it: the caller accesses
+// the value in place, without copying it, until it is done with it.
+
+// A bundle of variants: the compiler picks one by how the projection is used.
+subscript min(x: auto Int, y: auto Int) auto -> Int {
+  let   { if y > x { yield x } else { yield y } }
+  inout { if y > x { yield &x } else { yield &y } }
+}
+
+// The code after \`yield\` runs once the caller is done with the projection.
+subscript clamped(x: inout Int) inout -> Int {
+  var y = x
+  yield &y
+  &x = if y > 100 { 100 } else { y }
+}
+
+public fun main() {
+  var a = 50
+  var b = 30
+
+  // Writes to the smaller of the two, through the \`inout\` variant.
+  &min[&a, &b] = 40
+  precondition(b == 40)
+
+  // A projection can be bound to a name, and lasts until its last use.
+  inout c = &clamped[&a]
+  &c = 1000
+  &c += 1
+  precondition(a == 100)
+
+  // Reads through the \`let\` variant.
+  precondition(min[a, b] == 40)
+}
+`,
+  },
+  {
+    name: 'Member subscripts',
+    expect: { kind: 'ok' },
+    source: `struct Duration is Deinitializable {
+  var seconds: Int
+  memberwise init
+
+  /// The duration in whole minutes.
+  ///
+  /// Writing to it rounds the duration down to whole minutes: the \`inout\`
+  /// variant projects a temporary, and updates \`self\` once the caller is done
+  /// with it.
+  subscript minutes() auto -> Int {
+    let { yield self.seconds / 60 }
+    inout {
+      var m = self.seconds / 60
+      yield &m
+      &self.seconds = m * 60
+    }
+  }
+}
+
+public fun main() {
+  var d = Duration(seconds: 150)
+  precondition(d.minutes[] == 2)
+
+  &d.minutes[] += 1
+  precondition(d.seconds == 180)
 }
 `,
   },
   {
     name: 'Traits',
-    source: `trait P {
-  fun f() -> Int32
-  fun g() -> Int32 { self.f() + (2 as Int32) }
+    expect: { kind: 'ok' },
+    source: `trait Shape {
+  fun area() -> Int
 }
 
-given <T> => T is P { fun f() -> Int32 { 40 } }
+struct Square is Shape & Deinitializable {
+  var side: Int
+  memberwise init
 
-public fun main() -> Int32 {
-  ().g()
+  fun area() -> Int { self.side * self.side }
+}
+
+struct Rectangle is Deinitializable {
+  var width: Int
+  var height: Int
+  memberwise init
+}
+
+// A conformance can be declared apart from its type, even in another module.
+given Rectangle is Shape {
+  fun area() -> Int { self.width * self.height }
+}
+
+/// Returns the total area of \`a\` and \`b\`, which may be shapes of different types.
+fun total_area<T is Shape, U is Shape>(a: T, b: U) -> Int {
+  a.area() + b.area()
+}
+
+public fun main() {
+  precondition(total_area(Square(side: 3), Rectangle(width: 2, height: 5)) == 19)
+}
+`,
+  },
+  {
+    name: 'Extensions',
+    expect: { kind: 'ok' },
+    source: `// Types can be extended after the fact, even those of other modules, such as
+// the standard library's \`Int\`: with new members, and with new conformances.
+
+extension Int {
+  /// Returns \`self\` multiplied by itself.
+  fun squared() -> Int { self * self }
+}
+
+trait Measurable {
+  /// Returns the size of \`self\`.
+  fun size() -> Int
+}
+
+// The standard library knows nothing of \`Measurable\`, but \`Int\` and \`Bool\` can
+// conform to it anyway.
+given Int is Measurable {
+  fun size() -> Int { self.abs() }
+}
+
+given Bool is Measurable {
+  fun size() -> Int { if self { 1 } else { 0 } }
+}
+
+/// Returns the total size of \`a\` and \`b\`.
+fun total_size<T is Measurable, U is Measurable>(a: T, b: U) -> Int {
+  a.size() + b.size()
+}
+
+public fun main() {
+  precondition(5.squared() == 25)
+  precondition(total_size(-3, true) == 4)
+}
+`,
+  },
+  {
+    name: 'Default implementations',
+    expect: { kind: 'ok' },
+    source: `trait Polygon {
+  fun sides() -> Int
+
+  /// Returns the sum of the interior angles, in degrees.
+  fun angle_sum() -> Int { (self.sides() - 2) * 180 }
+}
+
+struct Triangle is Polygon & Deinitializable {
+  memberwise init
+  fun sides() -> Int { 3 }
+}
+
+struct Hexagon is Polygon & Deinitializable {
+  memberwise init
+  fun sides() -> Int { 6 }
+}
+
+public fun main() {
+  precondition(Triangle().angle_sum() == 180)
+  precondition(Hexagon().angle_sum() == 720)
+}
+`,
+  },
+  {
+    name: 'Scoped conformances',
+    expect: { kind: 'ok' },
+    source: `trait Priced {
+  fun price() -> Int
+}
+
+/// Returns the price of \`a\` and \`b\` together.
+fun total<T is Priced>(a: T, b: T) -> Int {
+  a.price() + b.price()
+}
+
+struct Sale {
+  // A conformance declared in a scope exists only there. In \`Sale\`, a number is
+  // priced at half its value; elsewhere, \`Int\` isn't \`Priced\` at all, and
+  // \`total(10, 20)\` would be an error in \`main\`.
+  given Int is Priced {
+    fun price() -> Int { self / 2 }
+  }
+
+  static fun checkout() -> Int { total(10, 20) }
+}
+
+public fun main() {
+  precondition(Sale.checkout() == 15)
+}
+`,
+  },
+  {
+    name: 'Implicit values',
+    expect: { kind: 'ok' },
+    source: `/// A tax rate, in percent.
+struct TaxRate is Deinitializable {
+  var percent: Int
+  memberwise init
+}
+
+// \`rate\` is an implicit parameter: callers don't pass it, the compiler finds a
+// value of its type among the givens in scope.
+fun with_tax<where let rate: TaxRate>(price: Int) -> Int {
+  price + price * rate.percent / 100
+}
+
+// Inside \`total\`, \`rate\` is itself a given, so \`with_tax\` receives it implicitly.
+fun total<where let rate: TaxRate>(a: Int, b: Int) -> Int {
+  with_tax(a) + with_tax(b)
+}
+
+public fun main() {
+  given TaxRate = TaxRate(percent: 20)
+  precondition(total(100, 50) == 180)
+}
+`,
+  },
+  {
+    name: 'Existentialization',
+    expect: { kind: 'ok' },
+    source: `// \`depth\` calls itself with a bigger type each time: \`Bool\`, then \`{Bool, Bool}\`,
+// then \`{{Bool, Bool}, {Bool, Bool}}\`, and so on. A compiler that monomorphizes
+// generics, copying their code for each type they are used with, as C++ and Rust
+// compilers do, can't compile this. Hylo compiles \`depth\` once, as
+// \`depth(_:).existentialized\` in the IR, and passes the type at run time.
+fun depth<T>(n: Int) -> Int {
+  if n == 0 { 0 } else { depth<{T, T}>(n - 1) + 1 }
+}
+
+public fun main() {
+  precondition(depth<Bool>(10) == 10)
 }
 `,
   },
   {
     name: 'A trap',
-    source: `public fun main() {
-  Builtin.trap()
+    expect: { kind: 'trap' },
+    source: `/// Returns the average of \`count\` values adding up to \`total\`.
+fun average(total: Int, count: Int) -> Int {
+  total / count
 }
-`,
-  },
-  {
-    name: 'A type error',
-    source: `public fun main() -> Int32 {
-  // Integer literals are \`Int\` unless something says otherwise.
-  40 + 2
+
+// Dividing by zero traps, and so does a failed \`precondition\`.
+public fun main() -> Int32 {
+  Int32(average(10, 0))
 }
 `,
   },
