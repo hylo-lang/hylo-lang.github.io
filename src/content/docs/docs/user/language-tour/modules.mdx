@@ -21,7 +21,7 @@ public fun main() {
 }
 
 // In `Greet.hylo`
-internal fun greet(name: String) {
+module fun greet(name: String) {
   print("Hello, ${name}!")
 }
 
@@ -44,7 +44,7 @@ To expose a non-public function for inlining in other modules, you can use the `
 
 ```hylo
 @exposed
-internal fun double(x: Int32) -> Int32 {
+fun double(x: Int32) -> Int32 {
   return x + 2
 }
 ```
