@@ -233,7 +233,7 @@
           }
         },
         {
-          "match": "\\G(access|alloca|apply|assume_state|case|end|enum_tag|global_access|load|memcpy|move|partial_apply|place_cast|pointer_to_place|project|property|store|subfield|type_apply|type_witness|witness_table_stash|witness_table)\\b",
+          "match": "\\G(access|alloca|apply|assume_state|case|end|enum_tag|global_access|implementation|load|memcpy|move|partial_apply|place_cast|pointer_to_place|project|property|store|subfield|type_apply|type_witness|witness_table_capture|witness_table_stash|witness_table)\\b",
           "name": "keyword.other.instruction.hylo-ir"
         },
         {
@@ -276,7 +276,7 @@
         },
         {
           "comment": "The words instructions are spelled with, between their operands.",
-          "match": "\\b(to|as|at|of|for)\\b",
+          "match": "\\b(to|as|at|of|for|in)\\b",
           "name": "keyword.other.hylo-ir"
         },
         {
