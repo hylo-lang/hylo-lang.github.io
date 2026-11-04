@@ -95,6 +95,12 @@ describe('Hylo IR', () => {
   });
 
   test('instructions', async () => {
+    await check('  %r1 = implementation "f" in %p0 as [Void](let P<Self>, self: let Self) let -> Int32', [
+      ['implementation', 'keyword.other.instruction'],
+      ['"f"', 'string.quoted.double'],
+      ['in', 'keyword.other'],
+      ['%p0', 'variable.parameter'],
+    ]);
     await check('  %r3 = property "two" of %r2 as [Void](let P<Self>, self: let Self) let -> Int32', [
       ['self', 'variable.parameter.label'],
       ['->', 'keyword.operator'],

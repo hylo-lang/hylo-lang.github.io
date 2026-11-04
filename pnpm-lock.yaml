@@ -27,8 +27,8 @@ importers:
         specifier: ^5.3.0
         version: 5.3.0
       '@hylo-lang/hylo-wasm':
-        specifier: ^0.0.9
-        version: 0.0.9
+        specifier: ^0.0.10
+        version: 0.0.10
       '@lucide/astro':
         specifier: ^1.61.0
         version: 1.61.0(astro@7.4.2(@types/node@24.12.4)(esbuild@0.28.2)(jiti@2.7.0)(yaml@2.9.1))
@@ -524,8 +524,8 @@ packages:
   '@fontsource-variable/jetbrains-mono@5.3.0':
     resolution: {integrity: sha512-F32xpS2NsGYoQi2ADSkKTgpJj7ozajsGgDJ8woTnqjmIB+dxDIqImjl4pXZVEExu8UFZ2ndhmX18EBS/hdz3Lw==}
 
-  '@hylo-lang/hylo-wasm@0.0.9':
-    resolution: {integrity: sha512-qv8Swe6gcTbh1vcPrBGEkVJjCc0MNoVP876BLOvioQP32BKYVLp5NQTFnGQSMue7+5MbkzDgdnwxrE2mYPaQYw==}
+  '@hylo-lang/hylo-wasm@0.0.10':
+    resolution: {integrity: sha512-E1IlZVBdipwz/zTFDWu5gJHCK1CiBnHcOx+jG+rGzIpPlEWqqho1h7DcHg0uZr8dktIglJ36K1JK8Viz6OL0Bg==}
 
   '@img/colour@1.1.0':
     resolution: {integrity: sha512-Td76q7j57o/tLVdgS746cYARfSyxk8iEfRxewL9h4OMzYhbW4TAcppl0mT4eyqXddh6L/jwoM75mo7ixa/pCeQ==}
@@ -2923,7 +2923,7 @@ snapshots:
 
   '@fontsource-variable/jetbrains-mono@5.3.0': {}
 
-  '@hylo-lang/hylo-wasm@0.0.9':
+  '@hylo-lang/hylo-wasm@0.0.10':
     dependencies:
       '@bjorn3/browser_wasi_shim': 0.4.2
 
