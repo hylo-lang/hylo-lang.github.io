@@ -240,7 +240,7 @@
         },
         {
           "name": "keyword.type.hylo",
-          "match": "\\b(conformance|extension|namespace|typealias)\\b"
+          "match": "\\b(conformance|extension|namespace)\\b"
         },
         {
           "name": "keyword.operator.hylo",
