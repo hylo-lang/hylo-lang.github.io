@@ -244,7 +244,7 @@ _Hylo is a language based on the principles of mutable value semantics (MVS) (Ra
     ```
     Any Self Never as as! any async await break catch conformance continue deinit do else extension
     false for fun if import in indirect infix init inout let match namespace nil operator postfix
-    prefix property public return set sink some static subscript trait true try type typealias var
+    prefix property public return set sink some static struct subscript trait true try type var
     where while yield yielded
     ```
 
@@ -288,7 +288,7 @@ _Hylo is a language based on the principles of mutable value semantics (MVS) (Ra
 6. (Example)
 
     ```hylo
-    type A {
+    struct A {
       fun foo() {}
     }
     extension A {
@@ -301,7 +301,7 @@ _Hylo is a language based on the principles of mutable value semantics (MVS) (Ra
 7. A declaration may introduce one or more names in the declaration space of the innermost lexical scope that contains it. A name is said to be conditionally introduced if it is introduced by an extension or conformance declaration that has a where clause; otherwise, it is said to be unconditionally introduced. The same name shall not be unconditionally introduced more than once in a declaration space.
 
     ```hylo
-    type A {
+    struct A {
       fun foo() {}
     }
     extension A {
@@ -354,10 +354,10 @@ _Hylo is a language based on the principles of mutable value semantics (MVS) (Ra
 3. (Example)
 
     ```hylo
-    type A {
+    struct A {
       var a: Int
-      fun foo(a: Int) { a.copy() }
-      fun foo(b: Int) -> Int {
+      fun foo(_ a: Int) { a.copy() }
+      fun foo(_ b: Int) -> Int {
         let   { a + b }
         inout { b += a }
       }
@@ -517,7 +517,7 @@ _Hylo is a language based on the principles of mutable value semantics (MVS) (Ra
 5. (Example)
 
     ```hylo
-    type A { property zero: Int { 0 } }
+    struct A { property zero: Int { 0 } }
 
     fun main() {
       let x = A()
@@ -532,7 +532,7 @@ _Hylo is a language based on the principles of mutable value semantics (MVS) (Ra
 7. (Example)
 
     ```hylo
-    subscript min<T: Comparable>(_ a: T, _ b: T): T {
+    subscript min<T: Comparable>(a: T, b: T): T {
       let { yield if a > b { b } else { a } }
     }
 
@@ -738,7 +738,7 @@ _Hylo is a language based on the principles of mutable value semantics (MVS) (Ra
 4. (Example)
 
     ```hylo
-    type A {
+    struct A {
       var x: Int
       public fun foo() -> Int { x.copy() }
     }
@@ -920,7 +920,7 @@ _Hylo is a language based on the principles of mutable value semantics (MVS) (Ra
     ```hylo
     trait Shape {
       static fun name() -> String
-      fun draw(to: inout Canvas)
+      fun draw(to canvas: inout Canvas)
     }
     ```
 
@@ -984,7 +984,7 @@ _Hylo is a language based on the principles of mutable value semantics (MVS) (Ra
 
     trait Counter {
       fun current() -> Int { 0 }
-      fun offset(by: Int) -> Int { let inout }
+      fun offset(by value: Int) -> Int { let inout }
     }
 
     extension Counter {
@@ -1044,7 +1044,7 @@ _Hylo is a language based on the principles of mutable value semantics (MVS) (Ra
     trait U { fun bar() }
 
     // declares conformance to 'T'
-    type A: T {}
+    struct A: T {}
 
     // satisfies conformance to 'T'
     extension A {
@@ -1074,12 +1074,12 @@ _Hylo is a language based on the principles of mutable value semantics (MVS) (Ra
     ```hylo
     import M
 
-    public type A {}
+    public struct A {}
     conformance A: M.T {} // OK: conformance is private
 
-    type B: M.T {}        // OK: 'B' is not exposed outside of the module
+    struct B: M.T {}        // OK: 'B' is not exposed outside of the module
 
-    public type C: M.T {} // error: cannot expose conformance to imported trait 'M.T'
+    public struct C: M.T {} // error: cannot expose conformance to imported trait 'M.T'
     ```
 
 7. A method requirement `r` is satisfied if by a type `A` if `A` has a single method `m` with the same name, type, and kind. `m` may be defined in the type declaration, extension declaration, or a conformance declaration of `A`. If `r` has default implementations, it may be satisfied by `A` if there exists a unique default implementation whose conditions are satisfied by `A`.
@@ -1095,7 +1095,7 @@ _Hylo is a language based on the principles of mutable value semantics (MVS) (Ra
       product-type-head product-type-body
 
     product-type-head ::=
-      access-modifier? 'type' identifier generic-clause? conformance-list?
+      access-modifier? 'struct' identifier generic-clause? conformance-list?
 
     product-type-body ::=
       '{' (product-type-member-decl | ';')* '}'
@@ -1121,7 +1121,7 @@ _Hylo is a language based on the principles of mutable value semantics (MVS) (Ra
       type-alias-head '=' type-expr
 
     type-alias-head ::=
-      access-modifier? 'typealias' identifier generic-clause?
+      access-modifier? 'type' identifier generic-clause?
 
     union-decl ::=
       product-type-decl ('|' product-type-decl)*
@@ -1289,7 +1289,7 @@ _Hylo is a language based on the principles of mutable value semantics (MVS) (Ra
 9. (Example) A binding with two lifetimes.
 
     ```hylo
-    fun borrow<A>(_ thing: inout T) {
+    fun borrow<A>(thing: inout T) {
       var a = [thing]         // lifetime of 'thing' ends here
       print(a)
       &thing = a.remove_last() // new lifetime of 'thing' starts here.
@@ -1337,7 +1337,7 @@ _Hylo is a language based on the principles of mutable value semantics (MVS) (Ra
 2. (Example)
 
     ```hylo
-    fun gcd(_ a: Int, _ b: Int) -> Int {
+    fun gcd(a: Int, b: Int) -> Int {
       if b == 0 { a } else { gcd(b, a % b) }
     }
     ```
@@ -1380,7 +1380,7 @@ _Hylo is a language based on the principles of mutable value semantics (MVS) (Ra
       'where' type-aliases-clause-item (',' type-aliases-clause-item)*
 
     type-aliases-clause-item ::=
-      'typealias'identifier '=' type-expr
+      'type' identifier '=' type-expr
     ```
 
 2. The default value of a parameter declaration may not refer to another parameter in a function signature.
@@ -1408,7 +1408,7 @@ _Hylo is a language based on the principles of mutable value semantics (MVS) (Ra
 6. (Example) Expression-bodied function
 
     ```hylo
-    fun factorial(_ n: Int) -> Int {
+    fun factorial(n: Int) -> Int {
       if n > 0 { n * factorial(n - 1) } else { 1 }
     }
     ```
@@ -1442,7 +1442,7 @@ _Hylo is a language based on the principles of mutable value semantics (MVS) (Ra
 6. (Example)
 
     ```hylo
-    type Vector2 {
+    struct Vector2 {
 
       var x: Float64
       var y: Float64
@@ -1452,7 +1452,7 @@ _Hylo is a language based on the principles of mutable value semantics (MVS) (Ra
         inout { x *= factor; y *= factor }
       }
 
-      fun dot(_ other: Vector2) -> Float64 {
+      fun dot(other: Vector2) -> Float64 {
         x * other.x + y * other.y
       }
 
@@ -1508,7 +1508,7 @@ _Hylo is a language based on the principles of mutable value semantics (MVS) (Ra
 2. (Example)
 
     ```hylo
-    subscript min<T, E>(_ a: T, _ b: T, by comparator: [E](T, T) -> Bool): Int {
+    subscript min<T, E>(a: T, b: T, by comparator: [E](T, T) -> Bool): Int {
       let   { yield if comparator(a, b) { a } else { b } }
       inout { yield &(if comparator(a, b) { a } else { b }) }
       sink  { return if comparator(a, b) { a } else { b } }
@@ -1632,7 +1632,15 @@ _Hylo is a language based on the principles of mutable value semantics (MVS) (Ra
       '=' expr
     ```
 
-2. If a parameter declaration contains two identifiers, the first is used as the argument label and the second is used as the parameter name. Otherwise, the same identifier is used as both the argument label and as the parameter name. If the declaration contains a wildcard followed by an identifier, it defines a positional parameter. The identifier is used as the parameter name.
+2. If a parameter declaration contains two identifiers, the first is used as the argument label and the second is used as the parameter name. If it contains a wildcard followed by an identifier, the identifier is used as both the argument label and the parameter name. Otherwise, it defines a *positional parameter*, whose argument has no label: its identifier, if any, is used as the parameter name.
+
+    ```hylo
+    fun move(_ x: Int, by delta: Int, scale: Int) -> Int { (x + delta) * scale }
+
+    fun main() {
+      let a = move(x: 1, by: 2, 3) // `move(x:by:_:)`
+    }
+    ```
 
 3. Parameter declarations define the passing convention of the arguments to the declared parameters in a function call:
 
@@ -2232,7 +2240,7 @@ An async expression defined in a scope shall either escape that scope or be cons
 4. (Example)
 
     ```hylo
-    type A {
+    struct A {
       let m: Int
       static let n = 0
     }
@@ -2249,7 +2257,7 @@ An async expression defined in a scope shall either escape that scope or be cons
 6. (Example)
 
     ```hylo
-    type Vector2 {
+    struct Vector2 {
       var x: Float64
       var y: Float64
 

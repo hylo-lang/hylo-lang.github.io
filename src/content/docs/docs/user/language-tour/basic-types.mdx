@@ -173,7 +173,7 @@ The type of a buffer is written either `T[n]` or `Buffer<T, n>`, where `T` is a 
 type Point = {Float64, Float64}
 public fun main() {
   var triangle = Point[3](fun(i) { (Float64(i), 0.0) }) // <== HERE
-  &triangle[1].y = 2.5
+  &triangle[1].1 = 2.5
   print(triangle[1]) // (1.0, 2.5)
 }
 ```
