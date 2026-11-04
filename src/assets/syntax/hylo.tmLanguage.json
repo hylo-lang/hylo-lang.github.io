@@ -248,7 +248,7 @@
         },
         {
           "name": "keyword.modifier.hylo",
-          "match": "\\b(public|private|fileprivate|internal|static)\\b"
+          "match": "\\b(public|private|fileprivate|internal|module|static)\\b"
         },
         {
           "name": "keyword.convention.hylo",
