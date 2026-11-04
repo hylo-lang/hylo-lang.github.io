@@ -20,8 +20,8 @@ implementation-strategies-for-mvs:
     - Dave Abrahams
     - Brennan Saeta
   publishedAt: "Journal of Object Technology"
-  pdf: "https://www.jot.fm/issues/issue_2022_02/article2.pdf"
-  url: "https://doi.org/10.5381/jot.2022.21.2.a2"
+  pdf: "https://web.archive.org/web/20260629174732/https://www.jot.fm/issues/issue_2022_02/article2.pdf"
+  url: "https://web.archive.org/web/20260331234740/https://www.jot.fm/contents/issue_2022_02/article2.html"
   year: 2022
 
 existentialize-your-generics:
@@ -184,8 +184,8 @@ towards-lingua-france-for-memory-safety:
     - Didier Buchs
   publishedAt: "Journal of Object Technology"
   year: 2022
-  url: "https://www.jot.fm/contents/issue_2022_02/article3.html"
-  pdf: "https://www.jot.fm/issues/issue_2022_02/article3.pdf"
+  url: "https://web.archive.org/web/20260314022642/https://www.jot.fm/contents/issue_2022_02/article3.html"
+  pdf: "https://web.archive.org/web/20260411185617/https://www.jot.fm/issues/issue_2022_02/article3.pdf"
 
 native-implementation-of-mvs:
   title: "Native Implementation of Mutable Value Semantics"

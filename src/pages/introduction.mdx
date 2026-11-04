@@ -3,18 +3,18 @@ title: Introduction to Hylo
 layout: ../layouts/Page.astro
 ---
 
-Hylo is a programming language that leverages [mutable value semantics](http://www.jot.fm/issues/issue_2022_02/article2.pdf) and [generic programming](https://www.fm2gp.com) for high-level systems programming.
+Hylo is a programming language that leverages [mutable value semantics](https://web.archive.org/web/20260629174732/https://www.jot.fm/issues/issue_2022_02/article2.pdf) and [generic programming](https://www.fm2gp.com) for high-level systems programming.
 
 Hylo aims to be:
 - **Fast by definition**: Hylo is compiled ahead-of-time to machine code and relies on its type system to support in-place mutation and avoid unnecessary memory allocations. Hylo avoids hidden costs such as implicit copies and therefore avoids heavy dependence on an optimizer for basic performance.
-- **Safe by default**: Hylo's foundation of [mutable value semantics](http://www.jot.fm/issues/issue_2022_02/article2.pdf) ensures that ordinary code is memory safe, typesafe, and data-race-free. By explicit, auditable opt-in, programmers can use unsafe constructs for performance where necessary, and can build safe constructs using unsafe ones.
+- **Safe by default**: Hylo's foundation of [mutable value semantics](https://web.archive.org/web/20260629174732/https://www.jot.fm/issues/issue_2022_02/article2.pdf) ensures that ordinary code is memory safe, typesafe, and data-race-free. By explicit, auditable opt-in, programmers can use unsafe constructs for performance where necessary, and can build safe constructs using unsafe ones.
 - **Simple**: Hylo borrows heavily from [Swift](https://swift.org) which has demonstrated a user-friendly approach to generic programming and deep support for value semantics. Hylo's programming model strengthens and extends this support, while de-emphasizing reference semantics and avoiding the complexities that result from trying to make it statically safe (e.g., memory regions, lifetime annotations, etc.).
 
 The [language tour](/docs/user/language-tour/) gives an overview of Hylo's features.
 The [language specification](/docs/reference/specification/) and [IR specification](/docs/reference/ir/) provides detailed information about Hylo's syntax and semantics.
 
 Hylo is under active development and is not ready to be used yet.
-The code of the compiler is open source and [hosted on GitHub](https://github.com/hylo-lang/hylo).
+The code of the compiler is open source and [hosted on GitHub](https://github.com/hylo-lang/hylo-new).
 
 We opened a forum to host [community discussions](https://github.com/orgs/hylo-lang/discussions).
 Please ask questions and/or tell us what you think about the Hylo project!
