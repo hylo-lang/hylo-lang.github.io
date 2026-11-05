@@ -50,23 +50,34 @@ const siteCodeFont = getComputedStyle(document.documentElement)
   .trim();
 
 /**
- * Resolves once Monaco highlights every language of the highlighter through Shiki, edits Hylo as
- * VS Code's extension does (`hylo.language-configuration.json`), and the font is loaded, since
- * Monaco measures the font once, and a fallback measured in its place misplaces the caret; done
- * once per page.
+ * Resolves once Monaco highlights every language of the highlighter through Shiki, and edits Hylo
+ * as VS Code's extension does (`hylo.language-configuration.json`); done once per page.
  */
-const monacoReady = (async () => {
-  await Promise.all([
-    getHighlighter().then((highlighter) => {
-      for (const id of highlighter.getLoadedLanguages()) monaco.languages.register({ id });
-      shikiToMonaco(highlighter, monaco as never);
-      // What to comment, close and surround with as the reader types, as in VS Code.
-      monaco.languages.setLanguageConfiguration('hylo', languageConfiguration(hyloConfiguration));
-    }),
-    // A font that does not load leaves the fallback, which Monaco then measures correctly.
-    siteCodeFont && document.fonts.load(`14px ${siteCodeFont}`).catch(() => {}),
-  ]);
-})();
+const monacoReady = getHighlighter().then((highlighter) => {
+  for (const id of highlighter.getLoadedLanguages()) monaco.languages.register({ id });
+  shikiToMonaco(highlighter, monaco as never);
+  // What to comment, close and surround with as the reader types, as in VS Code.
+  monaco.languages.setLanguageConfiguration('hylo', languageConfiguration(hyloConfiguration));
+});
+
+/**
+ * Resolves once the site's code font is loaded, as it is now: the font Monaco measures, once, to
+ * place the caret and map clicks to columns.
+ *
+ * A font loaded before is not enough: adding a style sheet with a `@font-face`, as Monaco's icon
+ * font has, has the browser replace the page's font faces with ones still to load, and text laid
+ * out meanwhile is in the fallback font. A font that does not load leaves the fallback, which
+ * Monaco then measures correctly.
+ */
+async function codeFontLoaded(): Promise<void> {
+  if (siteCodeFont === '') return;
+  await document.fonts.load(`14px ${siteCodeFont}`).catch(() => {});
+  await document.fonts.ready;
+}
+
+// Any font loaded later, as when a style sheet added later replaces the font faces again, is
+// measured again, rather than leaving the editors measured in the font it replaces.
+document.fonts.addEventListener('loadingdone', () => monaco.editor.remeasureFonts());
 
 /**
  * Returns the name of the Shiki theme matching the page's, which Starlight sets as `data-theme`
@@ -138,6 +149,7 @@ export interface EditorOptions {
  */
 export async function createEditor(host: HTMLElement, options: EditorOptions): Promise<Editor> {
   await monacoReady;
+  await codeFontLoaded();
   const editor = monaco.editor.create(host, {
     value: typeof options.value === 'function' ? options.value() : options.value,
     language: 'hylo',
