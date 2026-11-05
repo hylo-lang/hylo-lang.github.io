@@ -1,6 +1,6 @@
 /**
- * The grammars of what the compiler prints, `hylo-ir` and `wasm-asm`, checked through the
- * highlighter the site uses (see `src/components/playground/highlight.ts`).
+ * The grammars of what the compiler prints, `hylo-ir` and `wasm-asm`, and a few rules of Hylo's,
+ * checked through the highlighter the site uses (see `src/components/playground/highlight.ts`).
  *
  * Every word of the IR and assembly the playground's compiler prints for the examples must get a
  * scope of its own, so that a construct the compiler learns and the grammars do not shows up here
@@ -13,7 +13,7 @@ import { EXAMPLES } from '../../components/playground/examples';
 import { getHighlighter } from '../../components/playground/highlight';
 import { CODE_THEMES } from './code-style';
 
-type Language = 'hylo-ir' | 'wasm-asm';
+type Language = 'hylo' | 'hylo-ir' | 'wasm-asm';
 
 /** A token of highlighted text, with the innermost scope it was given. */
 interface Token {
@@ -49,7 +49,7 @@ async function unscoped(text: string, lang: Language): Promise<string[]> {
 async function check(text: string, expected: [string, string][], lang: Language = 'hylo-ir') {
   const got = (await tokens(text, lang))
     .filter((t) => t.text.trim() !== '')
-    .map((t) => [t.text.trim(), t.scope.replace(/\.(hylo-ir|wasm-asm)$/, '')]);
+    .map((t) => [t.text.trim(), t.scope.replace(/\.(hylo|hylo-ir|wasm-asm)$/, '')]);
   for (const [word, scope] of expected) {
     const i = got.findIndex(([w]) => w === word);
     expect(i, `${JSON.stringify(word)} in ${JSON.stringify(text)}`).toBeGreaterThanOrEqual(0);
@@ -57,6 +57,33 @@ async function check(text: string, expected: [string, string][], lang: Language 
     got.splice(0, i + 1);
   }
 }
+
+describe('Hylo', () => {
+  test('initializers', async () => {
+    await check('  public memberwise init', [
+      ['public', 'keyword.modifier'],
+      ['memberwise', 'storage.type.function'],
+      ['init', 'storage.type.function'],
+    ], 'hylo');
+    await check('  init(x: sink Int) {}', [['init', 'storage.type.function']], 'hylo');
+    // A member named `init`, and names merely starting with it, are not keywords.
+    expect(await unscoped('let a = Int32.init(1)', 'hylo')).toContain('1: " a = Int32.init("');
+    expect(await unscoped('let initial = memberwise', 'hylo')).toContain('1: " initial = memberwise"');
+  });
+
+  test('conformances and bundles', async () => {
+    await check('given Tracked is Movable {', [
+      ['given', 'storage.type.given'],
+      ['is', 'keyword.misc'],
+    ], 'hylo');
+    await check('given TaxRate = TaxRate(percent: 20)', [['given', 'storage.type.given']], 'hylo');
+    expect(await unscoped('let forgiven = x.given', 'hylo')).toContain('1: " forgiven = x.given"');
+    await check('subscript min(x: auto Int) auto -> Int {', [
+      ['auto', 'keyword.convention'],
+      ['auto', 'keyword.convention'],
+    ], 'hylo');
+  });
+});
 
 describe('Hylo IR', () => {
   test('function headers', async () => {

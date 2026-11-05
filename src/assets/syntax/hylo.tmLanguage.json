@@ -56,6 +56,12 @@
           "include": "#function"
         },
         {
+          "include": "#initializer"
+        },
+        {
+          "include": "#given"
+        },
+        {
           "include": "#type"
         },
         {
@@ -89,6 +95,27 @@
               "include": "#keywords"
             }
           ]
+        },
+        "initializer": {
+          "comment": "`init(...)` and `memberwise init`, but not a member named `init`, as in `T.init`.",
+          "match": "(?<![.\\w])(?:(memberwise)\\s+)?(init)\\b",
+          "captures": {
+            "1": {
+              "name": "storage.type.function.hylo"
+            },
+            "2": {
+              "name": "storage.type.function.hylo"
+            }
+          }
+        },
+        "given": {
+          "comment": "A conformance, `given T is P { ... }`, or a given value, `given T = v`: a declaration, like a function's.",
+          "match": "(?<![.\\w])(given)\\b",
+          "captures": {
+            "1": {
+              "name": "storage.type.given.hylo"
+            }
+          }
         },
         "type": {
           "name": "meta.definition.type.hylo",
@@ -252,7 +279,7 @@
         },
         {
           "name": "keyword.convention.hylo",
-          "match": "\\b(inout|let|set|sink)\\b"
+          "match": "\\b(auto|inout|let|set|sink)\\b"
         },
         {
           "name": "keyword.subscript.hylo",
