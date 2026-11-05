@@ -1,0 +1,49 @@
+---
+/**
+ * Every example program (`playground/examples.ts`), one after another, each a snippet the reader
+ * can run and edit, as a `<Playground>` in a page would be.
+ *
+ * A `<Playground>` takes its code from `src/plugins/playground-source.ts`, which reads it from the
+ * fences of an MDX page; here it is given the same, for a program of one file, which it shows.
+ */
+import { Code } from '@astrojs/starlight/components';
+import { EXAMPLES, exampleCode, type Example } from './playground/examples';
+import Playground from './playground/Playground.astro';
+import type { Expectation } from './playground/snippet';
+import { DEFAULT_FILE_NAME } from './playground/share';
+
+/** Returns `expectation` as a snippet's `expect` attribute says it. */
+const expectAttribute = (expectation: Expectation): string =>
+  expectation.kind === 'exit' ? `exit ${expectation.status}` : expectation.kind;
+
+/** Returns the `id` of the heading of `example`. */
+const anchor = (example: Example): string =>
+  example.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+---
+
+{
+  EXAMPLES.map((example) => (
+    <section class="example">
+      <h3 id={anchor(example)}>{example.name}</h3>
+      <Playground
+        expect={expectAttribute(example.expect)}
+        files={JSON.stringify([{ name: DEFAULT_FILE_NAME, contents: '' }])}
+        shown={JSON.stringify([
+          { file: DEFAULT_FILE_NAME, prelude: '', source: exampleCode(example), epilogue: '' },
+        ])}
+      >
+        <Code
+          code={example.source}
+          lang="hylo"
+          meta={example.errorPreview ? 'error-preview' : undefined}
+        />
+      </Playground>
+    </section>
+  ))
+}
+
+<style>
+  .example + .example {
+    margin-top: 2.5rem;
+  }
+</style>

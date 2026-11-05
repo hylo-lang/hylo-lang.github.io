@@ -12,7 +12,7 @@
  */
 import type { CompileRequest } from '@hylo-lang/hylo-wasm/protocol';
 import type { CompilerStatus, Result } from './compiler';
-import { EXAMPLES } from './examples';
+import { EXAMPLES, exampleCode } from './examples';
 import { PlaygroundDock } from './playground-dock';
 import { compiler } from './page-compiler';
 import { ResultPane } from './pane';
@@ -59,7 +59,7 @@ const SAVE_DELAY_MILLISECONDS = 300;
 const ARTIFACT_VIEWS = VIEWS.filter(isArtifactView);
 /** The state of a first visit. */
 const FIRST_VISIT_STATE: PlaygroundState = {
-  files: [{ name: DEFAULT_FILE_NAME, contents: EXAMPLES[0].source }],
+  files: [{ name: DEFAULT_FILE_NAME, contents: exampleCode(EXAMPLES[0]) }],
   ...DEFAULT_STATE,
 };
 
@@ -522,7 +522,7 @@ for (const select of examplesSelects) {
     const example = EXAMPLES.find((candidate) => candidate.name === select.value);
     select.value = '';
     if (!example) return;
-    dock.setFiles([{ name: DEFAULT_FILE_NAME, contents: example.source }]);
+    dock.setFiles([{ name: DEFAULT_FILE_NAME, contents: exampleCode(example) }]);
     dock.focus();
   });
 }

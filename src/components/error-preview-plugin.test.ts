@@ -5,6 +5,7 @@
 import { createRenderer } from '@astrojs/starlight/expressive-code';
 import { toHtml } from '@expressive-code/core/hast';
 import { expect, test } from 'vitest';
+import { withoutErrorPreview } from './error-preview';
 import { pluginErrorPreview } from './error-preview-plugin';
 
 /** Returns the text `code`, with `meta`, leaves in its block, and the block's HTML. */
@@ -34,4 +35,14 @@ test('leaves a block without `error-preview` alone', async () => {
 test('only reads `//!` as a message after a space or at the start of a line', async () => {
   const { text } = await render('//! error: here\nlet url = "a//!b"');
   expect(text).toBe('\nlet url = "a//!b"');
+});
+
+test('`withoutErrorPreview` leaves the text the plugin leaves', async () => {
+  for (const code of [
+    'let a = ~~b~~ + ~~c~~   //! error: no b\nlet d = 1',
+    '~~}~~ //! Cannot deinitialize `x`\n  ~~x.f()~~ //! Use of consumed object',
+    '//! error: here\nlet url = "a//!b"',
+  ]) {
+    expect(withoutErrorPreview(code)).toBe((await render(code)).text);
+  }
 });

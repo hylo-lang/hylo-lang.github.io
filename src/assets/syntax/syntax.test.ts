@@ -9,7 +9,7 @@
  */
 import { type Compiler, load } from '@hylo-lang/hylo-wasm';
 import { beforeAll, describe, expect, test } from 'vitest';
-import { EXAMPLES } from '../../components/playground/examples';
+import { EXAMPLES, exampleCode } from '../../components/playground/examples';
 import { getHighlighter } from '../../components/playground/highlight';
 import { CODE_THEMES } from './code-style';
 
@@ -193,11 +193,11 @@ describe(
     }, 120_000);
 
     test('the first example produces something to check', () => {
-      const { artifacts = {} } = compile({ source: EXAMPLES[0].source, emit: ['raw-ir', 'ir', 'assembly'] });
+      const { artifacts = {} } = compile({ source: exampleCode(EXAMPLES[0]), emit: ['raw-ir', 'ir', 'assembly'] });
       expect(Object.keys(artifacts).sort()).toEqual(['assembly', 'ir', 'raw-ir']);
     });
 
-    test.each(EXAMPLES.map((e) => [e.name, e.source] as const))('%s', async (_, source) => {
+    test.each(EXAMPLES.map((e) => [e.name, exampleCode(e)] as const))('%s', async (_, source) => {
       for (const optimization of [0, 2]) {
         const { artifacts = {} } = compile({ source, emit: ['raw-ir', 'ir', 'assembly'], optimization });
         for (const [artifact, lang] of [['raw-ir', 'hylo-ir'], ['ir', 'hylo-ir'], ['assembly', 'wasm-asm']] as const) {
