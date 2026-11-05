@@ -1,5 +1,15 @@
 # yaml-language-server: $schema=../../../.astro/collections/papers.schema.json
 
+iwaco_2026:
+  title: "Hylo: Safe Systems- & Generic-programming with Mutable Value Semantics"
+  authors:
+    - "Dave Abrahams"
+  venue: "IWACO"
+  year: 2026
+  month: 10
+  url: "https://youtu.be/Ak6YW6FsQXM"
+  isKeynote: true
+
 cpp_on_sea_2024:
   title: "Hylo: The Safe Systems and Generic-programming Language Built on Value Semantics"
   authors:
