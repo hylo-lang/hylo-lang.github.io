@@ -5,6 +5,7 @@ import {
     type ExpressiveCodeLine,
 } from '@expressive-code/core'
 import { getClassNames, h, type Element } from '@expressive-code/core/hast'
+import { MESSAGE, SQUIGGLES } from './error-preview.ts'
 
 /**
  * Shows errors in the code blocks whose meta says `error-preview`: `~~code~~` squiggles `code`,
@@ -23,8 +24,6 @@ class SquigglesAnnotation extends ExpressiveCodeAnnotation {
     }
 }
 
-/** Matches a `//!` comment surrounded by spaces, with the spaces before it, capturing its text. */
-const MESSAGE = /(?:^|\s+)\/\/!\s(.*)$/
 
 /** The message each line of a block shows, which its text no longer holds. */
 const messages = new WeakMap<ExpressiveCodeLine, string>()
@@ -67,7 +66,7 @@ export function pluginErrorPreview() {
                     }
 
                     // Find all squiggles markup in the line
-                    const matches = [...line.text.matchAll(/~~[^~]+~~/g)].reverse()
+                    const matches = [...line.text.matchAll(SQUIGGLES)].reverse()
                     matches.forEach((match) => {
                         // Add a squiggles annotation to the match
                         const from = match.index || 0

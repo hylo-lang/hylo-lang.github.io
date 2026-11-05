@@ -25,7 +25,7 @@ import Papers from './Papers.astro';
 import Talks from './Talks.astro';
 import Podcasts from './Podcasts.astro';
 import Factorial from '../../components/Factorial.astro';
-import Playground from '../../components/playground/Playground.astro';
+import HomeExamples from '../../components/HomeExamples.astro';
 
 
 <CommunityBanner/>
@@ -86,121 +86,6 @@ import Playground from '../../components/playground/Playground.astro';
 Even though the compiler and standard library are still in their early stages, we can already show some advanced examples
 of Hylo code. Run them here, or open them in the [playground](/playground/).
 
-#### Subscripts - A Safe Projection Mechanism
-<Playground expect="ok">
-```hylo title=Temperature.hylo
-/// A temperature.
-public struct Temperature is Deinitializable {
-
-  /// The value of `self` in kelvins.
-  public var kelvins: Int
-
-  /// Creates an instance with its value in kelvins.
-  public memberwise init
-
-  /// The value of `self` in degrees Celsius.
-  public subscript celsius() auto -> Int {
-    let { yield self.kelvins - 273 }
-    inout {
-      var c = self.kelvins - 273
-      yield &c
-      &self.kelvins = c + 273
-    }
-  }
-}
-
-public fun main() {
-  var t = Temperature(kelvins: 273)
-
-  inout c = &t.celsius[]
-  precondition(c == 0)
-  &c = 100
-  precondition(t.kelvins == 373)
-}
-```
-</Playground>
-
-#### Sink Methods - Capability for Deinitializing
-<Playground expect="error">
-```hylo title=SinkMethods.hylo error-preview
-/// A computer that must be explicitly shut down using a sink method.
-struct Computer is Movable {
-  public var ram: Int
-  public memberwise init
-
-  public fun shutdown() sink {
-    // Consumes `self` by consuming its parts.
-    _ = self.ram
-  }
-}
-
-fun test1() {
-  var computer = Computer(ram: 64)
-~~}~~ //! Cannot deinitialize `computer`
-
-fun test2() {
-  var computer = Computer(ram: 64)
-  if random_bool() {
-    computer.shutdown()
-  }
-~~}~~ //! Cannot deinitialize `computer` [if the branch is not taken]
-
-fun test3() {
-  var computer = Computer(ram: 64)
-  while random_bool() {
-    ~~computer.shutdown()~~ //! Use of consumed object [in the second iteration]
-  }
-~~}~~ //! Cannot deinitialize `computer` [if the loop never runs]
-
-fun random_bool() -> Bool {
-  return false // Generated using a fair dice roll % 2.
-}
-```
-</Playground>
-
-#### Method Bundles - Initialization and Assignment
-<Playground expect="ok">
-```hylo title=CustomMove.hylo
-/// A value that counts how many times it has been assigned to.
-struct Tracked is Deinitializable {
-  public var value: Int
-  public var assignments: Int
-
-  public init(value: sink Int) {
-    &self.value = value
-    &self.assignments = 0
-  }
-}
-
-given Tracked is Movable {
-  public fun take_value(from source: sink Self) auto {
-    // Moving into uninitialized storage initializes it.
-    set {
-      &self.value = source.value
-      &self.assignments = 0
-    }
-    // Moving into initialized storage assigns to it.
-    inout {
-      &self.value = source.value
-      &self.assignments += 1
-    }
-  }
-}
-
-public fun main() {
-  var a = Tracked(1)
-  var b = Tracked(2)
-  var c = Tracked(3)
-
-  var s: Tracked
-  &s = a
-  &s = b
-  &s = c
-
-  precondition(s.value == 3)
-  precondition(s.assignments == 2)
-}
-```
-</Playground>
+<HomeExamples/>
 
 See more examples in the [compiler test suite](https://github.com/hylo-lang/hylo-new/tree/main/Tests/CompilerTests/positive).

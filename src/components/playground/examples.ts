@@ -1,13 +1,32 @@
 /**
- * Programs the full-screen playground offers to start from, each with what it does when run, which
- * `examples.test.ts` checks with the compiler the site is built with.
+ * The example programs: those the full-screen playground offers to start from, which the home
+ * page shows one after another. Each says what it does when run, which `examples.test.ts` checks
+ * with the compiler the site is built with.
  *
  * The standard library has no printing yet: a program reports its result as its exit status, or
  * checks it with `precondition`.
  */
+import { withoutErrorPreview } from '../error-preview';
 import type { Expectation } from './snippet';
 
-export const EXAMPLES: readonly { name: string; source: string; expect: Expectation }[] = [
+/** An example program. */
+export interface Example {
+  name: string;
+  /**
+   * The code, with an error preview's markup if `errorPreview` (see `error-preview-plugin.ts`):
+   * squiggles under code between `~~`, and messages in `//!` comments.
+   */
+  source: string;
+  /** Whether `source` marks the errors the compiler reports, as an error preview. */
+  errorPreview?: boolean;
+  expect: Expectation;
+}
+
+/** Returns the code of `example`, without the markup of an error preview. */
+export const exampleCode = (example: Example): string =>
+  example.errorPreview ? withoutErrorPreview(example.source) : example.source;
+
+export const EXAMPLES: readonly Example[] = [
   {
     name: 'Exit status',
     expect: { kind: 'exit', status: 42 },
@@ -118,6 +137,44 @@ public fun main() {
 `,
   },
   {
+    name: 'Consumption checks',
+    expect: { kind: 'error' },
+    errorPreview: true,
+    source: `/// A computer that must be explicitly shut down using a sink method.
+struct Computer is Movable {
+  public var ram: Int
+  public memberwise init
+
+  public fun shutdown() sink {
+    // Consumes \`self\` by consuming its parts.
+    _ = self.ram
+  }
+}
+
+fun never_shut_down() {
+  var computer = Computer(ram: 64)
+~~}~~ //! Cannot deinitialize \`computer\`
+
+fun shut_down_maybe() {
+  var computer = Computer(ram: 64)
+  if random_bool() {
+    computer.shutdown()
+  }
+~~}~~ //! Cannot deinitialize \`computer\` [if the branch is not taken]
+
+fun shut_down_repeatedly() {
+  var computer = Computer(ram: 64)
+  while random_bool() {
+    ~~computer.shutdown()~~ //! Use of consumed object [in the second iteration]
+  }
+~~}~~ //! Cannot deinitialize \`computer\` [if the loop never runs]
+
+fun random_bool() -> Bool {
+  return false // Generated using a fair dice roll % 2.
+}
+`,
+  },
+  {
     name: 'Subscripts',
     expect: { kind: 'ok' },
     source: `// A subscript projects a value instead of returning it: the caller accesses
@@ -183,6 +240,50 @@ public fun main() {
 
   &d.minutes[] += 1
   precondition(d.seconds == 180)
+}
+`,
+  },
+  {
+    name: 'Method bundles',
+    expect: { kind: 'ok' },
+    source: `/// A value that counts how many times it has been assigned to.
+struct Tracked is Deinitializable {
+  public var value: Int
+  public var assignments: Int
+
+  public init(value: sink Int) {
+    &self.value = value
+    &self.assignments = 0
+  }
+}
+
+given Tracked is Movable {
+  public fun take_value(from source: sink Self) auto {
+    // Moving into uninitialized storage initializes it.
+    set {
+      &self.value = source.value
+      &self.assignments = 0
+    }
+    // Moving into initialized storage assigns to it.
+    inout {
+      &self.value = source.value
+      &self.assignments += 1
+    }
+  }
+}
+
+public fun main() {
+  var a = Tracked(1)
+  var b = Tracked(2)
+  var c = Tracked(3)
+
+  var s: Tracked
+  &s = a
+  &s = b
+  &s = c
+
+  precondition(s.value == 3)
+  precondition(s.assignments == 2)
 }
 `,
   },
