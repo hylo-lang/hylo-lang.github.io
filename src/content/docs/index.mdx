@@ -25,6 +25,7 @@ import Papers from './Papers.astro';
 import Talks from './Talks.astro';
 import Podcasts from './Podcasts.astro';
 import Factorial from '../../components/Factorial.astro';
+import Playground from '../../components/playground/Playground.astro';
 
 
 <CommunityBanner/>
@@ -83,118 +84,123 @@ import Factorial from '../../components/Factorial.astro';
 
 ## Working Examples
 Even though the compiler and standard library are still in their early stages, we can already show some advanced examples
-of Hylo code that you can try out on [Compiler Explorer](https://godbolt.org/z/Mv9a77a4c).
+of Hylo code. Run them here, or open them in the [playground](/playground/).
 
 #### Subscripts - A Safe Projection Mechanism
-https://godbolt.org/z/Mzz17c5z1
-```hylo title=Geometry.hylo
-/// The orientation of a 2D vector.
-public type Angle: Deinitializable {
+<Playground expect="ok">
+```hylo title=Temperature.hylo
+/// A temperature.
+public struct Temperature is Deinitializable {
 
-  /// The value of `self` in radians.
-  public var radians: Float64
+  /// The value of `self` in kelvins.
+  public var kelvins: Int
 
-  /// Creates an instance with its value in radians.
+  /// Creates an instance with its value in kelvins.
   public memberwise init
 
-  /// Creates an instance with its value in degrees.
-  public init(degrees: Float64) {
-    &self.radians = degrees * Float64.pi() / 180.0
-  }
-
-  /// The value of `self` in degrees.
-  public property degrees: Float64 {
-    let { radians * 180.0 / Float64.pi() }
+  /// The value of `self` in degrees Celsius.
+  public subscript celsius() auto -> Int {
+    let { yield self.kelvins - 273 }
     inout {
-      var d = radians * 180.0 / Float64.pi()
-      yield &d
-      &self.radians = d * Float64.pi() / 180.0
+      var c = self.kelvins - 273
+      yield &c
+      &self.kelvins = c + 273
     }
   }
 }
 
 public fun main() {
-  var a = Angle(radians: .pi())
+  var t = Temperature(kelvins: 273)
 
-  inout d = &a.degrees
-  precondition(d == 180.0)
-  &d = 0.0
-  precondition(a.radians == 0.0)
+  inout c = &t.celsius[]
+  precondition(c == 0)
+  &c = 100
+  precondition(t.kelvins == 373)
 }
 ```
-
+</Playground>
 
 #### Sink Methods - Capability for Deinitializing
-https://godbolt.org/z/cY7T5jPEc
+<Playground expect="error">
 ```hylo title=SinkMethods.hylo error-preview
 /// A computer that must be explicitly shut down using a sink method.
-type Computer {
-  public var ram: String
+struct Computer is Movable {
+  public var ram: Int
   public memberwise init
 
-  public fun shutdown() sink -> Void {
-    print("Key received, shutting down... Memory contents was: ")
-    print(self.ram)
-
-    /// Sinking all parts
+  public fun shutdown() sink {
+    // Consumes `self` by consuming its parts.
     _ = self.ram
   }
 }
 
 fun test1() {
-  var computer = Computer(ram: "Important data")
-~~}~~ //! Cannot deinit `computer`
+  var computer = Computer(ram: 64)
+~~}~~ //! Cannot deinitialize `computer`
 
 fun test2() {
-  var computer = Computer(ram: "Important data")
+  var computer = Computer(ram: 64)
   if random_bool() {
     computer.shutdown()
   }
-~~}~~ //! Cannot deinit `computer` [when `if` not entered]
+~~}~~ //! Cannot deinitialize `computer` [if the branch is not taken]
 
 fun test3() {
-  var computer = Computer(ram: "Important data")
+  var computer = Computer(ram: 64)
   while random_bool() {
-    computer.~~shutdown()~~ //! Use of consumed object [after first iteration]
+    ~~computer.shutdown()~~ //! Use of consumed object [in the second iteration]
   }
-~~}~~ //! Cannot deinit `computer` [when `while` not entered]
+~~}~~ //! Cannot deinitialize `computer` [if the loop never runs]
 
 fun random_bool() -> Bool {
   return false // Generated using a fair dice roll % 2.
 }
 ```
+</Playground>
 
+#### Method Bundles - Initialization and Assignment
+<Playground expect="ok">
 ```hylo title=CustomMove.hylo
+/// A value that counts how many times it has been assigned to.
+struct Tracked is Deinitializable {
+  public var value: Int
+  public var assignments: Int
 
-type A: Deinitializable {
-  public var witness: Int
-  public var x: Int
-  public init(x: sink Int) {
-    &self.x = x
-    &self.witness = 0
+  public init(value: sink Int) {
+    &self.value = value
+    &self.assignments = 0
   }
 }
 
-conformance A: Movable {
-  public fun take_value(from source: sink Self) {
+given Tracked is Movable {
+  public fun take_value(from source: sink Self) auto {
+    // Moving into uninitialized storage initializes it.
     set {
-      &self.x = source.x
-      &self.witness = 0
+      &self.value = source.value
+      &self.assignments = 0
     }
+    // Moving into initialized storage assigns to it.
     inout {
-      &self.x = source.x
-      &self.witness += 1
+      &self.value = source.value
+      &self.assignments += 1
     }
   }
 }
 
 public fun main() {
-  var s = A(x: 1)
-  &s = A(x: 2)
-  &s = A(x: 2)
+  var a = Tracked(1)
+  var b = Tracked(2)
+  var c = Tracked(3)
 
-  precondition(s.x == 2)
-  precondition(s.witness == 2)
+  var s: Tracked
+  &s = a
+  &s = b
+  &s = c
+
+  precondition(s.value == 3)
+  precondition(s.assignments == 2)
 }
 ```
-See more examples in the [compiler test suite](https://github.com/hylo-lang/hylo/tree/main/Tests/EndToEndTests/TestCases).
+</Playground>
+
+See more examples in the [compiler test suite](https://github.com/hylo-lang/hylo-new/tree/main/Tests/CompilerTests/positive).
