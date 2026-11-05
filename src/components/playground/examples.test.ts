@@ -16,7 +16,6 @@ import { compileRequest, DEFAULT_SETTINGS, OPTIMIZATION_LEVELS, type Optimizatio
  */
 const KNOWN_FAILURES: Readonly<Record<string, readonly OptimizationLevel[]>> = {
   // Calls through witness tables trap when optimized.
-  'Default implementations': [2, 3],
   'Method bundles': [2, 3],
 };
 

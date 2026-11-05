@@ -362,26 +362,63 @@ public fun main() {
   {
     name: 'Default implementations',
     expect: { kind: 'ok' },
-    source: `trait Polygon {
-  fun sides() -> Int
+    source: `/// A sequence of integers that can be read by position.
+trait Sequence {
+  /// Returns the number of elements.
+  fun count() -> Int
 
-  /// Returns the sum of the interior angles, in degrees.
-  fun angle_sum() -> Int { (self.sides() - 2) * 180 }
+  /// Returns the element at position \`i\`, which is less than \`count()\`.
+  fun element(at i: Int) -> Int
+
+  /// Returns the sum of the elements.
+  ///
+  /// Every sequence gets this implementation, which reads each element in turn,
+  /// unless it provides its own.
+  fun sum() -> Int {
+    var total = 0
+    var i = 0
+    while i < self.count() {
+      &total += self.element(at: i)
+      &i += 1
+    }
+    return total
+  }
 }
 
-struct Triangle is Polygon & Deinitializable {
+/// \`value\`, \`times\` times over.
+struct Repetition is Sequence & Deinitializable {
+  var value: Int
+  var times: Int
   memberwise init
-  fun sides() -> Int { 3 }
+
+  fun count() -> Int { self.times.copy() }
+  fun element(at i: Int) -> Int { self.value.copy() }
 }
 
-struct Hexagon is Polygon & Deinitializable {
+/// The integers from \`start\` up to, but not including, \`end\`.
+struct Range is Sequence & Deinitializable {
+  var start: Int
+  var end: Int
   memberwise init
-  fun sides() -> Int { 6 }
+
+  fun count() -> Int { self.end - self.start }
+  fun element(at i: Int) -> Int { self.start + i }
+
+  // The sum of a range has a closed form: no need to read every element.
+  fun sum() -> Int { (self.start + self.end - 1) * self.count() / 2 }
+}
+
+/// Returns the average of the elements of \`s\`, which is not empty.
+fun average<T is Sequence>(s: T) -> Int {
+  s.sum() / s.count()
 }
 
 public fun main() {
-  precondition(Triangle().angle_sum() == 180)
-  precondition(Hexagon().angle_sum() == 720)
+  precondition(Repetition(value: 7, times: 3).sum() == 21)
+  precondition(Range(start: 1, end: 101).sum() == 5050)
+
+  // Generic code calls the implementation of each type: \`Range\`'s own \`sum\`.
+  precondition(average(Range(start: 1, end: 11)) == 5)
 }
 `,
   },
