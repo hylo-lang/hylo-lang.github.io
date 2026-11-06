@@ -26,6 +26,7 @@
     "date-fns": "^4.4.0",
     "date-fns-tz": "^3.2.0",
     "dockview": "^8.6.1",
+    "github-slugger": "^2.0.0",
     "monaco-editor": "^0.57.0",
     "sharp": "^0.35.5",
     "shiki": "^4.5.0",

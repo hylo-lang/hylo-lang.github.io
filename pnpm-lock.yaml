@@ -50,6 +50,9 @@ importers:
       dockview:
         specifier: ^8.6.1
         version: 8.6.1
+      github-slugger:
+        specifier: ^2.0.0
+        version: 2.0.0
       monaco-editor:
         specifier: ^0.57.0
         version: 0.57.0

@@ -4,10 +4,14 @@
  * can run and edit, as a `<Playground>` in a page would be.
  *
  * A `<Playground>` takes its code from `src/plugins/playground-source.ts`, which reads it from the
- * fences of an MDX page; here it is given the same, for a program of one file, which it shows.
+ * fences of an MDX page; here it is given the same, for a program of one file, which it shows:
+ * the code its block shows, as `codeOf` says.
  */
 import { Code } from '@astrojs/starlight/components';
-import { EXAMPLES, exampleCode, type Example } from './playground/examples';
+import AnchorHeading from '@astrojs/starlight/components/AnchorHeading.astro';
+import GithubSlugger from 'github-slugger';
+import { codeOf } from '../plugins/playground-source';
+import { EXAMPLES } from './playground/examples';
 import Playground from './playground/Playground.astro';
 import type { Expectation } from './playground/snippet';
 import { DEFAULT_FILE_NAME } from './playground/share';
@@ -16,27 +20,37 @@ import { DEFAULT_FILE_NAME } from './playground/share';
 const expectAttribute = (expectation: Expectation): string =>
   expectation.kind === 'exit' ? `exit ${expectation.status}` : expectation.kind;
 
-/** Returns the `id` of the heading of `example`. */
-const anchor = (example: Example): string =>
-  example.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+// The ids of the headings, made as Starlight makes those of a page's Markdown headings, unique
+// among them.
+const slugger = new GithubSlugger();
+
+const examples = await Promise.all(
+  EXAMPLES.map(async (example) => {
+    const meta = example.errorPreview ? 'error-preview' : '';
+    const id = slugger.slug(example.name);
+    if (id === '') throw new Error(`The example "${example.name}" makes no heading id`);
+    return {
+      example,
+      id,
+      meta,
+      code: await codeOf({ type: 'code', lang: 'hylo', meta, value: example.source }),
+    };
+  }),
+);
 ---
 
 {
-  EXAMPLES.map((example) => (
+  examples.map(({ example, id, meta, code }) => (
     <section class="example">
-      <h3 id={anchor(example)}>{example.name}</h3>
+      <AnchorHeading level={3} id={id}>{example.name}</AnchorHeading>
       <Playground
         expect={expectAttribute(example.expect)}
         files={JSON.stringify([{ name: DEFAULT_FILE_NAME, contents: '' }])}
         shown={JSON.stringify([
-          { file: DEFAULT_FILE_NAME, prelude: '', source: exampleCode(example), epilogue: '' },
+          { file: DEFAULT_FILE_NAME, prelude: '', source: code, epilogue: '' },
         ])}
       >
-        <Code
-          code={example.source}
-          lang="hylo"
-          meta={example.errorPreview ? 'error-preview' : undefined}
-        />
+        <Code code={example.source} lang="hylo" meta={meta || undefined} />
       </Playground>
     </section>
   ))
