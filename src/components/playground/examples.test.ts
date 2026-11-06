@@ -15,7 +15,8 @@ import { compileRequest, DEFAULT_SETTINGS, OPTIMIZATION_LEVELS, type Optimizatio
  * remove the entry.
  */
 const KNOWN_FAILURES: Readonly<Record<string, readonly OptimizationLevel[]>> = {
-  // Calls through witness tables trap when optimized.
+  // Initializing a variable through the `set` variant of `take_value`, then assigning to it
+  // through the `inout` variant, traps when optimized.
   'Method bundles': [2, 3],
 };
 

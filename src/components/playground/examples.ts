@@ -28,22 +28,12 @@ export const exampleCode = (example: Example): string =>
 
 export const EXAMPLES: readonly Example[] = [
   {
-    name: 'Exit status',
-    expect: { kind: 'exit', status: 42 },
-    source: `// There is no \`print\` yet. A program reports its result through its exit
-// status, and checks what it expects with \`precondition\`, which traps if the
-// condition is false.
-public fun main() -> Int32 {
-  let answer = 6 * 7
-  precondition(answer == 42)
-  return Int32(answer)
-}
-`,
-  },
-  {
     name: 'Factorial',
     expect: { kind: 'exit', status: 120 },
-    source: `// \`n\` is a \`sink\` parameter: the function owns its argument, so it may count
+    source: `// There is no \`print\` yet: a program reports its result through its exit
+// status, here 120, or checks what it expects with \`precondition\`.
+//
+// \`n\` is a \`sink\` parameter: the function owns its argument, so it may count
 // it down. Every mutation is marked with \`&\`.
 fun factorial(n: sink Int) -> Int {
   var result = 1
@@ -244,6 +234,43 @@ public fun main() {
 `,
   },
   {
+    name: 'Auto subscripts',
+    expect: { kind: 'ok' },
+    source: `/// A temperature.
+struct Temperature is Deinitializable {
+  /// The value of \`self\` in kelvins.
+  var kelvins: Int
+  memberwise init
+
+  /// The value of \`self\` in degrees Celsius.
+  ///
+  /// An \`auto\` subscript is a bundle of variants, of which the compiler picks
+  /// one by how the projection is used: \`let\` to read it, \`inout\` to modify it.
+  /// The value in degrees Celsius isn't stored: the \`inout\` variant projects a
+  /// temporary, and converts it back to kelvins once the caller is done with it.
+  subscript celsius() auto -> Int {
+    let { yield self.kelvins - 273 }
+    inout {
+      var c = self.kelvins - 273
+      yield &c
+      &self.kelvins = c + 273
+    }
+  }
+}
+
+public fun main() {
+  var t = Temperature(kelvins: 273)
+  precondition(t.celsius[] == 0)
+
+  // Bound to a name, the projection lasts until its last use, after which
+  // \`t.kelvins\` is updated.
+  inout c = &t.celsius[]
+  &c = 100
+  precondition(t.kelvins == 373)
+}
+`,
+  },
+  {
     name: 'Method bundles',
     expect: { kind: 'ok' },
     source: `/// A value that counts how many times it has been assigned to.
@@ -370,18 +397,19 @@ trait Sequence {
   /// Returns the element at position \`i\`, which is less than \`count()\`.
   fun element(at i: Int) -> Int
 
-  /// Returns the sum of the elements.
+  /// Returns the sum of the elements, and whether it was computed by this
+  /// default implementation.
   ///
   /// Every sequence gets this implementation, which reads each element in turn,
   /// unless it provides its own.
-  fun sum() -> Int {
+  fun sum() -> {Int, Bool} {
     var total = 0
     var i = 0
     while i < self.count() {
       &total += self.element(at: i)
       &i += 1
     }
-    return total
+    return (total, true)
   }
 }
 
@@ -405,20 +433,32 @@ struct Range is Sequence & Deinitializable {
   fun element(at i: Int) -> Int { self.start + i }
 
   // The sum of a range has a closed form: no need to read every element.
-  fun sum() -> Int { (self.start + self.end - 1) * self.count() / 2 }
+  fun sum() -> {Int, Bool} { ((self.start + self.end - 1) * self.count() / 2, false) }
 }
 
 /// Returns the average of the elements of \`s\`, which is not empty.
 fun average<T is Sequence>(s: T) -> Int {
-  s.sum() / s.count()
+  s.sum().0 / s.count()
+}
+
+/// Returns whether the sum of \`s\` is computed by the default implementation.
+fun sums_by_default<T is Sequence>(s: T) -> Bool {
+  s.sum().1
 }
 
 public fun main() {
-  precondition(Repetition(value: 7, times: 3).sum() == 21)
-  precondition(Range(start: 1, end: 101).sum() == 5050)
+  let r = Repetition(value: 7, times: 3)
+  precondition(r.sum().0 == 21)
+  precondition(r.sum().1)
+
+  let n = Range(start: 1, end: 101)
+  precondition(n.sum().0 == 5050)
+  precondition(!n.sum().1)
 
   // Generic code calls the implementation of each type: \`Range\`'s own \`sum\`.
   precondition(average(Range(start: 1, end: 11)) == 5)
+  precondition(sums_by_default(r))
+  precondition(!sums_by_default(n))
 }
 `,
   },
@@ -490,20 +530,6 @@ fun depth<T>(n: Int) -> Int {
 
 public fun main() {
   precondition(depth<Bool>(10) == 10)
-}
-`,
-  },
-  {
-    name: 'A trap',
-    expect: { kind: 'trap' },
-    source: `/// Returns the average of \`count\` values adding up to \`total\`.
-fun average(total: Int, count: Int) -> Int {
-  total / count
-}
-
-// Dividing by zero traps, and so does a failed \`precondition\`.
-public fun main() -> Int32 {
-  Int32(average(10, 0))
 }
 `,
   },

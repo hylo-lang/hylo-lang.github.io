@@ -205,6 +205,7 @@ describe(
           expect(await unscoped(artifacts[artifact], lang), `${artifact} at -O${optimization}`).toEqual([]);
         }
       }
-    });
+      // Compiling twice and highlighting six artifacts takes a few seconds for the bigger examples.
+    }, 30_000);
   },
 );
