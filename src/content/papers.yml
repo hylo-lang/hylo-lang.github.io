@@ -40,8 +40,8 @@ existentialize-your-generics:
     - Matt Bovel
     - Hamza Remmal
   publishedAt: "MPLR '25: Proceedings of the 22nd ACM SIGPLAN International Conference on Managed Programming Languages and Runtimes"
-  year: 2022
-  month: 6
+  year: 2025
+  month: 10
   url: "https://doi.org/10.1145/3759426.3760975"
   pdf: "https://dl.acm.org/doi/pdf/10.1145/3759426.3760975"
 
