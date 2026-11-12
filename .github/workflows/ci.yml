@@ -23,7 +23,7 @@ jobs:
         uses: actions/checkout@v7.0.1
 
       - name: Setup pnpm
-        uses: pnpm/action-setup@v6.1.0
+        uses: pnpm/action-setup@v6.1.1
         with:
           version: latest
 
@@ -48,7 +48,7 @@ jobs:
         uses: actions/checkout@v7.0.1
 
       - name: Setup pnpm
-        uses: pnpm/action-setup@v6.1.0
+        uses: pnpm/action-setup@v6.1.1
         with:
           version: latest
 
@@ -85,7 +85,7 @@ jobs:
         uses: actions/checkout@v7.0.1
 
       - name: Run typos
-        uses: crate-ci/typos@v1.51.1
+        uses: crate-ci/typos@v1.52.0
 
   links:
     name: Link check (lychee)
