@@ -217,7 +217,8 @@ import WindowsDevMode from './windows-dev-mode.png';
 
             3. **Download Hylo's latest LLVM build** from
                [the llvm-build releases page](https://github.com/hylo-lang/llvm-build/releases) and extract it
-               somewhere permanent.
+               somewhere permanent. Unless you are debugging the LLVM code generation part of Hylo, you
+               probably want the `MinSizeRel` variant, as the `Debug` variant slows down testing considerably.
 
                We build LLVM for Apple silicon and Intel, requiring macOS 26+. If your platform is not among these,
                you will need to acquire an LLVM 23 distribution that works for you, and generate `llvm.pc` using our
@@ -233,8 +234,8 @@ import WindowsDevMode from './windows-dev-mode.png';
 
                <Aside type="tip" title="Xcode needs the .pc file installed">
                    Xcode ignores `PKG_CONFIG_PATH`, so if you build through Xcode rather than the
-                   command line, install the file into a directory Xcode already searches. The
-                   archive includes a script for this:
+                   command line, use the script included in the LLVM build to install the file into
+                   a directory Xcode already searches.
 
                    ```bash frame=none
                    cd <LLVM>/pkgconfig
@@ -268,7 +269,8 @@ import WindowsDevMode from './windows-dev-mode.png';
 
             4. **Download Hylo's latest LLVM build** from
                [the llvm-build releases page](https://github.com/hylo-lang/llvm-build/releases) and extract it
-               somewhere permanent.
+               somewhere permanent. Unless you are debugging the LLVM code generation part of Hylo, you
+               probably want the `MinSizeRel` variant, as the `Debug` variant slows down testing considerably. 
 
                We build LLVM for x64 and arm64, requiring Windows 11. If your platform is not among these, you will
                need to acquire an LLVM 23 distribution that works for you, and generate `llvm.pc` using our
@@ -303,6 +305,8 @@ swift test  # build and run tests in debug mode
 swift test -c release  # build and run tests in release mode
 swift test --parallel  # build and run tests in parallel
 ```
+
+The first time you build, expect to see many warnings pointing to the LLVM headers.
 
 ## Compiler Tests
 
